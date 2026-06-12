@@ -1,0 +1,22 @@
+{
+    "register": "S'inscrire",
+    "login": "Se connecter",
+    "logout": "Se déconnecter",
+    "email": "E-mail",
+    "password": "Mot de passe",
+    "firstName": "Prénom",
+    "lastName": "Nom",
+    "mobile": "Numéro de téléphone",
+    "verifyEmail": "Vérifier l'e-mail",
+    "resendOtp": "Renvoyer l'OTP",
+    "forgotPassword": "Mot de passe oublié",
+    "resetPassword": "Réinitialiser le mot de passe",
+    "iAmA": "Je suis",
+    "buyer": "Acheteur",
+    "vendor": "Vendeur",
+    "alreadyHaveAccount": "Déjà un compte ?",
+    "dontHaveAccount": "Pas encore de compte ?",
+    "otpSentTo": "OTP envoyé à",
+    "enterOtp": "Entrer l'OTP",
+    "backToLogin": "Retour à la connexion"
+  }

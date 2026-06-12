@@ -1,0 +1,22 @@
+{
+    "register": "Register",
+    "login": "Login",
+    "logout": "Logout",
+    "email": "Email",
+    "password": "Password",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "mobile": "Mobile Number",
+    "verifyEmail": "Verify Email",
+    "resendOtp": "Resend OTP",
+    "forgotPassword": "Forgot Password",
+    "resetPassword": "Reset Password",
+    "iAmA": "I am a",
+    "buyer": "Buyer",
+    "vendor": "Vendor / Seller",
+    "alreadyHaveAccount": "Already have an account?",
+    "dontHaveAccount": "Don't have an account?",
+    "otpSentTo": "OTP sent to",
+    "enterOtp": "Enter OTP",
+    "backToLogin": "Back to Login"
+  }
