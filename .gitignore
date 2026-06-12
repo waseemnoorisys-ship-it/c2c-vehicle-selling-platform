@@ -1,0 +1,21 @@
+# Root
+.DS_Store
+
+# Backend
+backend/node_modules/
+backend/.env
+backend/dist/
+backend/logs/
+
+# Frontend  
+frontend/node_modules/
+frontend/.env
+frontend/.env.local
+frontend/dist/
+frontend/build/
+
+# Postman
+*.postman_environment.json
+
+# Logs
+*.log
