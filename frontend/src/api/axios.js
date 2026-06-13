@@ -5,7 +5,7 @@ const api = axios.create({
   baseURL: "/api/v1",
   headers: { "Content-Type": "application/json" },
 });
-
+ 
 // Attach access token to every request automatically
 api.interceptors.request.use((config) => {
   const token = useAuthStore.getState().accessToken;
