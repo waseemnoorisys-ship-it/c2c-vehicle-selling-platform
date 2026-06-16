@@ -99,7 +99,7 @@ async function refreshAccessToken(plainToken, userAgent, ip) {
   const record = await RefreshToken.findOne({
     tokenHash: hash,
     isRevoked: false,
-    expiresAt: { $gt: new Date() },
+    expiresAt: { $gt: new Date() },//expires in 7 days 
   });
 
   if (!record) throw new ApiError(401, "Invalid or expired refresh token");
@@ -111,8 +111,8 @@ async function refreshAccessToken(plainToken, userAgent, ip) {
   const user = await User.findById(record.userId);
   if (!user || !user.isActive) throw new ApiError(401, "User not found or inactive");
 
-  const accessToken     = signAccessToken(user._id, user.role);
-  const newRefreshToken = await createRefreshToken(user._id, userAgent, ip);
+  const accessToken     = signAccessToken(user._id, user.role);//user._id:"6856abc123xyz" , user.role:"buyer/vendor/admin" ki bunyaad par taken value
+  const newRefreshToken = await createRefreshToken(user._id, userAgent, ip);//user._id:"waseem212ejnf" ,userAgent:"chrome/postman/hobsoch",ip:"wifi ip"
 
   return { accessToken, refreshToken: newRefreshToken };
 }
@@ -120,13 +120,13 @@ async function refreshAccessToken(plainToken, userAgent, ip) {
 // ─── Logout ───────────────────────────────────────────────
 async function logout(plainToken) {
   if (!plainToken) return;
-  const hash = crypto.createHash("sha256").update(plainToken).digest("hex");
-  await RefreshToken.findOneAndUpdate({ tokenHash: hash }, { isRevoked: true });
+  const hash = crypto.createHash("sha256").update(plainToken).digest("hex");//digest written the token
+  await RefreshToken.findOneAndUpdate({ tokenHash: hash }, { isRevoked: true });//hash token ki bunyaad par find karo or revoke:true matlab user ko logout krdo
 }
 
 // ─── Forgot password ──────────────────────────────────────
 async function forgotPassword({ email }) {
-  const user = await User.findActiveByEmail(email);
+  const user = await User.findActiveByEmail(email);//DON'T SHOW ERROR IF NOT FOUND BUT BUT BUT WHY? This is a very important security concept called User Enumeration Prevention.//hacker can find out if email exists or by targetting different emails so we don show error if not found
   // WHY no error if not found: security — don't reveal if email exists
   if (!user) return { message: "If that email exists, an OTP has been sent" };
 

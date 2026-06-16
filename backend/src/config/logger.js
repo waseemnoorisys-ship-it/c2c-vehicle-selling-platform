@@ -1,3 +1,9 @@
+//winton:{
+//  level: "info" | "debug"
+//  format: "timestamp" | "errors" | "printf"
+//  transports: "console" | "file"
+//}
+//deconstruct the from winston
 const { createLogger, format, transports } = require("winston");
 
 const logger = createLogger({

@@ -7,8 +7,9 @@ async function connectDB() {
     logger.info("MongoDB connected");
   } catch (err) {
     logger.error("MongoDB connection failed:", err.message);
+    //Kills the Node process with error code 1
     process.exit(1);
   }
-}
+} 
 
 module.exports = connectDB;

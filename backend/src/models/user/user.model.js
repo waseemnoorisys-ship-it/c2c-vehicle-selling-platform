@@ -11,13 +11,17 @@ const userSchema = new mongoose.Schema(
     passwordHash:    { type: String, required: true },
     role:            { type: String, enum: ["buyer", "vendor"], required: true },
     isEmailVerified: { type: Boolean, default: false },
-    isActive:        { type: Boolean, default: true },
+    isActive:        { type: Boolean, default: true },//false means user is blocked or deleted
     profilePhoto:    { type: String, default: null },  // S3 URL
     language:        { type: String, enum: ["en", "fr"], default: "en" },
+    
     deletedAt:       { type: Date, default: null },    // GDPR soft delete
   },
   { timestamps: true }
 );
+// GDPR: General Data Protection Regulation
+// Means don't permanently remove the user's data from the database; instead, mark it as deleted (e.g., deletedAt: new Date()).
+// This helps comply with privacy regulations like GDPR (General Data Protection Regulation) while preserving records for auditing, recovery, or legal requirements.
 
 // WHY index on email: every login + OTP lookup queries by email
 // CHANGED: removed duplicate email index line Date[13/06/2026] becuase of this error [ (node:10248) [MONGOOSE] Warning: mongoose: Duplicate schema index on {"email":1} for model "User". This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.]

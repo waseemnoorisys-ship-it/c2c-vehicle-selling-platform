@@ -2,6 +2,8 @@ const transporter = require("../../config/mailer");
 const logger      = require("../../config/logger");
 
 const FROM = `"${process.env.EMAIL_FROM_NAME}" <${process.env.EMAIL_FROM}>`;
+// EMAIL_FROM_NAME=C2C Vehicles[sender] --------------- EMAIL_FROM=hello@demomailtrap.co [receiver]
+
 
 async function sendOtpEmail(toEmail, otp, type) {
   const isReset   = type === "password_reset";

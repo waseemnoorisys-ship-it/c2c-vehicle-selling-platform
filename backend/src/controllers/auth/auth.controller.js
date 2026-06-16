@@ -11,6 +11,7 @@ const register = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+
 const verifyEmail = async (req, res, next) => {
   try {
     const result = await authService.verifyEmail(req.body);
