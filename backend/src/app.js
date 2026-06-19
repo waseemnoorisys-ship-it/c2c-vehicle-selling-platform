@@ -5,9 +5,21 @@ const morgan       = require("morgan");
 const { generalLimiter } = require("./middleware/rateLimiter.middleware");
 const errorHandler = require("./middleware/errorHandler.middleware");
 const logger       = require("./config/logger");
+//sprint/2-listings
+// ── New route imports (add near the top, with the existing authRoutes import) ──
+const userRoutes    = require("./routes/user/user.routes");
+const makeRoutes    = require("./routes/make/make.routes");
+const modelRoutes   = require("./routes/model/model.routes");
+const listingRoutes = require("./routes/listing/listing.routes");
 
 // Route imports
 const authRoutes   = require("./routes/auth/auth.routes");
+//sprint/2-listings
+// ── New route mounts (add right after app.use("/api/v1/auth", authRoutes);) ──
+app.use("/api/v1/users", userRoutes);
+app.use("/api/v1/makes", makeRoutes);
+app.use("/api/v1/models", modelRoutes);
+app.use("/api/v1/listings", listingRoutes);
 
 const app = express();
 

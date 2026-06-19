@@ -26,6 +26,7 @@ const userSchema = new mongoose.Schema(
 // WHY index on email: every login + OTP lookup queries by email
 // CHANGED: removed duplicate email index line Date[13/06/2026] becuase of this error [ (node:10248) [MONGOOSE] Warning: mongoose: Duplicate schema index on {"email":1} for model "User". This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.]
 // userSchema.index({ email: 1 },{unique:true});
+
 userSchema.index({ role: 1, isActive: 1 });
 
 // Instance method — compare plain password with stored hash
