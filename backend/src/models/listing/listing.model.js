@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const vehicleMake = require("../vehicleMake/vehicleMake.model");
 
 const listingSchema = new mongoose.Schema(
   {
@@ -12,7 +13,7 @@ const listingSchema = new mongoose.Schema(
     // ── Vehicle identity (referenced, not duplicated — see Project Bible) ──
     makeId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "VehicleMake",
+      ref: "vehicleMake",
       required: true,
     },
     modelId: {
@@ -63,9 +64,17 @@ const listingSchema = new mongoose.Schema(
     isVerified: { type: Boolean, default: false }, // admin-assigned "verified" badge
     rejectionReason: { type: String, default: null },
 
-    // ── Photos ────────────────────────────────────────────
-    photos: [{ type: String }], // array of S3 URLs, max 10 enforced in service layer
-    coverPhoto: { type: String, default: null },
+    // ── Photos ──────────────────────────────────old old old ──────────
+    // photos: [{ type: String }], // array of S3 URLs, max 10 enforced in service layer
+    // coverPhoto: { type: String, default: null },
+    // NEW:
+    photos: [
+      {
+        url: { type: String, required: true }, // display URL
+        publicId: { type: String, required: true }, // Cloudinary ID for deletion
+      },
+    ],
+    coverPhoto: { type: String, default: null }, // just the URL string for quick access
 
     // ── Soft delete (GDPR / record-keeping — see Sprint 1 pattern) ──
     deletedAt: { type: Date, default: null },
@@ -101,7 +110,6 @@ listingSchema.index({ status: 1, deletedAt: 1 });
 listingSchema.index({ location: "2dsphere" });
 
 module.exports = mongoose.model("Listing", listingSchema);
-
 
 // # Listing Schema
 

@@ -1,6 +1,6 @@
 const User           = require("../../models/user/user.model");
 const ApiError        = require("../../utils/ApiError");
-const { uploadFileToS3, deleteFileFromS3 } = require("../upload/upload.service");
+const { uploadProfilePhoto, deleteFileFromCloudinary } = require("../upload/upload.service");
 
 // WHY this function exists separately from the controller:
 // keeps the "which fields are allowed to update" logic testable
@@ -30,15 +30,14 @@ async function updateProfilePhoto(userId, file) {
   const user = await User.findById(userId);
   if (!user) throw new ApiError(404, "User not found");
 
-  // WHY delete old photo first: avoid accumulating orphaned files in S3
-  // every time a user changes their profile picture (storage cost + clutter).
-  if (user.profilePhoto) {
-    await deleteFileFromS3(user.profilePhoto);
+  if (user.profilePhotoPublicId) {
+    await deleteFileFromCloudinary(user.profilePhotoPublicId);
   }
 
-  const url = await uploadFileToS3(file.buffer, file.originalname, file.mimetype, "profiles");
+  const { url, publicId } = await uploadProfilePhoto(file.buffer, file.originalname);
 
   user.profilePhoto = url;
+  user.profilePhotoPublicId = publicId;
   await user.save();
 
   return { profilePhoto: url };

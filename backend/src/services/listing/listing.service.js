@@ -1,9 +1,12 @@
-const Listing         = require("../../models/listing/listing.model");
-const VehicleMake      = require("../../models/vehicleMake/vehicleMake.model");
-const VehicleModel     = require("../../models/vehicleModel/vehicleModel.model");
+const Listing = require("../../models/listing/listing.model");
+const VehicleMake = require("../../models/vehicleMake/vehicleMake.model");
+const VehicleModel = require("../../models/vehicleModel/vehicleModel.model");
 const CommissionConfig = require("../../models/commission/commission.model");
-const ApiError          = require("../../utils/ApiError");
-const { uploadFileToS3, deleteFileFromS3 } = require("../upload/upload.service");
+const ApiError = require("../../utils/ApiError");
+const {
+  uploadFileToS3,
+  deleteFileFromS3,
+} = require("../upload/upload.service");
 
 const MAX_PHOTOS = 10;
 
@@ -19,8 +22,8 @@ async function calculatePricing(askingPrice) {
   }
 
   const commissionPercent = config.percentage;
-  const commissionAmount  = (askingPrice * commissionPercent) / 100;
-  const displayPrice      = askingPrice + commissionAmount;
+  const commissionAmount = (askingPrice * commissionPercent) / 100;
+  const displayPrice = askingPrice + commissionAmount;
 
   return { commissionPercent, displayPrice };
 }
@@ -36,16 +39,22 @@ async function validateMakeModel(makeId, modelId) {
   if (!model) throw new ApiError(404, "Selected model not found");
 
   if (model.makeId.toString() !== makeId.toString()) {
-    throw new ApiError(400, "Selected model does not belong to the selected make");
+    throw new ApiError(
+      400,
+      "Selected model does not belong to the selected make",
+    );
   }
 }
 
 async function createListing(vendorId, data) {
-  const { makeId, modelId, latitude, longitude, submitForApproval, ...rest } = data;
+  const { makeId, modelId, latitude, longitude, submitForApproval, ...rest } =
+    data;
 
   await validateMakeModel(makeId, modelId);
 
-  const { commissionPercent, displayPrice } = await calculatePricing(data.askingPrice);
+  const { commissionPercent, displayPrice } = await calculatePricing(
+    data.askingPrice,
+  );
 
   const listing = await Listing.create({
     vendorId,
@@ -78,7 +87,10 @@ async function getOwnedListingOrFail(listingId, vendorId) {
   if (!listing) throw new ApiError(404, "Listing not found");
 
   if (listing.vendorId.toString() !== vendorId.toString()) {
-    throw new ApiError(403, "You do not have permission to modify this listing");
+    throw new ApiError(
+      403,
+      "You do not have permission to modify this listing",
+    );
   }
   return listing;
 }
@@ -87,7 +99,7 @@ async function updateListing(listingId, vendorId, updates) {
   const listing = await getOwnedListingOrFail(listingId, vendorId);
 
   // If make or model is being changed, re-validate the pairing
-  const newMakeId  = updates.makeId  || listing.makeId;
+  const newMakeId = updates.makeId || listing.makeId;
   const newModelId = updates.modelId || listing.modelId;
   if (updates.makeId || updates.modelId) {
     await validateMakeModel(newMakeId, newModelId);
@@ -98,7 +110,8 @@ async function updateListing(listingId, vendorId, updates) {
   // Bible): we keep the ORIGINAL commissionPercent snapshot, only
   // recompute displayPrice using that same original percent.
   if (updates.askingPrice !== undefined) {
-    const commissionAmount = (updates.askingPrice * listing.commissionPercent) / 100;
+    const commissionAmount =
+      (updates.askingPrice * listing.commissionPercent) / 100;
     updates.displayPrice = updates.askingPrice + commissionAmount;
   }
 
@@ -108,7 +121,7 @@ async function updateListing(listingId, vendorId, updates) {
       type: "Point",
       coordinates: [
         updates.longitude ?? listing.location.coordinates[0],
-        updates.latitude  ?? listing.location.coordinates[1],
+        updates.latitude ?? listing.location.coordinates[1],
       ],
     };
   }
@@ -138,14 +151,20 @@ async function submitListing(listingId, vendorId) {
   const listing = await getOwnedListingOrFail(listingId, vendorId);
 
   if (listing.status !== "draft") {
-    throw new ApiError(400, `Cannot submit a listing with status "${listing.status}"`);
+    throw new ApiError(
+      400,
+      `Cannot submit a listing with status "${listing.status}"`,
+    );
   }
 
   // WHY minimum requirements check before allowing submission:
   // a draft can be incomplete, but a listing entering the admin review
   // queue should at least have a photo — otherwise admin can't evaluate it.
   if (!listing.photos || listing.photos.length === 0) {
-    throw new ApiError(400, "At least 1 photo is required before submitting for approval");
+    throw new ApiError(
+      400,
+      "At least 1 photo is required before submitting for approval",
+    );
   }
 
   listing.status = "pending";
@@ -160,19 +179,28 @@ async function addPhotos(listingId, vendorId, files) {
   if (currentCount + files.length > MAX_PHOTOS) {
     throw new ApiError(
       400,
-      `Maximum ${MAX_PHOTOS} photos allowed. You have ${currentCount}, tried to add ${files.length}.`
+      `Maximum ${MAX_PHOTOS} photos allowed. You have ${currentCount}, tried to add ${files.length}.`,
     );
   }
 
   // WHY Promise.all instead of a for-loop with await inside:
   // uploads multiple files to S3 in PARALLEL rather than one-by-one,
   // significantly faster for the user when uploading 5-10 photos at once.
-  const uploadPromises = files.map((file) =>
-    uploadFileToS3(file.buffer, file.originalname, file.mimetype, `listings/${listingId}`)
-  );
-  const newUrls = await Promise.all(uploadPromises);
+  //old old old version of s3 storage
 
-  listing.photos.push(...newUrls);
+  //   const uploadPromises = files.map((file) =>
+  //     uploadFileToS3(file.buffer, file.originalname, file.mimetype, `listings/${listingId}`)
+  //   );
+  //   const newUrls = await Promise.all(uploadPromises);
+
+  // NEW (Cloudinary version):
+  const { uploadListingPhotos } = require("../upload/upload.service");
+  const uploadResults = await uploadListingPhotos(files, listingId);
+  const newUrls = uploadResults.map((r) => r.url);
+  const newPublicIds = uploadResults.map((r) => r.publicId);
+ 
+  listing.photos.push(...uploadResults.map((r) => ({ url: r.url, publicId: r.publicId })));
+  // listing.photos.push(...newUrls);
 
   // WHY auto-set cover photo: if this is the vendor's first upload,
   // automatically make the first photo the cover — avoids an empty
@@ -192,7 +220,12 @@ async function deletePhoto(listingId, vendorId, photoUrl) {
   if (!photoExists) throw new ApiError(404, "Photo not found on this listing");
 
   listing.photos = listing.photos.filter((p) => p !== photoUrl);
-  await deleteFileFromS3(photoUrl); // remove from cloud storage too
+//   await deleteFileFromS3(photoUrl); // remove from cloud storage too
+// NEW:
+// We need publicId to delete from Cloudinary, not just the URL.
+// This means we need to store publicId alongside url in the photos array.
+// See updated Listing model below.
+await deleteFileFromCloudinary(photoPublicId);
 
   // WHY re-assign cover if it was the deleted one:
   // avoids the listing card showing a broken image link.

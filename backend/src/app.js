@@ -14,12 +14,7 @@ const listingRoutes = require("./routes/listing/listing.routes");
 
 // Route imports
 const authRoutes   = require("./routes/auth/auth.routes");
-//sprint/2-listings
-// ── New route mounts (add right after app.use("/api/v1/auth", authRoutes);) ──
-app.use("/api/v1/users", userRoutes);
-app.use("/api/v1/makes", makeRoutes);
-app.use("/api/v1/models", modelRoutes);
-app.use("/api/v1/listings", listingRoutes);
+
 
 const app = express();
 
@@ -63,6 +58,12 @@ app.get("/health", (req, res) => res.json({ status: "ok", timestamp: new Date() 
 
 // ── API Routes
 app.use("/api/v1/auth", authRoutes);
+//sprint/2-listings
+// ── New route mounts (add right after app.use("/api/v1/auth", authRoutes);) ──
+app.use("/api/v1/users", userRoutes);
+app.use("/api/v1/makes", makeRoutes);
+app.use("/api/v1/models", modelRoutes);
+app.use("/api/v1/listings", listingRoutes);
 
 // ── 404 handler
 app.use((req, res) => {

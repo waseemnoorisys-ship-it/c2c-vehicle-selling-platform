@@ -12,7 +12,8 @@ const userSchema = new mongoose.Schema(
     role:            { type: String, enum: ["buyer", "vendor"], required: true },
     isEmailVerified: { type: Boolean, default: false },
     isActive:        { type: Boolean, default: true },//false means user is blocked or deleted
-    profilePhoto:    { type: String, default: null },  // S3 URL
+    profilePhoto:          { type: String, default: null },
+    profilePhotoPublicId:  { type: String, default: null },
     language:        { type: String, enum: ["en", "fr"], default: "en" },
     
     deletedAt:       { type: Date, default: null },    // GDPR soft delete
