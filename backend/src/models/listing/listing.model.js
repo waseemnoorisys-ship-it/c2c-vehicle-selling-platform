@@ -1,6 +1,14 @@
 const mongoose = require("mongoose");
 const vehicleMake = require("../vehicleMake/vehicleMake.model");
 
+const photoSchema = new mongoose.Schema(
+  {
+    url: { type: String, required: true },
+    publicId: { type: String, required: true }, // WHY: needed to delete from Cloudinary
+  },
+  { _id: false },
+);
+
 const listingSchema = new mongoose.Schema(
   {
     // ── Ownership ──────────────────────────────────────
@@ -67,14 +75,22 @@ const listingSchema = new mongoose.Schema(
     // ── Photos ──────────────────────────────────old old old ──────────
     // photos: [{ type: String }], // array of S3 URLs, max 10 enforced in service layer
     // coverPhoto: { type: String, default: null },
-    // NEW:
-    photos: [
-      {
-        url: { type: String, required: true }, // display URL
-        publicId: { type: String, required: true }, // Cloudinary ID for deletion
-      },
-    ],
+    // // NEW:
+    // photos: [
+    //   {
+    //     url: { type: String, required: true }, // display URL
+    //     publicId: { type: String, required: true }, // Cloudinary ID for deletion
+    //   },
+    // ],
+
+    //sprint 3 added photoSchema
+    photos : {
+      type : [photoSchema],
+      default : []
+    },
     coverPhoto: { type: String, default: null }, // just the URL string for quick access
+    // ← NEW in Sprint 3            
+    viewCount: { type: Number, default: 0 }, // incremented on each public view
 
     // ── Soft delete (GDPR / record-keeping — see Sprint 1 pattern) ──
     deletedAt: { type: Date, default: null },
@@ -108,8 +124,78 @@ listingSchema.index({ status: 1, deletedAt: 1 });
 // });
 // ```
 listingSchema.index({ location: "2dsphere" });
+//
+//
+//Sprint 3
+// WHY: Text index for keyword search across these fields.
+// Allows $text search: "toyota camry mumbai" matches across make/model/location.
+// Note: makeId/modelId are ObjectIds so we search populated name fields in service layer.
+listingSchema.index({ locationText: "text", description: "text" });
 
 module.exports = mongoose.model("Listing", listingSchema);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // # Listing Schema
 

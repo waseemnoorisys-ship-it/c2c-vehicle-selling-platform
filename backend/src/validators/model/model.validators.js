@@ -1,17 +1,38 @@
 const Joi = require("joi");
 
-// WHY makeId required here: every model MUST belong to a make.
-// You can't create "Civic" floating in space — it needs a parent.
+const objectId = Joi.string().hex().length(24);
+
+const listModelsSchema = Joi.object({
+  makeId: objectId,
+  page:   Joi.number().integer().min(1).default(1),
+  limit:  Joi.number().integer().min(1).max(200).default(100),
+});
+
+const getModelByIdSchema = Joi.object({
+  id: objectId.required(),
+});
+
 const createModelSchema = Joi.object({
-  makeId: Joi.string().hex().length(24).required().messages({
+  makeId: objectId.required().messages({
     "string.length": "makeId must be a valid MongoDB ObjectId",
   }),
   name: Joi.string().trim().min(1).max(50).required(),
 });
 
 const updateModelSchema = Joi.object({
+  id:       objectId.required(),
   name:     Joi.string().trim().min(1).max(50),
   isActive: Joi.boolean(),
-}).min(1);
+}).min(2);
 
-module.exports = { createModelSchema, updateModelSchema };
+const deleteModelSchema = Joi.object({
+  id: objectId.required(),
+});
+
+module.exports = {
+  listModelsSchema,
+  getModelByIdSchema,
+  createModelSchema,
+  updateModelSchema,
+  deleteModelSchema,
+};
