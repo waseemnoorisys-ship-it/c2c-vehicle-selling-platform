@@ -6,6 +6,7 @@ const { authenticate, requireRole } = require("../../middleware/auth.middleware"
 const { handleListingPhotosUpload } = require("../../middleware/upload.middleware");
 const {
   createListingSchema,
+  createListingWithPhotosSchema,
   updateListingSchema,
   browseListingsSchema,
   getListingByIdSchema,
@@ -21,6 +22,12 @@ router.use(authenticate, requireRole("vendor"));
 
 router.post("/mine", validate(getMyListingsSchema), controller.getMyListings);
 router.post("/create", validate(createListingSchema), controller.createListing);
+router.post(
+  "/create-with-photos",
+  handleListingPhotosUpload,
+  validate(createListingWithPhotosSchema),
+  controller.createListingWithPhotos
+);
 router.post("/update", validate(updateListingSchema), controller.updateListing);
 router.post("/delete", validate(listingIdSchema), controller.deleteListing);
 router.post("/submit", validate(listingIdSchema), controller.submitListing);

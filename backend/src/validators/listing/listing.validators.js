@@ -35,6 +35,9 @@ const createListingSchema = Joi.object({
   submitForApproval:  Joi.boolean().default(false),
 });
 
+// Same fields as createListingSchema — used with multipart/form-data + photos
+const createListingWithPhotosSchema = createListingSchema;
+
 const updateListingSchema = Joi.object({
   id:                 objectId.required(),
   makeId:             objectId,
@@ -77,6 +80,7 @@ const browseListingsSchema = Joi.object({
 
 module.exports = {
   createListingSchema,
+  createListingWithPhotosSchema,
   updateListingSchema,
   browseListingsSchema,
   getListingByIdSchema,

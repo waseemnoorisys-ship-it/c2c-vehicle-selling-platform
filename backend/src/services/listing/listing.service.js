@@ -70,6 +70,13 @@ async function findOneAndIncrementView(filter) {
     .populate("vendorId", "firstName")
     .lean();
 }
+async function findListingById(id) {
+  return Listing.findById(id);
+}
+
+async function updateListingById(id, update) {
+  return Listing.findByIdAndUpdate(id, update, { new: true });
+}
 
 module.exports = {
   findCommissionConfig,
@@ -85,4 +92,6 @@ module.exports = {
   count,
   findBrowse,
   findOneAndIncrementView,
+  findListingById,
+  updateListingById,
 };

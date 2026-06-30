@@ -77,6 +77,11 @@ async function updateListingStatus(listingId, status) {
   return Listing.findByIdAndUpdate(listingId, { status }, { new: true });
 }
 
+// offer.service.js for payment sprint 5 issue
+async function findOfferById(id) {
+  return Offer.findById(id);
+}
+ 
 module.exports = {
   updateMany,
   findOne,
@@ -88,4 +93,5 @@ module.exports = {
   findOneWithFullPopulate,
   findMany,
   updateListingStatus,
+  findOfferById,
 };

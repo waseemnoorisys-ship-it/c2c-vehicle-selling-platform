@@ -77,6 +77,65 @@ const createListing = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+const createListingWithPhotos = async (req, res, next) => {
+  try {
+    if (!req.files || req.files.length === 0) {
+      throw new ApiError(400, "At least 1 photo is required");
+    }
+    if (req.files.length > MAX_PHOTOS) {
+      throw new ApiError(400, `Maximum ${MAX_PHOTOS} photos allowed`);
+    }
+
+    const {
+      makeId,
+      modelId,
+      latitude,
+      longitude,
+      submitForApproval,
+      ...rest
+    } = req.body;
+
+    await validateMakeModel(makeId, modelId);
+
+    const { commissionPercent, displayPrice } = await calculatePricing(rest.askingPrice);
+
+    const listing = await listingService.create({
+      vendorId: req.user._id,
+      makeId,
+      modelId,
+      ...rest,
+      commissionPercent,
+      displayPrice,
+      location: {
+        type: "Point",
+        coordinates: [longitude || 0, latitude || 0],
+      },
+      status: submitForApproval ? "pending" : "draft",
+      photos: [],
+      coverPhoto: null,
+    });
+
+    const uploadResults = await uploadListingPhotos(
+      req.files,
+      listing._id.toString()
+    );
+
+    listing.photos = uploadResults.map((r) => ({
+      url: r.url,
+      publicId: r.publicId,
+    }));
+    listing.coverPhoto = uploadResults[0].url;
+
+    await listingService.save(listing);
+
+    res
+      .status(201)
+      .json(new ApiResponse(201, listing, "Listing created with photos"));
+  } catch (err) {
+    next(err);
+  }
+};
+
 const updateListing = async (req, res, next) => {
   try {
     const { id: listingId, ...updates } = req.body;
@@ -381,6 +440,7 @@ const getPublicListingById = async (req, res, next) => {
 
 module.exports = {
   createListing,
+  createListingWithPhotos,
   updateListing,
   deleteListing,
   submitListing,

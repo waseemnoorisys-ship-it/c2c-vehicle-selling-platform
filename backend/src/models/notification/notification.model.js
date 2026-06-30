@@ -26,6 +26,8 @@ const notificationSchema = new mongoose.Schema(
         "offer_rejected",   // buyer: your offer was rejected
         "offer_expired",    // buyer: your offer expired
         "offer_withdrawn",  // vendor: buyer withdrew their offer
+        "payment_escrowed", // vendor: payment was escrowed
+        "payment_released", // vendor: payment was released
       ],
       required: true,
     },
