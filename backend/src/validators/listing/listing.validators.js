@@ -73,6 +73,11 @@ const browseListingsSchema = Joi.object({
   latitude:     Joi.number().min(-90).max(90),
   longitude:    Joi.number().min(-180).max(180),
   radius:       Joi.number().min(1).max(500),
+  dateFrom:     Joi.date().iso(),
+  dateTo:       Joi.date().iso().when("dateFrom", {
+    is: Joi.exist(),
+    then: Joi.date().min(Joi.ref("dateFrom")),
+  }),
   sort:         Joi.string().valid("price_asc", "price_desc", "newest", "oldest", "most_viewed"),
   page:         Joi.number().integer().min(1).default(1),
   limit:        Joi.number().integer().min(1).max(50).default(20),

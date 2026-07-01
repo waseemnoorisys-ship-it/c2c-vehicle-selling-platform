@@ -318,6 +318,8 @@ const browseListings = async (req, res, next) => {
       latitude,
       longitude,
       radius,
+      dateFrom,
+      dateTo,
       sort = "newest",
       page = 1,
       limit = 20,
@@ -354,6 +356,20 @@ const browseListings = async (req, res, next) => {
       filter.displayPrice = {};
       if (minPrice) filter.displayPrice.$gte = parseInt(minPrice);
       if (maxPrice) filter.displayPrice.$lte = parseInt(maxPrice);
+    }
+
+    if (dateFrom || dateTo) {
+      filter.createdAt = {};
+      if (dateFrom) {
+        const from = new Date(dateFrom);
+        from.setUTCHours(0, 0, 0, 0);
+        filter.createdAt.$gte = from;
+      }
+      if (dateTo) {
+        const to = new Date(dateTo);
+        to.setUTCHours(23, 59, 59, 999);
+        filter.createdAt.$lte = to;
+      }
     }
 
     if (fuelType) filter.fuelType = fuelType;
