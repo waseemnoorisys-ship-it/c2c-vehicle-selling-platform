@@ -16,7 +16,7 @@ async function calculatePricing(askingPrice) {
   }
 
   const commissionPercent = config.percentage;
-  const commissionAmount = (askingPrice * commissionPercent) / 100;
+  const commissionAmount = Math.round((askingPrice * commissionPercent) / 100);
   const displayPrice = askingPrice + commissionAmount;
 
   return { commissionPercent, displayPrice };
@@ -149,8 +149,9 @@ const updateListing = async (req, res, next) => {
     }
 
     if (updates.askingPrice !== undefined) {
-      const commissionAmount =
-        (updates.askingPrice * listing.commissionPercent) / 100;
+      const commissionAmount = Math.round(
+        (updates.askingPrice * listing.commissionPercent) / 100
+      );
       updates.displayPrice = updates.askingPrice + commissionAmount;
     }
 

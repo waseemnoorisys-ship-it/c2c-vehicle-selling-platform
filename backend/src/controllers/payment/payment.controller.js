@@ -13,7 +13,8 @@ const paymentService = require("../../services/payment/payment.service");
 const walletService = require("../../services/wallet/wallet.service");
 const notificationService = require("../../services/notification/notification.service");
 const logger = require("../../config/logger");
-
+//sprint - 6 requirements 
+const invoiceService = require("../../services/invoice/invoice.service");
 //iss ka kaam hai sirf  bill banana/ready karna  like petroll pump bill/paper  
 const createPaymentIntent = async (req, res, next) => {
   try {
@@ -44,7 +45,13 @@ const createPaymentIntent = async (req, res, next) => {
       throw new ApiError(409, "A transaction already exists for this offer");
     }
 
-    const amountInCents = listing.displayPrice;
+    const amountInCents = Math.round(listing.displayPrice);
+    if (!Number.isInteger(amountInCents) || amountInCents < 50) {
+      throw new ApiError(400, "Invalid listing price for payment");
+    }
+
+    const vendorAmount = Math.round(listing.askingPrice);
+    const commission = amountInCents - vendorAmount;
 
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amountInCents,
@@ -62,10 +69,7 @@ const createPaymentIntent = async (req, res, next) => {
       },
     });
 
-    const vendorAmount = listing.askingPrice;
-    const commission = listing.displayPrice - listing.askingPrice;
-
-    await paymentService.createTransaction({
+    const transaction = await paymentService.createTransaction({
       buyerId,
       vendorId: listing.vendorId,
       listingId: listing._id,
@@ -83,7 +87,11 @@ const createPaymentIntent = async (req, res, next) => {
     return res
       .status(200)
       .json(
-        new ApiResponse(200, { clientSecret: paymentIntent.client_secret }, "Payment intent created")
+        new ApiResponse(
+          200,
+          { clientSecret: paymentIntent.client_secret, transactionId: transaction._id },
+          "Payment intent created"
+        )
       );
   } catch (err) {
     next(err);
@@ -219,10 +227,21 @@ const confirmDelivery = async (req, res, next) => {
         listingId: transaction.listingId,
       },
     });
+    let invoice = null;
+    try {
+      transaction.status = "released";
+      invoice = await invoiceService.generateInvoiceForTransaction(transaction);
+    } catch (invoiceErr) {
+      logger.error("Invoice generation failed (non-blocking)", invoiceErr);
+    }
 
-    return res
-      .status(200)
-      .json(new ApiResponse(200, { transactionId }, "Delivery confirmed and funds released"));
+    return res.status(200).json(
+      new ApiResponse(
+        200,
+        { transactionId, invoice },
+        "Delivery confirmed and funds released"
+      )
+    );
   } catch (err) {
     next(err);
   }

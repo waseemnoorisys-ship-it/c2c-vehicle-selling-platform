@@ -1,5 +1,7 @@
 const cloudinary = require("../../config/cloudinary");
 const logger     = require("../../config/logger");
+//for invoices 
+const streamifier = require("streamifier");
 
 // WHY upload via stream (buffer → Cloudinary) instead of file path:
 // We're using memoryStorage in Multer — there IS no file path.
@@ -90,8 +92,25 @@ async function uploadListingPhotos(files, listingId) {
   return Promise.all(uploadPromises);
 }
 
+
+///for invoices uploading to cloudinary
+async function uploadBufferToCloudinary(buffer, folder, resourceType = "raw") {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      { folder, resource_type: resourceType },
+      (error, result) => {
+        if (error) return reject(error);
+        resolve(result);
+      }
+    );
+    streamifier.createReadStream(buffer).pipe(stream);
+  });
+}
+
+
 module.exports = {
   uploadProfilePhoto,
   uploadListingPhotos,
   deleteFileFromCloudinary,
+  uploadBufferToCloudinary
 };

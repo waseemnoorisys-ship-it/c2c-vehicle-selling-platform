@@ -16,7 +16,7 @@ const offerRoutes   = require("./routes/offer/offer.routes"); // ← Sprint 3
 const notificationRoutes = require("./routes/notification/notification.routes"); // ← Sprint 4
 const paymentRoutes = require("./routes/payment/payment.routes"); // ← Sprint 5
 const masterRoutes  = require("./routes/master/master.routes");
-
+const walletRoutes = require("./routes/wallet/wallet.routes"); //sprint 6
 const app = express();
 
 
@@ -70,7 +70,8 @@ app.use("/api/v1/listings", listingRoutes);
 app.use("/api/v1/offers",   offerRoutes); // ← Sprint 3
 app.use("/api/v1/notifications", notificationRoutes); // ← Sprint 4
 app.use("/api/v1/payments", paymentRoutes); // ← Sprint 5
-app.use("/api/v1/master",   masterRoutes);
+app.use("/api/v1/master",   masterRoutes);//master 
+app.use("/api/v1/wallet", walletRoutes);//sprint 6
 // ── 404 handler
 app.use((req, res) => {
   res.status(404).json({ success: false, message: "Route not found" });
