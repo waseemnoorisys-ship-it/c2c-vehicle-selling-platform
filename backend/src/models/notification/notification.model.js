@@ -28,6 +28,8 @@ const notificationSchema = new mongoose.Schema(
         "offer_withdrawn",  // vendor: buyer withdrew their offer
         "payment_escrowed", // vendor: payment was escrowed
         "payment_released", // vendor: payment was released
+        "listing_approved", // vendor: your listing was approved
+        "listing_rejected", // vendor: your listing was rejected
       ],
       required: true,
     },

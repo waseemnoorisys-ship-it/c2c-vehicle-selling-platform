@@ -9,11 +9,12 @@ const {
   updateModelSchema,
   deleteModelSchema,
 } = require("../../validators/model/model.validators");
+const {authenticateAdmin} = require("../../middleware/adminAuthMiddleware")
 
-router.post("/list", validate(listModelsSchema), controller.getAllModels);
-router.post("/get", validate(getModelByIdSchema), controller.getModelById);
-router.post("/create", validate(createModelSchema), controller.createModel);
-router.post("/update", validate(updateModelSchema), controller.updateModel);
-router.post("/delete", validate(deleteModelSchema), controller.deleteModel);
+router.post("/list", authenticateAdmin, validate(listModelsSchema), controller.getAllModels);
+router.post("/get", authenticateAdmin, validate(getModelByIdSchema), controller.getModelById);
+router.post("/create", authenticateAdmin, validate(createModelSchema), controller.createModel);
+router.post("/update", authenticateAdmin, validate(updateModelSchema), controller.updateModel);
+router.post("/delete", authenticateAdmin, validate(deleteModelSchema), controller.deleteModel);
 
 module.exports = router;
