@@ -53,7 +53,7 @@ async function aggregateCountries({ q, page, limit, sort, fields }) {
     throw new ApiError(400, `Invalid sort field for country. Allowed: ${COUNTRY_SORT_FIELDS.join(", ")}`);
   }
 
-  const match = {};
+  const match = {isDeleted: false};
   if (q) {
     match.$or = [
       { name:  { $regex: q, $options: "i" } },
