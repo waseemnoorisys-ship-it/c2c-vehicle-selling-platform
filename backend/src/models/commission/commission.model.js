@@ -7,7 +7,7 @@ const mongoose = require("mongoose");
 const commissionSchema = new mongoose.Schema(
   {
     percentage: { type: Number, required: true, default: 5, min: 0, max: 100 },
-    updatedBy:  { type: mongoose.Schema.Types.ObjectId, ref: "AdminUser" },
+    updatedBy:  { type: mongoose.Schema.Types.ObjectId, ref: "AdminUser" ,default:null},
   },
   { timestamps: true }
 );
