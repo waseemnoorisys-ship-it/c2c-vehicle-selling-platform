@@ -22,6 +22,13 @@ const adminDashboardRoutes = require("./routes/admin/adminDashboard/adminDashboa
 const adminUserRoutes = require("./routes/admin/adminUser/adminUser.routes");
 const adminListingRoutes = require("./routes/admin/adminListing/adminListing.routes");
 const adminCommissionRoutes = require("./routes/admin/adminCommission/adminCommission.routes");
+//sprint 8 admin advance route requirements
+const adminWithdrawalRoutes = require("./routes/admin/adminWithdrawal/adminWithdrawal.routes");
+const adminTransactionRoutes = require("./routes/admin/adminTransaction/adminTransaction.routes");
+const adminCmsRoutes = require("./routes/admin/adminCms/adminCms.routes");
+const adminSettingsRoutes = require("./routes/admin/adminSettings/adminSettings.routes");
+const adminAuditRoutes = require("./routes/admin/adminAudit/adminAudit.routes");
+const cmsRoutes = require("./routes/cms/cms.routes");
 const app = express();
 //sprint 5 for strip webhook
 app.use((req, res, next) => {
@@ -80,6 +87,13 @@ app.use("/api/v1/admin/dashboard", adminDashboardRoutes);
 app.use("/api/v1/admin/users", adminUserRoutes);
 app.use("/api/v1/admin/listings", adminListingRoutes);
 app.use("/api/v1/admin/commission", adminCommissionRoutes);
+//sprint 8 admin advance ROUTES
+app.use("/api/v1/admin/withdrawals", adminWithdrawalRoutes);
+app.use("/api/v1/admin/transactions", adminTransactionRoutes);
+app.use("/api/v1/admin/cms", adminCmsRoutes);
+app.use("/api/v1/admin/settings", adminSettingsRoutes);
+app.use("/api/v1/admin/audit", adminAuditRoutes);
+app.use("/api/v1/cms", cmsRoutes);
 // ── 404 handler
 app.use((req, res) => {
   res.status(404).json({ success: false, message: "Route not found" });
