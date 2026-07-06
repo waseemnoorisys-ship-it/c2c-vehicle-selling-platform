@@ -1,3 +1,5 @@
+// const stripe = require("../../config/stripe");
+// isme hum ek function banayenge jiske through stripe api call karenge and yeh function hum use karke hum ek payment intent create karenge
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const ApiError = require("../../utils/ApiError");
 const ApiResponse = require("../../utils/ApiResponse");
@@ -16,6 +18,18 @@ const logger = require("../../config/logger");
 //sprint - 6 requirements 
 const invoiceService = require("../../services/invoice/invoice.service");
 //iss ka kaam hai sirf  bill banana/ready karna  like petroll pump bill/paper  
+
+//how many events we are handling in our project of stripe webhooks?
+//we are handling 2 events in our project of stripe webhooks
+//1. payment_intent.succeeded
+//2. payment_intent.payment_failed
+//3. payment_intent.created
+//4. payment_intent.updated
+//5. payment_intent.payment_method_attached
+//6. payment_intent.payment_method_detached
+//7. payment_intent.payment_method_expired
+//8. payment_intent.payment_method_failed
+//9. payment_intent.payment_method_garbage_collected
 const createPaymentIntent = async (req, res, next) => {
   try {
     const { error, value } = createIntentSchema.validate(req.body);
@@ -98,6 +112,12 @@ const createPaymentIntent = async (req, res, next) => {
   }
 };
 
+//what is webhook?
+//webhook is a way to get notified when a payment is successful or failed or any other event occurs in the stripe dashboard
+//how many webhooks we are handling in our function?
+//we are handling 2 webhooks in our function
+//1. payment_intent.succeeded
+//2. payment_intent.payment_failed
 const handleWebhook = async (req, res, next) => {
   const sig = req.headers["stripe-signature"];
   let event;

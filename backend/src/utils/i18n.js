@@ -3,8 +3,12 @@ const fr = require("../locales/fr.json");
 
 const locales = { en, fr };
 
+// t("keyPath","lang",data.values)
+// t("auth.welcome","en",{name:"Shoaib"})
 function t(keyPath, lang, data) {
   const locale = locales[lang] || locales["en"];
+  //suppose auth.loginSuccess
+ //   after split [auth , longinSuccess]
   const keys = keyPath.split(".");
   let value = locale;
 
