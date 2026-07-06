@@ -1,0 +1,116 @@
+{
+    "offer": {
+      "received": {
+        "title": "Nouvelle offre reçue",
+        "body": "Vous avez reçu une offre de ${amount} sur votre annonce."
+      },
+      "accepted": {
+        "title": "Offre acceptée",
+        "body": "Votre offre de ${amount} a été acceptée. Veuillez procéder au paiement."
+      },
+      "rejected": {
+        "title": "Offre refusée",
+        "body": "Votre offre de ${amount} a été refusée par le vendeur."
+      }
+    },
+    "listing": {
+      "approved": {
+        "title": "Annonce approuvée",
+        "body": "Votre annonce de véhicule est maintenant en ligne sur la plateforme."
+      },
+      "rejected": {
+        "title": "Annonce refusée",
+        "body": "Votre annonce a été refusée. Raison : ${reason}"
+      }
+    },
+    "payment": {
+      "escrowed": {
+        "title": "Paiement reçu",
+        "body": "Un acheteur a payé pour votre véhicule. Veuillez organiser la livraison pour libérer vos fonds."
+      },
+      "released": {
+        "title": "Fonds libérés",
+        "body": "Votre paiement de ${amount} a été transféré dans votre portefeuille."
+      }
+    },
+    "withdrawal": {
+      "approved": {
+        "title": "Retrait approuvé",
+        "body": "Votre retrait de ${amount} a été approuvé et est en cours de traitement."
+      },
+      "paid": {
+        "title": "Retrait effectué",
+        "body": "Votre retrait de ${amount} a été transféré sur votre compte bancaire."
+      },
+      "rejected": {
+        "title": "Retrait refusé",
+        "body": "Votre retrait de ${amount} a été refusé. Raison : ${reason}. Les fonds ont été retournés dans votre portefeuille."
+      }
+    },
+    "email": {
+      "otp": {
+        "subject": "Votre code de vérification — C2C Véhicules",
+        "heading": "Votre code de vérification",
+        "body": "Utilisez le code ci-dessous pour vérifier votre compte. Il expire dans ${minutes} minutes.",
+        "footer": "Si vous n'avez pas demandé cela, vous pouvez ignorer cet e-mail."
+      },
+      "welcome": {
+        "subject": "Bienvenue sur C2C Véhicules",
+        "heading": "Bienvenue !",
+        "body": "Votre compte a été vérifié avec succès. Vous pouvez maintenant parcourir, publier et acheter des véhicules sur C2C Véhicules.",
+        "cta": "Parcourir les véhicules"
+      },
+      "offerReceived": {
+        "subject": "Nouvelle offre sur votre annonce — C2C Véhicules",
+        "heading": "Vous avez une nouvelle offre",
+        "body": "Un acheteur a fait une offre de ${amount} sur votre annonce. Connectez-vous pour examiner et répondre."
+      },
+      "offerAccepted": {
+        "subject": "Votre offre a été acceptée — C2C Véhicules",
+        "heading": "Offre acceptée !",
+        "body": "Bonne nouvelle ! Votre offre de ${amount} a été acceptée. Veuillez procéder au paiement."
+      },
+      "offerRejected": {
+        "subject": "Votre offre n'a pas été acceptée — C2C Véhicules",
+        "heading": "Offre non acceptée",
+        "body": "Malheureusement, votre offre de ${amount} n'a pas été acceptée par le vendeur."
+      },
+      "listingApproved": {
+        "subject": "Votre annonce est en ligne — C2C Véhicules",
+        "heading": "Annonce approuvée !",
+        "body": "Votre annonce de véhicule a été examinée et approuvée. Elle est maintenant visible par les acheteurs."
+      },
+      "listingRejected": {
+        "subject": "Votre annonce nécessite votre attention — C2C Véhicules",
+        "heading": "Annonce non approuvée",
+        "body": "Votre annonce a été examinée mais n'a pas pu être approuvée. Raison : ${reason}. Veuillez mettre à jour votre annonce et la soumettre à nouveau."
+      },
+      "paymentEscrowed": {
+        "subject": "Paiement reçu pour votre véhicule — C2C Véhicules",
+        "heading": "Paiement en séquestre",
+        "body": "Un acheteur a effectué le paiement pour votre véhicule. Veuillez organiser la livraison. Une fois que l'acheteur confirme la réception, les fonds seront libérés."
+      },
+      "paymentReleased": {
+        "subject": "Fonds transférés dans votre portefeuille — C2C Véhicules",
+        "heading": "Fonds libérés !",
+        "body": "Votre paiement de ${amount} a été libéré et est maintenant disponible dans votre portefeuille."
+      },
+      "withdrawalUpdate": {
+        "approved": {
+          "subject": "Retrait approuvé — C2C Véhicules",
+          "heading": "Retrait approuvé",
+          "body": "Votre retrait de ${amount} a été approuvé et est en cours de traitement vers votre compte bancaire."
+        },
+        "paid": {
+          "subject": "Retrait envoyé à votre banque — C2C Véhicules",
+          "heading": "Retrait effectué",
+          "body": "Votre retrait de ${amount} a été transféré sur votre compte bancaire."
+        },
+        "rejected": {
+          "subject": "Le retrait n'a pas pu être traité — C2C Véhicules",
+          "heading": "Retrait refusé",
+          "body": "Votre retrait de ${amount} n'a pas pu être traité. Raison : ${reason}. Les fonds ont été retournés dans votre portefeuille."
+        }
+      }
+    }
+  }
