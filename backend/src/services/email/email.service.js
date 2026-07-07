@@ -46,6 +46,7 @@ const { listingRejectedTemplate } = require("../../templates/email/listingReject
 const { paymentEscrowedTemplate } = require("../../templates/email/paymentEscrowed.template");
 const { paymentReleasedTemplate } = require("../../templates/email/paymentReleased.template");
 const { withdrawalUpdateTemplate } = require("../../templates/email/withdrawalUpdate.template");
+const transporter = require("../../config/mailer");
 
 // const transporter = nodemailer.createTransport({
 //   host: process.env.SMTP_HOST,

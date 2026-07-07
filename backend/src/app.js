@@ -31,6 +31,7 @@ const adminAuditRoutes = require("./routes/admin/adminAudit/adminAudit.routes");
 const cmsRoutes = require("./routes/cms/cms.routes");
 const landingRoutes = require("./routes/landing/landing.routes");
 const app = express();
+app.set("trust proxy", 1);
 //sprint 5 for strip webhook
 app.use((req, res, next) => {
   if (req.originalUrl === "/api/v1/payments/webhook") {

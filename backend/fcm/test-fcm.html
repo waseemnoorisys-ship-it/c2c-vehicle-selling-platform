@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FCM Token Generator</title>
+</head>
+
+<body>
+
+<h2>Firebase Cloud Messaging Test</h2>
+
+<button onclick="generateToken()">
+    Generate FCM Token
+</button>
+
+<br><br>
+
+<textarea
+    id="token"
+    rows="10"
+    cols="120"
+    readonly
+></textarea>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+
+import {
+    getMessaging,
+    getToken
+} from "https://www.gstatic.com/firebasejs/10.13.2/firebase-messaging.js";
+
+const firebaseConfig = {
+
+    apiKey: "AIzaSyCsjq9b6VT0o0n-iMdHEl7K3Xf1xfzwmiU",
+
+    authDomain: "c2c-vehicle-selling-platform.firebaseapp.com",
+
+    projectId: "c2c-vehicle-selling-platform",
+
+    storageBucket: "c2c-vehicle-selling-platform.firebasestorage.app",
+
+    messagingSenderId: "59507233552",
+
+    appId: "1:59507233552:web:2e4f6f4b9ddefc8d938b95"
+
+};
+
+const app = initializeApp(firebaseConfig);
+
+const messaging = getMessaging(app);
+
+window.generateToken = async () => {
+
+    try {
+
+        const permission = await Notification.requestPermission();
+
+        if (permission !== "granted") {
+
+            alert("Notification Permission Denied");
+
+            return;
+
+        }
+
+        // Register Service Worker
+        const registration = await navigator.serviceWorker.register(
+            "./firebase-messaging-sw.js"
+        );
+
+        const currentToken = await getToken(messaging, {
+
+            vapidKey:"BE_0JhW0K2A_2R1mL9X3wpSRGQwk9PYbOKQ6CLpWrpPV8PhkLSZFp3g7CwGjLLTTFZyAILCwruoYiOJQgqcRJ6I",
+
+            serviceWorkerRegistration: registration
+
+        });
+
+        if (currentToken) {
+
+            document.getElementById("token").value = currentToken;
+
+            console.log(currentToken);
+
+        } else {
+
+            alert("Unable to generate token");
+
+        }
+
+    } catch (err) {
+
+        console.error(err);
+
+        alert(err.message);
+
+    }
+
+}
+
+</script>
+
+</body>
+</html>
