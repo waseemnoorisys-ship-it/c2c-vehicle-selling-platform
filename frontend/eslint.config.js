@@ -13,9 +13,18 @@ export default defineConfig([
       reactHooks.configs.flat.recommended,
       reactRefresh.configs.vite,
     ],
+    //tells eslint how to understand code
     languageOptions: {
       globals: globals.browser,
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
   },
 ])
+
+// Ignore dist folder,
+// check all JS/JSX files,
+// apply JavaScript rules,
+// apply React Hooks rules,
+// apply Vite rules,
+// recognize browser objects,
+// and understand JSX syntax.

@@ -4,16 +4,18 @@ import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import Input from "../../components/common/Input";
 import Button from "../../components/common/Button";
+import SocialLoginButtons from "../../components/common/SocialLoginButtons";
+import AuthLayout from "../../components/layout/AuthLayout";
 import useAuthStore from "../../store/useAuthStore";
 import { loginApi } from "../../api/auth.api";
 
 export default function LoginPage() {
-  const { t }    = useTranslation();
+  const { t } = useTranslation();
   const navigate = useNavigate();
-  const setAuth  = useAuthStore((s) => s.setAuth);
+  const setAuth = useAuthStore((s) => s.setAuth);
 
-  const [form, setForm]       = useState({ email: "", password: "" });
-  const [errors, setErrors]   = useState({});
+  const [form, setForm] = useState({ email: "", password: "" });
+  const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
   function handleChange(e) {
@@ -33,9 +35,9 @@ export default function LoginPage() {
       setAuth(user, accessToken, refreshToken);
       toast.success(`Welcome back, ${user.firstName}!`);
 
-      // Route based on role
-      if (user.role === "buyer")  navigate("/browse");
+      if (user.role === "buyer") navigate("/buyer/dashboard");
       if (user.role === "vendor") navigate("/vendor/dashboard");
+      if (user.role === "admin") navigate("/admin/dashboard");
     } catch (err) {
       const msg = err.response?.data?.message || "Login failed";
       toast.error(msg);
@@ -45,39 +47,61 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-      <div className="w-full max-w-sm bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-        <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold text-primary-700">🚗 C2C Vehicles</h1>
-          <p className="text-gray-500 text-sm mt-1">Sign in to your account</p>
-        </div>
+    <AuthLayout
+      title="Welcome Back"
+      subtitle="Access your elite vehicle portfolio."
+    >
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <Input
+          label={t("email")}
+          name="email"
+          type="email"
+          icon="email"
+          value={form.email}
+          onChange={handleChange}
+          error={errors.email}
+          placeholder="name@c2c.com"
+        />
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <Input label={t("email")} name="email" type="email"
-            value={form.email} onChange={handleChange}
-            error={errors.email} placeholder="you@email.com" />
-
-          <Input label={t("password")} name="password" type="password"
-            value={form.password} onChange={handleChange}
-            error={errors.password} placeholder="Your password" />
-
-          <div className="text-right -mt-2">
-            <Link to="/forgot-password"
-              className="text-xs text-primary-600 hover:underline">
+        <div>
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-sm font-medium text-text-secondary">
+              {t("password")}
+            </span>
+            <Link
+              to="/forgot-password"
+              className="text-xs text-text-accent font-semibold uppercase tracking-wide hover:underline"
+            >
               {t("forgotPassword")}?
             </Link>
           </div>
+          <Input
+            name="password"
+            type="password"
+            icon="password"
+            value={form.password}
+            onChange={handleChange}
+            error={errors.password}
+            placeholder="••••••••"
+          />
+        </div>
 
-          <Button type="submit" loading={loading}>{t("login")}</Button>
-        </form>
+        <Button type="submit" loading={loading} className="mt-2">
+          {t("login")}
+        </Button>
+      </form>
 
-        <p className="text-center text-sm text-gray-500 mt-4">
-          {t("dontHaveAccount")}{" "}
-          <Link to="/register" className="text-primary-600 font-semibold hover:underline">
-            {t("register")}
-          </Link>
-        </p>
-      </div>
-    </div>
+      <SocialLoginButtons />
+
+      <p className="text-center text-sm text-text-muted mt-6">
+        {t("dontHaveAccount")}{" "}
+        <Link
+          to="/register"
+          className="text-text-accent font-semibold hover:underline"
+        >
+          {t("register")}
+        </Link>
+      </p>
+    </AuthLayout>
   );
 }

@@ -3,24 +3,18 @@ import { useNavigate, useLocation, Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import Input from "../../components/common/Input";
 import Button from "../../components/common/Button";
-import {
-  forgotPasswordApi,
-  resetPasswordApi,
-} from "../../api/auth.api";
-
-// This page handles 2 steps:
-// Step 1 — enter email → send OTP (then redirect to /verify-email with type=password_reset)
-// Step 2 — enter new password (arrives here from VerifyOtpPage with resetToken)
+import AuthLayout from "../../components/layout/AuthLayout";
+import { forgotPasswordApi, resetPasswordApi } from "../../api/auth.api";
 
 export default function ForgotPasswordPage() {
-  const navigate    = useNavigate();
-  const { state }   = useLocation();
+  const navigate = useNavigate();
+  const { state } = useLocation();
   const isResetStep = state?.step === "reset";
 
-  const [email, setEmail]         = useState(state?.email || "");
-  const [password, setPassword]   = useState("");
-  const [confirm, setConfirm]     = useState("");
-  const [loading, setLoading]     = useState(false);
+  const [email, setEmail] = useState(state?.email || "");
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [loading, setLoading] = useState(false);
 
   async function handleSendOtp(e) {
     e.preventDefault();
@@ -60,45 +54,60 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-      <div className="w-full max-w-sm bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-        <div className="text-center mb-6">
-          <div className="text-4xl mb-2">{isResetStep ? "🔒" : "🔑"}</div>
-          <h2 className="text-xl font-bold text-gray-800">
-            {isResetStep ? "Set New Password" : "Forgot Password"}
-          </h2>
-          <p className="text-gray-500 text-sm mt-1">
-            {isResetStep
-              ? "Choose a strong new password"
-              : "Enter your email to receive an OTP"}
-          </p>
-        </div>
+    <AuthLayout
+      title={isResetStep ? "Set New Password" : "Forgot Password"}
+      subtitle={
+        isResetStep
+          ? "Choose a strong new password"
+          : "Enter your email to receive an OTP"
+      }
+    >
+      {!isResetStep ? (
+        <form onSubmit={handleSendOtp} className="flex flex-col gap-4">
+          <Input
+            label="Email"
+            type="email"
+            icon="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="name@c2c.com"
+          />
+          <Button type="submit" loading={loading}>
+            Send OTP
+          </Button>
+        </form>
+      ) : (
+        <form onSubmit={handleReset} className="flex flex-col gap-4">
+          <Input
+            label="New Password"
+            type="password"
+            icon="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Min 8 characters"
+          />
+          <Input
+            label="Confirm Password"
+            type="password"
+            icon="password"
+            value={confirm}
+            onChange={(e) => setConfirm(e.target.value)}
+            placeholder="Repeat password"
+          />
+          <Button type="submit" loading={loading}>
+            Reset Password
+          </Button>
+        </form>
+      )}
 
-        {!isResetStep ? (
-          <form onSubmit={handleSendOtp} className="flex flex-col gap-4">
-            <Input label="Email" type="email" value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@email.com" />
-            <Button type="submit" loading={loading}>Send OTP</Button>
-          </form>
-        ) : (
-          <form onSubmit={handleReset} className="flex flex-col gap-4">
-            <Input label="New Password" type="password" value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Min 8 characters" />
-            <Input label="Confirm Password" type="password" value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
-              placeholder="Repeat password" />
-            <Button type="submit" loading={loading}>Reset Password</Button>
-          </form>
-        )}
-
-        <div className="text-center mt-4">
-          <Link to="/login" className="text-sm text-gray-400 hover:text-gray-600">
-            ← Back to Login
-          </Link>
-        </div>
+      <div className="text-center mt-6">
+        <Link
+          to="/login"
+          className="text-sm text-text-muted hover:text-text-accent transition"
+        >
+          ← Back to Login
+        </Link>
       </div>
-    </div>
+    </AuthLayout>
   );
 }

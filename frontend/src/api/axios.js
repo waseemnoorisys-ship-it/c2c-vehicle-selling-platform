@@ -18,7 +18,11 @@ api.interceptors.response.use(
   (res) => res,
   async (error) => {
     const original = error.config;
-    if (error.response?.status === 401 && !original._retry) {
+    const isAuthRoute = ["/auth/login", "/auth/register", "/auth/refresh-token"].some(
+      (path) => original?.url?.includes(path)
+    );
+
+    if (error.response?.status === 401 && !original._retry && !isAuthRoute) {
       original._retry = true;
       try {
         const refreshToken = useAuthStore.getState().refreshToken;

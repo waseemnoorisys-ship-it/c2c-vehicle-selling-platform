@@ -2,21 +2,24 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import Button from "../../components/common/Button";
-import { verifyEmailApi, resendOtpApi,
-         verifyResetOtpApi } from "../../api/auth.api";
+import AuthLayout from "../../components/layout/AuthLayout";
+import {
+  verifyEmailApi,
+  resendOtpApi,
+  verifyResetOtpApi,
+} from "../../api/auth.api";
 
 export default function VerifyOtpPage() {
-  const navigate   = useNavigate();
-  const { state }  = useLocation(); // { email, type: 'email_verify' | 'password_reset' }
-  const email      = state?.email;
-  const type       = state?.type || "email_verify";
+  const navigate = useNavigate();
+  const { state } = useLocation();
+  const email = state?.email;
+  const type = state?.type || "email_verify";
 
-  const [otp, setOtp]         = useState(["", "", "", "", "", ""]);
+  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
   const [resendTimer, setResendTimer] = useState(60);
   const inputRefs = useRef([]);
 
-  // countdown timer for resend
   useEffect(() => {
     if (resendTimer <= 0) return;
     const t = setTimeout(() => setResendTimer((p) => p - 1), 1000);
@@ -24,7 +27,7 @@ export default function VerifyOtpPage() {
   }, [resendTimer]);
 
   function handleOtpChange(value, idx) {
-    if (!/^\d*$/.test(value)) return; // digits only
+    if (!/^\d*$/.test(value)) return;
     const updated = [...otp];
     updated[idx] = value.slice(-1);
     setOtp(updated);
@@ -49,7 +52,6 @@ export default function VerifyOtpPage() {
         toast.success("Email verified! Please login.");
         navigate("/login");
       } else {
-        // pass reset token to reset-password page
         toast.success("OTP verified!");
         navigate("/forgot-password", {
           state: { step: "reset", email, resetToken: res.data.data.resetToken },
@@ -72,63 +74,73 @@ export default function VerifyOtpPage() {
     }
   }
 
-  if (!email) return (
-    <div className="min-h-screen flex items-center justify-center">
-      <p className="text-gray-500">No email found. <Link to="/register" className="text-primary-600">Register</Link></p>
-    </div>
-  );
+  if (!email) {
+    return (
+      <AuthLayout title="Verification" subtitle="Email required">
+        <p className="text-text-muted text-center">
+          No email found.{" "}
+          <Link to="/register" className="text-text-accent font-semibold hover:underline">
+            Register
+          </Link>
+        </p>
+      </AuthLayout>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-        <div className="text-center mb-6">
-          <div className="text-5xl mb-3">📬</div>
-          <h2 className="text-xl font-bold text-gray-800">Check your email</h2>
-          <p className="text-gray-500 text-sm mt-1">
-            OTP sent to <span className="font-semibold text-gray-700">{email}</span>
-          </p>
-        </div>
-
-        {/* 6-box OTP input */}
-        <div className="flex justify-center gap-3 mb-6">
-          {otp.map((digit, idx) => (
-            <input
-              key={idx}
-              ref={(el) => (inputRefs.current[idx] = el)}
-              type="text"
-              inputMode="numeric"
-              maxLength={1}
-              value={digit}
-              onChange={(e) => handleOtpChange(e.target.value, idx)}
-              onKeyDown={(e) => handleKeyDown(e, idx)}
-              className="w-12 h-12 text-center text-xl font-bold border-2 rounded-lg
-                focus:border-primary-500 focus:outline-none transition
-                border-gray-200 bg-gray-50"
-            />
-          ))}
-        </div>
-
-        <Button loading={loading} onClick={handleVerify}>
-          Verify OTP
-        </Button>
-
-        <div className="text-center mt-4">
-          {resendTimer > 0 ? (
-            <p className="text-sm text-gray-400">Resend in {resendTimer}s</p>
-          ) : (
-            <button onClick={handleResend}
-              className="text-sm text-primary-600 font-semibold hover:underline">
-              Resend OTP
-            </button>
-          )}
-        </div>
-
-        <div className="text-center mt-3">
-          <Link to="/login" className="text-sm text-gray-400 hover:text-gray-600">
-            ← Back to Login
-          </Link>
-        </div>
+    <AuthLayout
+      title="Check Your Email"
+      subtitle={
+        <>
+          OTP sent to{" "}
+          <span className="font-semibold text-text-primary">{email}</span>
+        </>
+      }
+    >
+      <div className="flex justify-center gap-2 sm:gap-3 mb-6">
+        {otp.map((digit, idx) => (
+          <input
+            key={idx}
+            ref={(el) => (inputRefs.current[idx] = el)}
+            type="text"
+            inputMode="numeric"
+            maxLength={1}
+            value={digit}
+            onChange={(e) => handleOtpChange(e.target.value, idx)}
+            onKeyDown={(e) => handleKeyDown(e, idx)}
+            className="w-10 h-12 sm:w-12 sm:h-14 text-center text-xl font-bold border-2 rounded-lg
+              bg-surface border-border text-text-primary
+              focus:border-primary-400 focus:ring-2 focus:ring-primary-400/30 focus:outline-none transition"
+          />
+        ))}
       </div>
-    </div>
+
+      <Button loading={loading} onClick={handleVerify}>
+        Verify OTP
+      </Button>
+
+      <div className="text-center mt-4">
+        {resendTimer > 0 ? (
+          <p className="text-sm text-text-muted">Resend in {resendTimer}s</p>
+        ) : (
+          <button
+            type="button"
+            onClick={handleResend}
+            className="text-sm text-text-accent font-semibold hover:underline"
+          >
+            Resend OTP
+          </button>
+        )}
+      </div>
+
+      <div className="text-center mt-3">
+        <Link
+          to="/login"
+          className="text-sm text-text-muted hover:text-text-accent transition"
+        >
+          ← Back to Login
+        </Link>
+      </div>
+    </AuthLayout>
   );
 }

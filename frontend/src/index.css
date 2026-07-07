@@ -1,8 +1,82 @@
 @import "tailwindcss";
 @config "../tailwind.config.js";
 
+:root {
+  --color-bg: #f4f7f7;
+  --color-bg-secondary: #e8ecec;
+  --color-surface: #ffffff;
+  --color-surface-hover: #f0f4f4;
+  --color-surface-elevated: #ffffff;
+  --color-border: #e5ecec;
+  --color-border-soft: #d1d9d9;
+  --color-text: #0b0f0f;
+  --color-text-secondary: #374151;
+  --color-text-muted: #6b7280;
+  --color-text-accent: #0f6b63;
+}
+
+.dark {
+  --color-bg: #050707;
+  --color-bg-secondary: #0b0f0f;
+  --color-surface: #121818;
+  --color-surface-hover: #182121;
+  --color-surface-elevated: #1e2929;
+  --color-border: #233232;
+  --color-border-soft: #1b2626;
+  --color-text: #f5f7f7;
+  --color-text-secondary: #c9d2d2;
+  --color-text-muted: #9ca8a8;
+  --color-text-accent: #7ee6c8;
+}
+
 @layer base {
   body {
-    @apply bg-gray-50 text-gray-900 font-sans;
+    @apply font-sans antialiased;
+    background-color: var(--color-bg);
+    color: var(--color-text);
+  }
+}
+
+@layer utilities {
+  .text-glow {
+    text-shadow: none;
+  }
+
+  .dark .text-glow {
+    text-shadow: 0 0 20px rgba(126, 230, 200, 0.45);
+  }
+
+  .btn-gradient {
+    background: linear-gradient(180deg, #0a5c55 0%, #064e3b 50%, #0f6b63 100%);
+  }
+
+  .btn-gradient:hover {
+    background: linear-gradient(180deg, #0f6b63 0%, #064e3b 50%, #0a5c55 100%);
+  }
+
+  .hero-overlay {
+    background: linear-gradient(
+      135deg,
+      rgba(5, 7, 7, 0.92) 0%,
+      rgba(5, 7, 7, 0.6) 50%,
+      rgba(15, 107, 99, 0.25) 100%
+    );
+  }
+
+  .light .hero-overlay {
+    background: linear-gradient(
+      135deg,
+      rgba(244, 247, 247, 0.95) 0%,
+      rgba(244, 247, 247, 0.7) 50%,
+      rgba(15, 107, 99, 0.15) 100%
+    );
+  }
+
+  .cta-gradient {
+    background: linear-gradient(135deg, #e8fff9 0%, #f4f7f7 45%, #e5ecec 100%);
+  }
+
+  .dark .cta-gradient {
+    background: linear-gradient(135deg, #064e3b 0%, #0b0f0f 45%, #050707 100%);
   }
 }
