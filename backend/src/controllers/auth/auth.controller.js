@@ -3,7 +3,7 @@ const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const authService = require("../../services/auth/auth.service");
 const { createOTP, verifyOTP } = require("../../services/otp/otp.service");
-const { sendOtpEmail } = require("../../services/email/email.service");
+const { sendEmail } = require("../../services/email/email.service");
 const ApiResponse = require("../../utils/ApiResponse");
 const ApiError = require("../../utils/ApiError");
 
@@ -48,7 +48,11 @@ const register = async (req, res, next) => {
     });
 
     const otp = await createOTP(user._id, email, "email_verify");
-    await sendOtpEmail(email, otp, "email_verify");
+    await sendEmail({
+      to: email,
+      templateName: "otp",
+      data: { otp },
+    });
 
     res.status(201).json(new ApiResponse(201, {
       userId: user._id,
@@ -86,7 +90,11 @@ const resendOtp = async (req, res, next) => {
     }
 
     const otp = await createOTP(user._id, email, type);
-    await sendOtpEmail(email, otp, type);
+    await sendEmail({
+      to: email,
+      templateName: "otp",
+      data: { otp },
+    });
 
     res.status(200).json(new ApiResponse(200, { message: "OTP sent" }));
   } catch (err) { next(err); }
@@ -174,7 +182,11 @@ const forgotPassword = async (req, res, next) => {
 
     if (user) {
       const otp = await createOTP(user._id, email, "password_reset");
-      await sendOtpEmail(email, otp, "password_reset");
+      await sendEmail({
+        to: email,
+        templateName: "otp",
+        data: { otp },
+      });
     }
 
     res.status(200).json(new ApiResponse(200, {
