@@ -1,24 +1,35 @@
 const mongoose = require("mongoose");
-const bcrypt   = require("bcryptjs");
+const bcrypt = require("bcryptjs");
 
 const userSchema = new mongoose.Schema(
   {
-    firstName:       { type: String, required: true, trim: true },
-    lastName:        { type: String, required: true, trim: true },
-    email:           { type: String, required: true, unique: true, lowercase: true, trim: true },
-    mobile:          { type: String, required: true },
-    countryCode:     { type: String, default: "+33" },
-    passwordHash:    { type: String, required: true },
-    role:            { type: String, enum: ["buyer", "vendor"], required: true },
+    firstName: { type: String, required: true, trim: true },
+    lastName: { type: String, required: true, trim: true },
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      trim: true,
+    },
+    mobile: { type: String, required: true },
+    countryCode: { type: String, default: "+33" },
+    passwordHash: { type: String, required: true },
+    role: { type: String, enum: ["buyer", "vendor"], required: true },
     isEmailVerified: { type: Boolean, default: false },
-    isActive:        { type: Boolean, default: true },//false means user is blocked or deleted
-    profilePhoto:          { type: String, default: null },
-    profilePhotoPublicId:  { type: String, default: null },
-    language:        { type: String, enum: ["en", "fr"], default: "en" },
-    
-    deletedAt:       { type: Date, default: null },    // GDPR soft delete
+    isActive: { type: Boolean, default: true }, //false means user is blocked or deleted
+    profilePhoto: { type: String, default: null },
+    profilePhotoPublicId: { type: String, default: null },
+    language: { type: String, enum: ["en", "fr"], default: "en" },
+
+    deletedAt: { type: Date, default: null }, // GDPR soft delete
+    //sprint 9 fcm token
+    fcmToken: {
+      type: String,
+      default: null,
+    },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 // GDPR: General Data Protection Regulation
 // Means don't permanently remove the user's data from the database; instead, mark it as deleted (e.g., deletedAt: new Date()).

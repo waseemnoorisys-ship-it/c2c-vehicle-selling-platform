@@ -9,6 +9,10 @@ const {
   withdrawalIdSchema,
   rejectWithdrawalSchema,
 } = require("../../../validators/admin/adminWithdrawal/adminwithdrawal.validators");
+const { sendPushNotification } = require("../../../services/push/push.service");
+const { sendEmail } = require("../../../services/email/email.service");
+const { t } = require("../../../utils/i18n");
+const logger = require("../../../config/logger");
 
 const listWithdrawals = async (req, res, next) => {
   try {
@@ -26,9 +30,15 @@ const listWithdrawals = async (req, res, next) => {
       adminWithdrawalService.countWithdrawals(filter),
     ]);
 
-    return res.status(200).json(
-      new ApiResponse(200, { withdrawals, total, page, limit }, "Withdrawals fetched")
-    );
+    return res
+      .status(200)
+      .json(
+        new ApiResponse(
+          200,
+          { withdrawals, total, page, limit },
+          "Withdrawals fetched",
+        ),
+      );
   } catch (err) {
     next(err);
   }
@@ -39,7 +49,9 @@ const getWithdrawal = async (req, res, next) => {
     const { error, value } = withdrawalIdSchema.validate(req.body);
     if (error) throw new ApiError(400, error.details[0].message);
 
-    const withdrawal = await adminWithdrawalService.findWithdrawalById(value.withdrawalId);
+    const withdrawal = await adminWithdrawalService.findWithdrawalById(
+      value.withdrawalId,
+    );
     if (!withdrawal) throw new ApiError(404, "Withdrawal not found");
 
     let bankDetails = null;
@@ -53,13 +65,11 @@ const getWithdrawal = async (req, res, next) => {
       };
     }
 
-    return res.status(200).json(
-      new ApiResponse(
-        200,
-        { withdrawal, bankDetails },
-        "Withdrawal fetched"
-      )
-    );
+    return res
+      .status(200)
+      .json(
+        new ApiResponse(200, { withdrawal, bankDetails }, "Withdrawal fetched"),
+      );
   } catch (err) {
     next(err);
   }
@@ -70,7 +80,9 @@ const approveWithdrawal = async (req, res, next) => {
     const { error, value } = withdrawalIdSchema.validate(req.body);
     if (error) throw new ApiError(400, error.details[0].message);
 
-    const withdrawal = await adminWithdrawalService.findWithdrawalById(value.withdrawalId);
+    const withdrawal = await adminWithdrawalService.findWithdrawalById(
+      value.withdrawalId,
+    );
     if (!withdrawal) throw new ApiError(404, "Withdrawal not found");
 
     if (withdrawal.status !== "pending") {
@@ -89,6 +101,34 @@ const approveWithdrawal = async (req, res, next) => {
       resourceId: withdrawal._id,
       meta: { amount: withdrawal.amount, userId: withdrawal.userId },
     });
+    try {
+      const vendor =
+        await require("../../../services/admin/adminUser/adminUser.service").findUserById(
+          withdrawal.userId._id,
+        );
+      const lang = vendor?.language || "en";
+      const formattedAmount = `$${(withdrawal.amount / 100).toFixed(2)}`;
+
+      await sendPushNotification({
+        fcmToken: vendor?.fcmToken,
+        title: t("withdrawal.approved.title", lang),
+        body: t("withdrawal.approved.body", lang, { amount: formattedAmount }),
+        data: { withdrawalId: withdrawal._id.toString() },
+      });
+
+      await sendEmail({
+        to: vendor.email,
+        templateName: "withdrawalUpdate",
+        data: {
+          firstName: vendor.firstName,
+          status: "approved",
+          amount: formattedAmount,
+          lang,
+        },
+      });
+    } catch (err) {
+      logger.error("Withdrawal approved notification failed", err);
+    }
 
     return res
       .status(200)
@@ -103,11 +143,16 @@ const markWithdrawalPaid = async (req, res, next) => {
     const { error, value } = withdrawalIdSchema.validate(req.body);
     if (error) throw new ApiError(400, error.details[0].message);
 
-    const withdrawal = await adminWithdrawalService.findWithdrawalById(value.withdrawalId);
+    const withdrawal = await adminWithdrawalService.findWithdrawalById(
+      value.withdrawalId,
+    );
     if (!withdrawal) throw new ApiError(404, "Withdrawal not found");
 
     if (withdrawal.status !== "approved") {
-      throw new ApiError(400, "Only approved withdrawals can be marked as paid");
+      throw new ApiError(
+        400,
+        "Only approved withdrawals can be marked as paid",
+      );
     }
 
     await adminWithdrawalService.updateWithdrawalById(value.withdrawalId, {
@@ -122,7 +167,34 @@ const markWithdrawalPaid = async (req, res, next) => {
       resourceId: withdrawal._id,
       meta: { amount: withdrawal.amount, userId: withdrawal.userId },
     });
+    try {
+      const vendor =
+        await require("../../../services/admin/adminUser/adminUser.service").findUserById(
+          withdrawal.userId._id,
+        );
+      const lang = vendor?.language || "en";
+      const formattedAmount = `$${(withdrawal.amount / 100).toFixed(2)}`;
 
+      await sendPushNotification({
+        fcmToken: vendor?.fcmToken,
+        title: t("withdrawal.approved.title", lang),
+        body: t("withdrawal.approved.body", lang, { amount: formattedAmount }),
+        data: { withdrawalId: withdrawal._id.toString() },
+      });
+
+      await sendEmail({
+        to: vendor.email,
+        templateName: "withdrawalUpdate",
+        data: {
+          firstName: vendor.firstName,
+          status: "paid",
+          amount: formattedAmount,
+          lang,
+        },
+      });
+    } catch (err) {
+      logger.error("Withdrawal approved notification failed", err);
+    }
     return res
       .status(200)
       .json(new ApiResponse(200, {}, "Withdrawal marked as paid"));
@@ -138,7 +210,8 @@ const rejectWithdrawal = async (req, res, next) => {
 
     const { withdrawalId, rejectionReason } = value;
 
-    const withdrawal = await adminWithdrawalService.findWithdrawalById(withdrawalId);
+    const withdrawal =
+      await adminWithdrawalService.findWithdrawalById(withdrawalId);
     if (!withdrawal) throw new ApiError(404, "Withdrawal not found");
 
     if (withdrawal.status !== "pending") {
@@ -153,12 +226,12 @@ const rejectWithdrawal = async (req, res, next) => {
 
     const wallet = await walletService.findOrCreateWallet(
       withdrawal.userId._id,
-      withdrawal.currency
+      withdrawal.currency,
     );
 
     const updatedWallet = await walletService.creditWallet(
       wallet._id,
-      withdrawal.amount
+      withdrawal.amount,
     );
 
     await walletService.createLedgerEntry({
@@ -182,10 +255,45 @@ const rejectWithdrawal = async (req, res, next) => {
         rejectionReason,
       },
     });
+    try {
+      const vendor =
+        await require("../../../services/admin/adminUser/adminUser.service").findUserById(
+          withdrawal.userId._id,
+        );
+      const lang = vendor?.language || "en";
+      const formattedAmount = `$${(withdrawal.amount / 100).toFixed(2)}`;
+
+      await sendPushNotification({
+        fcmToken: vendor?.fcmToken,
+        title: t("withdrawal.approved.title", lang),
+        body: t("withdrawal.approved.body", lang, { amount: formattedAmount }),
+        data: { withdrawalId: withdrawal._id.toString() },
+      });
+
+      await sendEmail({
+        to: vendor.email,
+        templateName: "withdrawalUpdate",
+        data: {
+          firstName: vendor.firstName,
+          status: "rejected",
+          rejectionReason,
+          amount: formattedAmount,
+          lang,
+        },
+      });
+    } catch (err) {
+      logger.error("Withdrawal approved notification failed", err);
+    }
 
     return res
       .status(200)
-      .json(new ApiResponse(200, {}, "Withdrawal rejected and funds returned to wallet"));
+      .json(
+        new ApiResponse(
+          200,
+          {},
+          "Withdrawal rejected and funds returned to wallet",
+        ),
+      );
   } catch (err) {
     next(err);
   }

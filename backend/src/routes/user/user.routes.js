@@ -11,5 +11,8 @@ router.use(authenticate);
 router.post("/me", controller.getMe);
 router.post("/update", validate(updateProfileSchema), controller.updateMe);
 router.post("/photo", handleProfilePhotoUpload, controller.uploadPhoto);
+//sprint 9 fcm token
+router.post("/fcm-token", authenticate, controller.saveFcmToken);
+
 
 module.exports = router;

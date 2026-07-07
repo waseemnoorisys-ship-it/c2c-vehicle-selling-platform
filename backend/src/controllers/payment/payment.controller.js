@@ -17,6 +17,18 @@ const notificationService = require("../../services/notification/notification.se
 const logger = require("../../config/logger");
 //sprint - 6 requirements 
 const invoiceService = require("../../services/invoice/invoice.service");
+//sprint 9 push notification
+const { sendPushNotification } = require("../../services/push/push.service");
+const { sendEmail } = require("../../services/email/email.service");
+const { t } = require("../../utils/i18n");
+
+
+
+
+
+
+
+
 //iss ka kaam hai sirf  bill banana/ready karna  like petroll pump bill/paper  
 
 //how many events we are handling in our project of stripe webhooks?
@@ -167,6 +179,25 @@ const handleWebhook = async (req, res, next) => {
           offerId,
         },
       });
+      try {
+        const vendorUser = await userService.findById(vendorId);
+        const lang = vendorUser?.language || "en";
+      
+        await sendPushNotification({
+          fcmToken: vendorUser?.fcmToken,
+          title: t("payment.escrowed.title", lang),
+          body: t("payment.escrowed.body", lang),
+          data: { transactionId: transaction._id.toString() },
+        });
+      
+        await sendEmail({
+          to: vendorUser.email,
+          templateName: "paymentEscrowed",
+          data: { firstName: vendorUser.firstName, lang },
+        });
+      } catch (err) {
+        logger.error("Payment escrowed notification failed", err);
+      }
 
       logger.info(`Transaction ${transaction._id} moved to escrowed`);
     }
@@ -247,6 +278,30 @@ const confirmDelivery = async (req, res, next) => {
         listingId: transaction.listingId,
       },
     });
+    try {
+      const vendorUser = await userService.findById(transaction.vendorId);
+      const lang = vendorUser?.language || "en";
+      const formattedAmount = `$${(transaction.vendorAmount / 100).toFixed(2)}`;
+    
+      await sendPushNotification({
+        fcmToken: vendorUser?.fcmToken,
+        title: t("payment.released.title", lang),
+        body: t("payment.released.body", lang, { amount: formattedAmount }),
+        data: { transactionId: transaction._id.toString() },
+      });
+    
+      await sendEmail({
+        to: vendorUser.email,
+        templateName: "paymentReleased",
+        data: {
+          firstName: vendorUser.firstName,
+          amount: formattedAmount,
+          lang,
+        },
+      });
+    } catch (err) {
+      logger.error("Payment released notification failed", err);
+    }
     let invoice = null;
     try {
       transaction.status = "released";

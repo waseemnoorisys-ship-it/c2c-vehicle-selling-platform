@@ -2,6 +2,8 @@ const userService = require("../../services/user/user.service");
 const { uploadProfilePhoto, deleteFileFromCloudinary } = require("../../services/upload/upload.service");
 const ApiResponse = require("../../utils/ApiResponse");
 const ApiError = require("../../utils/ApiError");
+const Joi = require("joi");
+
 
 const ALLOWED_PROFILE_FIELDS = ["firstName", "lastName", "mobile", "countryCode", "language"];
 
@@ -48,5 +50,25 @@ const uploadPhoto = async (req, res, next) => {
     res.status(200).json(new ApiResponse(200, { profilePhoto: url }, "Profile photo updated"));
   } catch (err) { next(err); }
 };
+//sprint 9 fcm token
+const saveFcmToken = async (req, res, next) => {
+  try {
+    const schema = Joi.object({
+      fcmToken: Joi.string().required(),
+    });
 
-module.exports = { getMe, updateMe, uploadPhoto };
+    const { error, value } = schema.validate(req.body);
+    if (error) throw new ApiError(400, error.details[0].message);
+
+    await userService.updateUserById(req.user._id, {
+      fcmToken: value.fcmToken,
+    });
+
+    return res
+      .status(200)
+      .json(new ApiResponse(200, {}, "FCM token saved"));
+  } catch (err) {
+    next(err);
+  }
+};
+module.exports = { getMe, updateMe, uploadPhoto, saveFcmToken };

@@ -1,8 +1,15 @@
-const offerService        = require("../../services/offer/offer.service");
+const offerService = require("../../services/offer/offer.service");
+//old notification service
 const notificationService = require("../../services/notification/notification.service");
-const Listing             = require("../../models/listing/listing.model");
-const ApiResponse         = require("../../utils/ApiResponse");
-const ApiError            = require("../../utils/ApiError");
+//new version of notification service
+const { sendPushNotification } = require("../../services/push/push.service");
+const { sendEmail } = require("../../services/email/email.service");
+const { t } = require("../../utils/i18n");
+const userService = require("../../services/user/user.service");
+const Listing = require("../../models/listing/listing.model");
+const ApiResponse = require("../../utils/ApiResponse");
+const ApiError = require("../../utils/ApiError");
+const logger = require("../../config/logger");
 
 // POST /api/v1/offers/create
 // Auth: buyer role
@@ -13,8 +20,8 @@ const createOffer = async (req, res, next) => {
 
     // Business rule 1: listing must exist and be approved
     const listing = await Listing.findOne({
-      _id:       listingId,
-      status:    "approved",
+      _id: listingId,
+      status: "approved",
       deletedAt: null,
     });
     if (!listing) {
@@ -30,13 +37,13 @@ const createOffer = async (req, res, next) => {
     const existing = await offerService.findOne({
       buyerId,
       listingId,
-      status:    "pending",
+      status: "pending",
       deletedAt: null,
     });
     if (existing) {
       throw new ApiError(
         409,
-        "You already have a pending offer on this listing. Withdraw it before submitting a new one."
+        "You already have a pending offer on this listing. Withdraw it before submitting a new one.",
       );
     }
 
@@ -52,19 +59,51 @@ const createOffer = async (req, res, next) => {
     });
 
     // Notify vendor: new offer arrived
+    // Notify vendor: in-app + push + email (non-blocking)
     await notificationService.create({
       userId: listing.vendorId,
-      type:   "offer_received",
-      title:  "New Offer Received",
-      body:   `You have a new offer of ${(amount / 100).toFixed(2)} on your listing.`,
-      data:   { offerId: offer._id, listingId: listing._id },
+      type: "offer_received",
+      title: "New Offer Received",
+      body: `You have a new offer of ${(amount / 100).toFixed(2)} on your listing.`,
+      data: { offerId: offer._id, listingId: listing._id },
     });
+
+    try {
+      const vendor = await userService.findById(offer.vendorId);
+      if (!vendor) throw new Error("Vendor not found");
+
+      const lang = vendor.language || "en";
+      const formattedAmount = `$${(offer.amount / 100).toFixed(2)}`;
+
+      await sendPushNotification({
+        fcmToken: vendor.fcmToken,
+        title: t("offer.received.title", lang),
+        body: t("offer.received.body", lang, { amount: formattedAmount }),
+        data: {
+          offerId: offer._id.toString(),
+          listingId: listing._id.toString(),
+        },
+      });
+
+      await sendEmail({
+        to: vendor.email,
+        templateName: "offerReceived",
+        data: {
+          firstName: vendor.firstName,
+          amount: formattedAmount,
+          lang,
+        },
+      });
+    } catch (err) {
+      logger.error("Offer received notification failed", err);
+    }
 
     res
       .status(201)
       .json(new ApiResponse(201, offer, "Offer submitted successfully"));
   } catch (err) {
-    next(err);
+    // next(err);
+    logger.error("Offer received notification failed", err);
   }
 };
 
@@ -73,19 +112,19 @@ const createOffer = async (req, res, next) => {
 const getMyOffers = async (req, res, next) => {
   try {
     const buyerId = req.user._id;
-    const page    = parseInt(req.body.page)  || 1;
-    const limit   = parseInt(req.body.limit) || 20;
-    const skip    = (page - 1) * limit;
+    const page = parseInt(req.body.page) || 1;
+    const limit = parseInt(req.body.limit) || 20;
+    const skip = (page - 1) * limit;
 
     // Lazy expiry: update stale pending offers before returning
     await offerService.updateMany(
       {
         buyerId,
-        status:    "pending",
+        status: "pending",
         expiresAt: { $lt: new Date() },
         deletedAt: null,
       },
-      { status: "expired" }
+      { status: "expired" },
     );
 
     const filter = { buyerId, deletedAt: null };
@@ -96,15 +135,19 @@ const getMyOffers = async (req, res, next) => {
     ]);
 
     res.status(200).json(
-      new ApiResponse(200, {
-        offers,
-        pagination: {
-          total,
-          page,
-          limit,
-          totalPages: Math.ceil(total / limit),
+      new ApiResponse(
+        200,
+        {
+          offers,
+          pagination: {
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit),
+          },
         },
-      }, "Your offers retrieved")
+        "Your offers retrieved",
+      ),
     );
   } catch (err) {
     next(err);
@@ -116,38 +159,37 @@ const getMyOffers = async (req, res, next) => {
 const getReceivedOffers = async (req, res, next) => {
   try {
     const vendorId = req.user._id;
-    const {
-      status,
-      listingId,
-      page  = 1,
-      limit = 20,
-    } = req.body;
+    const { status, listingId, page = 1, limit = 20 } = req.body;
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     const filter = { vendorId, deletedAt: null };
-    if (status)    filter.status    = status;
+    if (status) filter.status = status;
     if (listingId) filter.listingId = listingId;
 
     const [offers, total] = await Promise.all([
       offerService.findWithBuyerAndListingPopulate(
         filter,
         skip,
-        parseInt(limit)
+        parseInt(limit),
       ),
       offerService.count(filter),
     ]);
 
     res.status(200).json(
-      new ApiResponse(200, {
-        offers,
-        pagination: {
-          total,
-          page:       parseInt(page),
-          limit:      parseInt(limit),
-          totalPages: Math.ceil(total / parseInt(limit)),
+      new ApiResponse(
+        200,
+        {
+          offers,
+          pagination: {
+            total,
+            page: parseInt(page),
+            limit: parseInt(limit),
+            totalPages: Math.ceil(total / parseInt(limit)),
+          },
         },
-      }, "Received offers retrieved")
+        "Received offers retrieved",
+      ),
     );
   } catch (err) {
     next(err);
@@ -159,28 +201,25 @@ const getReceivedOffers = async (req, res, next) => {
 const acceptOffer = async (req, res, next) => {
   try {
     const vendorId = req.user._id;
-    const { id }   = req.body;
+    const { id } = req.body;
 
     // WHY findOne not findOneWithFullPopulate:
     // we need mutable document to call .save() on it.
     // .lean() returns plain object — cannot call .save()
     const offer = await offerService.findOne({
-      _id:       id,
+      _id: id,
       vendorId,
       deletedAt: null,
     });
 
     if (!offer) {
-      throw new ApiError(
-        404,
-        "Offer not found or you do not have permission"
-      );
+      throw new ApiError(404, "Offer not found or you do not have permission");
     }
 
     if (offer.status !== "pending") {
       throw new ApiError(
         400,
-        `Cannot accept an offer with status "${offer.status}"`
+        `Cannot accept an offer with status "${offer.status}"`,
       );
     }
 
@@ -201,39 +240,63 @@ const acceptOffer = async (req, res, next) => {
     await offerService.updateMany(
       {
         listingId: offer.listingId,
-        _id:       { $ne: offer._id },
-        status:    "pending",
+        _id: { $ne: offer._id },
+        status: "pending",
         deletedAt: null,
       },
-      { status: "rejected" }
+      { status: "rejected" },
     );
 
     // Step 4: Fetch auto-rejected offers to notify their buyers
     const autoRejected = await offerService.findMany({
       listingId: offer.listingId,
-      _id:       { $ne: offer._id },
-      status:    "rejected",
+      _id: { $ne: offer._id },
+      status: "rejected",
       deletedAt: null,
     });
 
     // Step 5: Notify accepted buyer
     await notificationService.create({
       userId: offer.buyerId,
-      type:   "offer_accepted",
-      title:  "Your Offer Was Accepted!",
-      body:   `Congratulations! Your offer of ${(offer.amount / 100).toFixed(2)} was accepted. Proceed to payment.`,
-      data:   { offerId: offer._id, listingId: offer.listingId },
+      type: "offer_accepted",
+      title: "Your Offer Was Accepted!",
+      body: `Congratulations! Your offer of ${(offer.amount / 100).toFixed(2)} was accepted. Proceed to payment.`,
+      data: { offerId: offer._id, listingId: offer.listingId },
     });
+    try {
+      const buyer = await userService.findById(offer.buyerId);
+      const lang = buyer.language || "en";
+      const formattedAmount = `$${(offer.amount / 100).toFixed(2)}`;
+
+      await sendPushNotification({
+        fcmToken: buyer.fcmToken,
+        title: t("offer.accepted.title", lang),
+        body: t("offer.accepted.body", lang, { amount: formattedAmount }),
+        data: { offerId: offer._id.toString() },
+      });
+
+      await sendEmail({
+        to: buyer.email,
+        templateName: "offerAccepted",
+        data: {
+          firstName: buyer.firstName,
+          amount: formattedAmount,
+          lang,
+        },
+      });
+    } catch (err) {
+      logger.error("Offer accepted notification failed", err);
+    }
 
     // Step 6: Bulk notify auto-rejected buyers
     if (autoRejected.length > 0) {
       const rejectionNotifications = autoRejected.map((o) => ({
-        userId:    o.buyerId,
-        type:      "offer_rejected",
-        title:     "Offer No Longer Available",
-        body:      "The listing you made an offer on has been sold to another buyer.",
-        data:      { offerId: o._id, listingId: o.listingId },
-        isRead:    false,
+        userId: o.buyerId,
+        type: "offer_rejected",
+        title: "Offer No Longer Available",
+        body: "The listing you made an offer on has been sold to another buyer.",
+        data: { offerId: o._id, listingId: o.listingId },
+        isRead: false,
         deletedAt: null,
       }));
 
@@ -252,26 +315,23 @@ const acceptOffer = async (req, res, next) => {
 // Auth: vendor role
 const rejectOffer = async (req, res, next) => {
   try {
-    const vendorId       = req.user._id;
+    const vendorId = req.user._id;
     const { id, reason } = req.body;
 
     const offer = await offerService.findOne({
-      _id:       id,
+      _id: id,
       vendorId,
       deletedAt: null,
     });
 
     if (!offer) {
-      throw new ApiError(
-        404,
-        "Offer not found or you do not have permission"
-      );
+      throw new ApiError(404, "Offer not found or you do not have permission");
     }
 
     if (offer.status !== "pending") {
       throw new ApiError(
         400,
-        `Cannot reject an offer with status "${offer.status}"`
+        `Cannot reject an offer with status "${offer.status}"`,
       );
     }
 
@@ -281,13 +341,38 @@ const rejectOffer = async (req, res, next) => {
 
     await notificationService.create({
       userId: offer.buyerId,
-      type:   "offer_rejected",
-      title:  "Your Offer Was Declined",
-      body:   reason
+      type: "offer_rejected",
+      title: "Your Offer Was Declined",
+      body: reason
         ? `Your offer was declined. Reason: ${reason}`
         : "Your offer was declined by the seller.",
-      data:   { offerId: offer._id, listingId: offer.listingId },
+      data: { offerId: offer._id, listingId: offer.listingId },
     });
+
+    try {
+      const buyer = await userService.findById(offer.buyerId);
+      const lang = buyer.language || "en";
+      const formattedAmount = `$${(offer.amount / 100).toFixed(2)}`;
+    
+      await sendPushNotification({
+        fcmToken: buyer.fcmToken,
+        title: t("offer.rejected.title", lang),
+        body: t("offer.rejected.body", lang, { amount: formattedAmount }),
+        data: { offerId: offer._id.toString() },
+      });
+    
+      await sendEmail({
+        to: buyer.email,
+        templateName: "offerRejected",
+        data: {
+          firstName: buyer.firstName,
+          amount: formattedAmount,
+          lang,
+        },
+      });
+    } catch (err) {
+      logger.error("Offer rejected notification failed", err);
+    }
 
     res
       .status(200)
@@ -305,7 +390,7 @@ const getOffer = async (req, res, next) => {
     const userId = req.user._id;
 
     const offer = await offerService.findOneWithFullPopulate({
-      _id:       id,
+      _id: id,
       deletedAt: null,
     });
 
@@ -314,19 +399,14 @@ const getOffer = async (req, res, next) => {
     }
 
     // Ownership: buyer or vendor party to this offer only
-    const isBuyer  = offer.buyerId._id.toString()  === userId.toString();
+    const isBuyer = offer.buyerId._id.toString() === userId.toString();
     const isVendor = offer.vendorId._id.toString() === userId.toString();
 
     if (!isBuyer && !isVendor) {
-      throw new ApiError(
-        403,
-        "You do not have permission to view this offer"
-      );
+      throw new ApiError(403, "You do not have permission to view this offer");
     }
 
-    res
-      .status(200)
-      .json(new ApiResponse(200, offer, "Offer retrieved"));
+    res.status(200).json(new ApiResponse(200, offer, "Offer retrieved"));
   } catch (err) {
     next(err);
   }

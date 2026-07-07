@@ -29,6 +29,7 @@ const adminCmsRoutes = require("./routes/admin/adminCms/adminCms.routes");
 const adminSettingsRoutes = require("./routes/admin/adminSettings/adminSettings.routes");
 const adminAuditRoutes = require("./routes/admin/adminAudit/adminAudit.routes");
 const cmsRoutes = require("./routes/cms/cms.routes");
+const landingRoutes = require("./routes/landing/landing.routes");
 const app = express();
 //sprint 5 for strip webhook
 app.use((req, res, next) => {
@@ -94,6 +95,7 @@ app.use("/api/v1/admin/cms", adminCmsRoutes);
 app.use("/api/v1/admin/settings", adminSettingsRoutes);
 app.use("/api/v1/admin/audit", adminAuditRoutes);
 app.use("/api/v1/cms", cmsRoutes);
+app.use("/api/v1/landing", landingRoutes);
 // ── 404 handler
 app.use((req, res) => {
   res.status(404).json({ success: false, message: "Route not found" });
