@@ -102,7 +102,7 @@ const createOffer = async (req, res, next) => {
       .status(201)
       .json(new ApiResponse(201, offer, "Offer submitted successfully"));
   } catch (err) {
-    // next(err);
+    next(err);
     logger.error("Offer received notification failed", err);
   }
 };
