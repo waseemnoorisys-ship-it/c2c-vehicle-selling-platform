@@ -8,14 +8,17 @@ const {
   cmsIdSchema,
   listCmsSchema,
 } = require("../../../validators/admin/adminCms/adminCms.validators");
+const { t } = require("../../../utils/i18n");
+const { getLang } = require("../../../utils/getLang");
 
 const createPage = async (req, res, next) => {
   try {
+    const lang = getLang(req);
     const { error, value } = createCmsPageSchema.validate(req.body);
     if (error) throw new ApiError(400, error.details[0].message);
 
     const existing = await cmsService.findPageBySlug(value.slug);
-    if (existing) throw new ApiError(409, "A page with this slug already exists");
+    if (existing) throw new ApiError(409, t("errors.cms.slugExists", lang));
 
     const page = await cmsService.createPage(value);
 
@@ -29,7 +32,7 @@ const createPage = async (req, res, next) => {
 
     return res
       .status(201)
-      .json(new ApiResponse(201, { page }, "CMS page created"));
+      .json(new ApiResponse(201, { page }, t("success.cms.created", lang)));
   } catch (err) {
     next(err);
   }
@@ -37,13 +40,14 @@ const createPage = async (req, res, next) => {
 
 const updatePage = async (req, res, next) => {
   try {
+    const lang = getLang(req);
     const { error, value } = updateCmsPageSchema.validate(req.body);
     if (error) throw new ApiError(400, error.details[0].message);
 
     const { slug, ...updates } = value;
 
     const page = await cmsService.findPageBySlug(slug);
-    if (!page) throw new ApiError(404, "CMS page not found");
+    if (!page) throw new ApiError(404, t("errors.cms.notFound", lang));
 
     const updated = await cmsService.updatePageById(page._id, updates);
 
@@ -57,7 +61,7 @@ const updatePage = async (req, res, next) => {
 
     return res
       .status(200)
-      .json(new ApiResponse(200, { page: updated }, "CMS page updated"));
+      .json(new ApiResponse(200, { page: updated }, t("success.cms.updated", lang)));
   } catch (err) {
     next(err);
   }
@@ -65,6 +69,7 @@ const updatePage = async (req, res, next) => {
 
 const listPages = async (req, res, next) => {
   try {
+    const lang = getLang(req);
     const { error, value } = listCmsSchema.validate(req.body);
     if (error) throw new ApiError(400, error.details[0].message);
 
@@ -78,7 +83,7 @@ const listPages = async (req, res, next) => {
     ]);
 
     return res.status(200).json(
-      new ApiResponse(200, { pages, total, page, limit }, "CMS pages fetched")
+      new ApiResponse(200, { pages, total, page, limit }, t("success.cms.listed", lang))
     );
   } catch (err) {
     next(err);
@@ -87,15 +92,16 @@ const listPages = async (req, res, next) => {
 
 const getPage = async (req, res, next) => {
   try {
+    const lang = getLang(req);
     const { error, value } = cmsIdSchema.validate(req.body);
     if (error) throw new ApiError(400, error.details[0].message);
 
     const page = await cmsService.findPageById(value.id);
-    if (!page) throw new ApiError(404, "CMS page not found");
+    if (!page) throw new ApiError(404, t("errors.cms.notFound", lang));
 
     return res
       .status(200)
-      .json(new ApiResponse(200, { page }, "CMS page fetched"));
+      .json(new ApiResponse(200, { page }, t("success.cms.fetched", lang)));
   } catch (err) {
     next(err);
   }
@@ -103,12 +109,13 @@ const getPage = async (req, res, next) => {
 
 const deletePage = async (req, res, next) => {
   try {
+    const lang = getLang(req);
     const { error, value } = cmsIdSchema.validate(req.body);
     if (error) throw new ApiError(400, error.details[0].message);
 
     const page = await cmsService.findPageById(value.id);
-    if (!page) throw new ApiError(404, "CMS page not found");
-    if (page.deletedAt) throw new ApiError(400, "Page already deleted");
+    if (!page) throw new ApiError(404, t("errors.cms.notFound", lang));
+    if (page.deletedAt) throw new ApiError(400, t("errors.cms.alreadyDeleted", lang));
 
     await cmsService.updatePageById(value.id, { deletedAt: new Date() });
 
@@ -122,7 +129,7 @@ const deletePage = async (req, res, next) => {
 
     return res
       .status(200)
-      .json(new ApiResponse(200, {}, "CMS page deleted successfully"));
+      .json(new ApiResponse(200, {}, t("success.cms.deleted", lang)));
   } catch (err) {
     next(err);
   }

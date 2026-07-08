@@ -3,9 +3,12 @@ const User = require("../../../models/user/user.model");
 const Listing = require("../../../models/listing/listing.model");
 const Transaction = require("../../../models/transaction/transaction.model");
 const Withdrawal = require("../../../models/withdrawal/withdrawal.model");
+const { t } = require("../../../utils/i18n");
+const { getLang } = require("../../../utils/getLang");
 
 const getDashboardStats = async (req, res, next) => {
   try {
+    const lang = getLang(req);
     const [
       totalUsers,
       totalBuyers,
@@ -58,7 +61,7 @@ const getDashboardStats = async (req, res, next) => {
           },
           pendingWithdrawals,
         },
-        "Dashboard stats fetched"
+        t("success.admin.dashboardFetched", lang)
       )
     );
   } catch (err) {

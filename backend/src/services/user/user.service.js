@@ -7,6 +7,8 @@ async function findById(userId) {
 async function findByIdAndUpdate(userId, updates, options = {}) {
   return User.findByIdAndUpdate(userId, updates, {
     new: true,
+    //what is run validators?
+    //run validators is a boolean that tells mongoose to run the validators on the update
     runValidators: true,
     ...options,
   }).select("-passwordHash");

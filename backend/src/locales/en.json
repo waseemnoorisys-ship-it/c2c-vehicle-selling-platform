@@ -1,116 +1,341 @@
 {
-    "offer": {
-      "received": {
-        "title": "New offer received",
-        "body": "You received an offer of ${amount} on your listing."
-      },
-      "accepted": {
-        "title": "Offer accepted",
-        "body": "Your offer of ${amount} has been accepted. Please proceed to payment."
-      },
-      "rejected": {
-        "title": "Offer rejected",
-        "body": "Your offer of ${amount} was rejected by the vendor."
-      }
+  "offer": {
+    "received": {
+      "title": "New offer received",
+      "body": "You received an offer of ${amount} on your listing."
     },
-    "listing": {
+    "accepted": {
+      "title": "Offer accepted",
+      "body": "Your offer of ${amount} has been accepted. Please proceed to payment."
+    },
+    "rejected": {
+      "title": "Offer rejected",
+      "body": "Your offer of ${amount} was rejected by the vendor."
+    }
+  },
+  "listing": {
+    "approved": {
+      "title": "Listing approved",
+      "body": "Your vehicle listing is now live on the platform."
+    },
+    "rejected": {
+      "title": "Listing rejected",
+      "body": "Your listing was rejected. Reason: ${reason}"
+    }
+  },
+  "payment": {
+    "escrowed": {
+      "title": "Payment received",
+      "body": "A buyer has paid for your vehicle. Please arrange delivery to release your funds."
+    },
+    "released": {
+      "title": "Funds released",
+      "body": "Your payment of ${amount} has been released to your wallet."
+    }
+  },
+  "withdrawal": {
+    "approved": {
+      "title": "Withdrawal approved",
+      "body": "Your withdrawal of ${amount} has been approved and is being processed."
+    },
+    "paid": {
+      "title": "Withdrawal paid",
+      "body": "Your withdrawal of ${amount} has been transferred to your bank account."
+    },
+    "rejected": {
+      "title": "Withdrawal rejected",
+      "body": "Your withdrawal of ${amount} was rejected. Reason: ${reason}. Funds have been returned to your wallet."
+    }
+  },
+  "email": {
+    "otp": {
+      "subject": "Your verification code — C2C Vehicles",
+      "heading": "Your verification code",
+      "body": "Use the code below to verify your account. It expires in ${minutes} minutes.",
+      "footer": "If you did not request this, you can safely ignore this email."
+    },
+    "welcome": {
+      "subject": "Welcome to C2C Vehicles",
+      "heading": "Welcome aboard!",
+      "body": "Your account has been verified successfully. You can now browse, list, and buy vehicles on C2C Vehicles.",
+      "cta": "Browse vehicles"
+    },
+    "offerReceived": {
+      "subject": "New offer on your listing — C2C Vehicles",
+      "heading": "You have a new offer",
+      "body": "A buyer has placed an offer of ${amount} on your listing. Log in to review and respond."
+    },
+    "offerAccepted": {
+      "subject": "Your offer was accepted — C2C Vehicles",
+      "heading": "Offer accepted!",
+      "body": "Great news! Your offer of ${amount} has been accepted. Please proceed to complete payment."
+    },
+    "offerRejected": {
+      "subject": "Your offer was not accepted — C2C Vehicles",
+      "heading": "Offer not accepted",
+      "body": "Unfortunately your offer of ${amount} was not accepted by the vendor."
+    },
+    "listingApproved": {
+      "subject": "Your listing is live — C2C Vehicles",
+      "heading": "Listing approved!",
+      "body": "Your vehicle listing has been reviewed and approved. It is now visible to buyers on the platform."
+    },
+    "listingRejected": {
+      "subject": "Your listing needs attention — C2C Vehicles",
+      "heading": "Listing not approved",
+      "body": "Your listing was reviewed and could not be approved. Reason: ${reason}. Please update your listing and resubmit."
+    },
+    "paymentEscrowed": {
+      "subject": "Payment received for your vehicle — C2C Vehicles",
+      "heading": "Payment is in escrow",
+      "body": "A buyer has completed payment for your vehicle. Please arrange delivery. Once the buyer confirms receipt, funds will be released to your wallet."
+    },
+    "paymentReleased": {
+      "subject": "Funds released to your wallet — C2C Vehicles",
+      "heading": "Funds released!",
+      "body": "Your payment of ${amount} has been released and is now available in your wallet."
+    },
+    "withdrawalUpdate": {
       "approved": {
-        "title": "Listing approved",
-        "body": "Your vehicle listing is now live on the platform."
-      },
-      "rejected": {
-        "title": "Listing rejected",
-        "body": "Your listing was rejected. Reason: ${reason}"
-      }
-    },
-    "payment": {
-      "escrowed": {
-        "title": "Payment received",
-        "body": "A buyer has paid for your vehicle. Please arrange delivery to release your funds."
-      },
-      "released": {
-        "title": "Funds released",
-        "body": "Your payment of ${amount} has been released to your wallet."
-      }
-    },
-    "withdrawal": {
-      "approved": {
-        "title": "Withdrawal approved",
-        "body": "Your withdrawal of ${amount} has been approved and is being processed."
+        "subject": "Withdrawal approved — C2C Vehicles",
+        "heading": "Withdrawal approved",
+        "body": "Your withdrawal of ${amount} has been approved and is being processed to your bank account."
       },
       "paid": {
-        "title": "Withdrawal paid",
+        "subject": "Withdrawal sent to your bank — C2C Vehicles",
+        "heading": "Withdrawal paid",
         "body": "Your withdrawal of ${amount} has been transferred to your bank account."
       },
       "rejected": {
-        "title": "Withdrawal rejected",
-        "body": "Your withdrawal of ${amount} was rejected. Reason: ${reason}. Funds have been returned to your wallet."
-      }
-    },
-    "email": {
-      "otp": {
-        "subject": "Your verification code — C2C Vehicles",
-        "heading": "Your verification code",
-        "body": "Use the code below to verify your account. It expires in ${minutes} minutes.",
-        "footer": "If you did not request this, you can safely ignore this email."
-      },
-      "welcome": {
-        "subject": "Welcome to C2C Vehicles",
-        "heading": "Welcome aboard!",
-        "body": "Your account has been verified successfully. You can now browse, list, and buy vehicles on C2C Vehicles.",
-        "cta": "Browse vehicles"
-      },
-      "offerReceived": {
-        "subject": "New offer on your listing — C2C Vehicles",
-        "heading": "You have a new offer",
-        "body": "A buyer has placed an offer of ${amount} on your listing. Log in to review and respond."
-      },
-      "offerAccepted": {
-        "subject": "Your offer was accepted — C2C Vehicles",
-        "heading": "Offer accepted!",
-        "body": "Great news! Your offer of ${amount} has been accepted. Please proceed to complete payment."
-      },
-      "offerRejected": {
-        "subject": "Your offer was not accepted — C2C Vehicles",
-        "heading": "Offer not accepted",
-        "body": "Unfortunately your offer of ${amount} was not accepted by the vendor."
-      },
-      "listingApproved": {
-        "subject": "Your listing is live — C2C Vehicles",
-        "heading": "Listing approved!",
-        "body": "Your vehicle listing has been reviewed and approved. It is now visible to buyers on the platform."
-      },
-      "listingRejected": {
-        "subject": "Your listing needs attention — C2C Vehicles",
-        "heading": "Listing not approved",
-        "body": "Your listing was reviewed and could not be approved. Reason: ${reason}. Please update your listing and resubmit."
-      },
-      "paymentEscrowed": {
-        "subject": "Payment received for your vehicle — C2C Vehicles",
-        "heading": "Payment is in escrow",
-        "body": "A buyer has completed payment for your vehicle. Please arrange delivery. Once the buyer confirms receipt, funds will be released to your wallet."
-      },
-      "paymentReleased": {
-        "subject": "Funds released to your wallet — C2C Vehicles",
-        "heading": "Funds released!",
-        "body": "Your payment of ${amount} has been released and is now available in your wallet."
-      },
-      "withdrawalUpdate": {
-        "approved": {
-          "subject": "Withdrawal approved — C2C Vehicles",
-          "heading": "Withdrawal approved",
-          "body": "Your withdrawal of ${amount} has been approved and is being processed to your bank account."
-        },
-        "paid": {
-          "subject": "Withdrawal sent to your bank — C2C Vehicles",
-          "heading": "Withdrawal paid",
-          "body": "Your withdrawal of ${amount} has been transferred to your bank account."
-        },
-        "rejected": {
-          "subject": "Withdrawal could not be processed — C2C Vehicles",
-          "heading": "Withdrawal rejected",
-          "body": "Your withdrawal of ${amount} could not be processed. Reason: ${reason}. The funds have been returned to your wallet."
-        }
+        "subject": "Withdrawal could not be processed — C2C Vehicles",
+        "heading": "Withdrawal rejected",
+        "body": "Your withdrawal of ${amount} could not be processed. Reason: ${reason}. The funds have been returned to your wallet."
       }
     }
+  },
+  "success": {
+    "auth": {
+      "register": "Registration successful. OTP sent to email.",
+      "emailVerified": "Email verified successfully",
+      "otpSent": "OTP sent",
+      "login": "Login successful",
+      "tokenRefreshed": "Token refreshed",
+      "logout": "Logged out successfully",
+      "forgotPassword": "If that email exists, an OTP has been sent",
+      "passwordReset": "Password reset successfully"
+    },
+    "user": {
+      "profileUpdated": "Profile updated",
+      "photoUploaded": "Profile photo uploaded",
+      "fcmSaved": "FCM token saved"
+    },
+    "listing": {
+      "created": "Listing created",
+      "createdWithPhotos": "Listing created with photos",
+      "updated": "Listing updated",
+      "deleted": "Listing deleted",
+      "submitted": "Listing submitted for approval",
+      "photosUploaded": "Photos uploaded",
+      "photoRemoved": "Photo removed",
+      "mineRetrieved": "Your listings retrieved",
+      "browseRetrieved": "Listings retrieved",
+      "retrieved": "Listing retrieved",
+      "approved": "Listing approved successfully",
+      "rejected": "Listing rejected successfully",
+      "verifiedToggled": "Listing ${state} successfully"
+    },
+    "offer": {
+      "created": "Offer submitted successfully",
+      "mineRetrieved": "Your offers retrieved",
+      "receivedRetrieved": "Received offers retrieved",
+      "accepted": "Offer accepted",
+      "rejected": "Offer rejected",
+      "retrieved": "Offer retrieved"
+    },
+    "payment": {
+      "intentCreated": "Payment intent created",
+      "deliveryConfirmed": "Delivery confirmed and funds released",
+      "transactionFetched": "Transaction fetched"
+    },
+    "wallet": {
+      "fetched": "Wallet fetched",
+      "ledgerFetched": "Ledger fetched",
+      "bankSaved": "Bank details saved",
+      "bankFetched": "Bank details fetched",
+      "withdrawalCreated": "Withdrawal request created",
+      "withdrawalsFetched": "Withdrawals fetched",
+      "withdrawalFetched": "Withdrawal fetched",
+      "invoiceFetched": "Invoice fetched"
+    },
+    "notification": {
+      "retrieved": "Notifications retrieved",
+      "markedRead": "Notification marked as read",
+      "allMarkedRead": "All notifications marked as read"
+    },
+    "make": {
+      "created": "Make created",
+      "updated": "Make updated",
+      "deleted": "Make deleted"
+    },
+    "model": {
+      "created": "Model created",
+      "updated": "Model updated",
+      "deleted": "Model deleted"
+    },
+    "master": {
+      "fetched": "Master data fetched successfully"
+    },
+    "cms": {
+      "fetched": "Page fetched",
+      "created": "CMS page created",
+      "updated": "CMS page updated",
+      "deleted": "CMS page deleted",
+      "listed": "CMS pages fetched"
+    },
+    "landing": {
+      "fetched": "Landing data fetched"
+    },
+    "admin": {
+      "login": "Admin login successful",
+      "logout": "Admin logged out successfully",
+      "tokenRefreshed": "Token refreshed",
+      "dashboardFetched": "Dashboard stats fetched",
+      "usersFetched": "Users fetched",
+      "userFetched": "User fetched",
+      "userActivated": "User activated successfully",
+      "userDeactivated": "User deactivated successfully",
+      "userDeleted": "User deleted successfully",
+      "listingsFetched": "Listings fetched",
+      "listingFetched": "Listing fetched",
+      "commissionFetched": "Commission config fetched",
+      "commissionUpdated": "Commission updated successfully",
+      "withdrawalsFetched": "Withdrawals fetched",
+      "withdrawalFetched": "Withdrawal fetched",
+      "withdrawalApproved": "Withdrawal approved",
+      "withdrawalPaid": "Withdrawal marked as paid",
+      "withdrawalRejected": "Withdrawal rejected",
+      "transactionsFetched": "Transactions fetched",
+      "transactionFetched": "Transaction fetched",
+      "settingsFetched": "Settings fetched",
+      "settingsUpdated": "Settings updated",
+      "auditFetched": "Audit logs fetched"
+    }
+  },
+  "errors": {
+    "common": {
+      "validationFailed": "Validation failed",
+      "validationError": "Validation error",
+      "alreadyExists": "${field} already exists",
+      "invalidToken": "Invalid token",
+      "tokenExpired": "Token expired",
+      "internal": "Internal server error",
+      "tooManyRequests": "Too many requests, please try again later",
+      "invalidImageType": "Only JPEG, PNG, and WEBP images are allowed",
+      "forbidden": "Forbidden: insufficient permissions"
+    },
+    "auth": {
+      "emailRegistered": "Email already registered",
+      "userNotFound": "User not found",
+      "emailAlreadyVerified": "Email already verified",
+      "invalidCredentials": "Invalid email or password",
+      "accountDeactivated": "Account is deactivated",
+      "verifyEmailFirst": "Please verify your email first",
+      "invalidRefreshToken": "Invalid or expired refresh token",
+      "userInactive": "User not found or inactive",
+      "invalidResetToken": "Reset token is invalid or expired",
+      "invalidTokenPurpose": "Invalid token purpose",
+      "tokenUserMismatch": "Token does not match user",
+      "noToken": "No token provided",
+      "accountDeleted": "Account has been deleted"
+    },
+    "adminAuth": {
+      "tokenRequired": "Admin access token required",
+      "invalidToken": "Invalid or expired admin token",
+      "notFound": "Admin not found or deactivated",
+      "invalidCredentials": "Invalid credentials",
+      "deactivated": "Admin account is deactivated"
+    },
+    "listing": {
+      "makeNotFound": "Selected make not found",
+      "modelNotFound": "Selected model not found",
+      "modelMismatch": "Selected model does not belong to the selected make",
+      "notFound": "Listing not found",
+      "noPermission": "You do not have permission to modify this listing",
+      "photoRequired": "At least 1 photo is required",
+      "maxPhotos": "Maximum ${max} photos allowed",
+      "listingIdRequired": "Listing id is required",
+      "noPhotoFiles": "No photo files provided",
+      "photoNotFound": "Photo not found on this listing",
+      "notAvailable": "Listing not found or not available",
+      "cannotSubmitStatus": "Cannot submit a listing with status \"${status}\"",
+      "onlyPendingApprove": "Only pending listings can be approved",
+      "onlyPendingReject": "Only pending listings can be rejected"
+    },
+    "offer": {
+      "listingUnavailable": "Listing not found or not available for offers",
+      "ownListing": "You cannot make an offer on your own listing",
+      "alreadyPending": "You already have a pending offer on this listing. Withdraw it before submitting a new one.",
+      "notFound": "Offer not found",
+      "cannotRejectStatus": "Cannot reject an offer with status \"${status}\"",
+      "cannotAcceptStatus": "Cannot accept an offer with status \"${status}\""
+    },
+    "payment": {
+      "offerNotFound": "Offer not found",
+      "notOwner": "You do not own this offer",
+      "onlyAccepted": "Only accepted offers can be paid",
+      "listingNotFound": "Listing not found",
+      "transactionExists": "A transaction already exists for this offer",
+      "invalidPrice": "Invalid listing price for payment",
+      "transactionNotFound": "Transaction not found",
+      "onlyBuyerConfirm": "Only the buyer can confirm delivery",
+      "notInEscrow": "Transaction is not in escrow"
+    },
+    "wallet": {
+      "noBankDetails": "No bank details found",
+      "addBankFirst": "Add bank details before requesting a withdrawal",
+      "exceedsBalance": "Withdrawal amount exceeds wallet balance",
+      "withdrawalNotFound": "Withdrawal not found",
+      "invoiceNotFound": "Invoice not found"
+    },
+    "user": {
+      "notFound": "User not found",
+      "noPhoto": "No photo file provided",
+      "alreadyActive": "User is already active",
+      "alreadyDeactivated": "User is already deactivated",
+      "alreadyDeleted": "User already deleted"
+    },
+    "make": {
+      "notFound": "Make not found",
+      "exists": "This make already exists"
+    },
+    "model": {
+      "notFound": "Model not found",
+      "exists": "This model already exists"
+    },
+    "cms": {
+      "notFound": "Page not found",
+      "slugExists": "A page with this slug already exists",
+      "alreadyDeleted": "Page already deleted"
+    },
+    "admin": {
+      "withdrawalNotFound": "Withdrawal not found",
+      "transactionNotFound": "Transaction not found",
+      "onlyPendingApprove": "Only pending withdrawals can be approved",
+      "onlyPendingReject": "Only pending withdrawals can be rejected",
+      "onlyApprovedPaid": "Only approved withdrawals can be marked as paid"
+    },
+    "commonExtra": {
+      "accessDenied": "Access denied"
+    },
+    "offerExtra": {
+      "expired": "This offer has expired and cannot be accepted",
+      "viewForbidden": "You do not have permission to view this offer"
+    },
+    "notification": {
+      "notFound": "Notification not found"
+    },
+    "walletExtra": {
+      "transactionNotFound": "Transaction not found"
+    }
   }
+}

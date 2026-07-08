@@ -5,6 +5,8 @@ const {
 } = require("../../services/upload/upload.service");
 const ApiResponse = require("../../utils/ApiResponse");
 const ApiError = require("../../utils/ApiError");
+const { t } = require("../../utils/i18n");
+const { getLang } = require("../../utils/getLang");
 const Joi = require("joi");
 
 const ALLOWED_PROFILE_FIELDS = [
@@ -25,6 +27,7 @@ const getMe = async (req, res, next) => {
 
 const updateMe = async (req, res, next) => {
   try {
+    const lang = getLang(req);
     const safeUpdates = {};
     for (const field of ALLOWED_PROFILE_FIELDS) {
       if (req.body[field] !== undefined) safeUpdates[field] = req.body[field];
@@ -34,9 +37,9 @@ const updateMe = async (req, res, next) => {
       req.user._id,
       safeUpdates,
     );
-    if (!updated) throw new ApiError(404, "User not found");
+    if (!updated) throw new ApiError(404, t("errors.user.notFound", lang));
 
-    res.status(200).json(new ApiResponse(200, updated, "Profile updated"));
+    res.status(200).json(new ApiResponse(200, updated, t("success.user.profileUpdated", lang)));
   } catch (err) {
     next(err);
   }
@@ -44,10 +47,11 @@ const updateMe = async (req, res, next) => {
 
 const uploadPhoto = async (req, res, next) => {
   try {
-    if (!req.file) throw new ApiError(400, "No photo file provided");
+    const lang = getLang(req);
+    if (!req.file) throw new ApiError(400, t("errors.user.noPhoto", lang));
 
     const user = await userService.findById(req.user._id);
-    if (!user) throw new ApiError(404, "User not found");
+    if (!user) throw new ApiError(404, t("errors.user.notFound", lang));
 
     if (user.profilePhotoPublicId) {
       await deleteFileFromCloudinary(user.profilePhotoPublicId);
@@ -65,7 +69,7 @@ const uploadPhoto = async (req, res, next) => {
     res
       .status(200)
       .json(
-        new ApiResponse(200, { profilePhoto: url }, "Profile photo updated"),
+        new ApiResponse(200, { profilePhoto: url }, t("success.user.photoUploaded", lang)),
       );
   } catch (err) {
     next(err);
@@ -74,6 +78,7 @@ const uploadPhoto = async (req, res, next) => {
 //sprint 9 fcm token
 const saveFcmToken = async (req, res, next) => {
   try {
+    const lang = getLang(req);
     const schema = Joi.object({
       fcmToken: Joi.string().required(),
     });
@@ -87,7 +92,7 @@ const saveFcmToken = async (req, res, next) => {
 
     //fix
     await userService.findByIdAndUpdate(req.user._id, { fcmToken: value.fcmToken });
-    return res.status(200).json(new ApiResponse(200, {}, "FCM token saved"));
+    return res.status(200).json(new ApiResponse(200, {}, t("success.user.fcmSaved", lang)));
   } catch (err) {
     next(err);
   }

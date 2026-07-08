@@ -10,6 +10,7 @@ const registerSchema = Joi.object({
   countryCode: Joi.string().pattern(/^\+\d{1,4}$/).default("+33"),
   password:    Joi.string().min(8).max(72).required(),  // 72 = bcrypt max
   role:        Joi.string().valid("buyer", "vendor").required(),
+  language:    Joi.string().valid("en", "fr").default("en"),
 });
 
 const verifyEmailSchema = Joi.object({

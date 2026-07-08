@@ -4,9 +4,12 @@ const AppSettings = require("../../models/appSettings/appSettings.model");
 const CmsPage = require("../../models/cmsPage/cmsPage.model");
 const Listing = require("../../models/listing/listing.model");
 const User = require("../../models/user/user.model");
+const { t } = require("../../utils/i18n");
+const { getLang } = require("../../utils/getLang");
 
 const getLandingData = async (req, res, next) => {
   try {
+    const lang = getLang(req);
     const [settings, pages, totalListings, totalVendors] = await Promise.all([
       AppSettings.findOne({}),
       CmsPage.find({ isActive: true, deletedAt: null })
@@ -32,7 +35,7 @@ const getLandingData = async (req, res, next) => {
           },
           pages,
         },
-        "Landing data fetched"
+        t("success.landing.fetched", lang)
       )
     );
   } catch (err) {

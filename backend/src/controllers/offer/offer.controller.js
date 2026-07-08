@@ -5,6 +5,7 @@ const notificationService = require("../../services/notification/notification.se
 const { sendPushNotification } = require("../../services/push/push.service");
 const { sendEmail } = require("../../services/email/email.service");
 const { t } = require("../../utils/i18n");
+const { getLang } = require("../../utils/getLang");
 const userService = require("../../services/user/user.service");
 const Listing = require("../../models/listing/listing.model");
 const ApiResponse = require("../../utils/ApiResponse");
@@ -15,6 +16,7 @@ const logger = require("../../config/logger");
 // Auth: buyer role
 const createOffer = async (req, res, next) => {
   try {
+    const lang = getLang(req);
     const { listingId, amount, message } = req.body;
     const buyerId = req.user._id;
 
@@ -25,12 +27,12 @@ const createOffer = async (req, res, next) => {
       deletedAt: null,
     });
     if (!listing) {
-      throw new ApiError(404, "Listing not found or not available for offers");
+      throw new ApiError(404, t("errors.offer.listingUnavailable", lang));
     }
 
     // Business rule 2: buyer cannot offer on their own listing
     if (listing.vendorId.toString() === buyerId.toString()) {
-      throw new ApiError(403, "You cannot make an offer on your own listing");
+      throw new ApiError(403, t("errors.offer.ownListing", lang));
     }
 
     // Business rule 3: one pending offer per buyer per listing
@@ -41,10 +43,7 @@ const createOffer = async (req, res, next) => {
       deletedAt: null,
     });
     if (existing) {
-      throw new ApiError(
-        409,
-        "You already have a pending offer on this listing. Withdraw it before submitting a new one.",
-      );
+      throw new ApiError(409, t("errors.offer.alreadyPending", lang));
     }
 
     const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000);
@@ -72,13 +71,13 @@ const createOffer = async (req, res, next) => {
       const vendor = await userService.findById(offer.vendorId);
       if (!vendor) throw new Error("Vendor not found");
 
-      const lang = vendor.language || "en";
+      const notifyLang = vendor.language || "en";
       const formattedAmount = `$${(offer.amount / 100).toFixed(2)}`;
 
       await sendPushNotification({
         fcmToken: vendor.fcmToken,
-        title: t("offer.received.title", lang),
-        body: t("offer.received.body", lang, { amount: formattedAmount }),
+        title: t("offer.received.title", notifyLang),
+        body: t("offer.received.body", notifyLang, { amount: formattedAmount }),
         data: {
           offerId: offer._id.toString(),
           listingId: listing._id.toString(),
@@ -91,7 +90,7 @@ const createOffer = async (req, res, next) => {
         data: {
           firstName: vendor.firstName,
           amount: formattedAmount,
-          lang,
+          lang: notifyLang,
         },
       });
     } catch (err) {
@@ -100,7 +99,7 @@ const createOffer = async (req, res, next) => {
 
     res
       .status(201)
-      .json(new ApiResponse(201, offer, "Offer submitted successfully"));
+      .json(new ApiResponse(201, offer, t("success.offer.created", lang)));
   } catch (err) {
     next(err);
     logger.error("Offer received notification failed", err);
@@ -111,6 +110,7 @@ const createOffer = async (req, res, next) => {
 // Auth: buyer role
 const getMyOffers = async (req, res, next) => {
   try {
+    const lang = getLang(req);
     const buyerId = req.user._id;
     const page = parseInt(req.body.page) || 1;
     const limit = parseInt(req.body.limit) || 20;
@@ -146,7 +146,7 @@ const getMyOffers = async (req, res, next) => {
             totalPages: Math.ceil(total / limit),
           },
         },
-        "Your offers retrieved",
+        t("success.offer.mineRetrieved", lang),
       ),
     );
   } catch (err) {
@@ -158,6 +158,7 @@ const getMyOffers = async (req, res, next) => {
 // Auth: vendor role
 const getReceivedOffers = async (req, res, next) => {
   try {
+    const lang = getLang(req);
     const vendorId = req.user._id;
     const { status, listingId, page = 1, limit = 20 } = req.body;
 
@@ -188,7 +189,7 @@ const getReceivedOffers = async (req, res, next) => {
             totalPages: Math.ceil(total / parseInt(limit)),
           },
         },
-        "Received offers retrieved",
+        t("success.offer.receivedRetrieved", lang),
       ),
     );
   } catch (err) {
@@ -200,6 +201,7 @@ const getReceivedOffers = async (req, res, next) => {
 // Auth: vendor role
 const acceptOffer = async (req, res, next) => {
   try {
+    const lang = getLang(req);
     const vendorId = req.user._id;
     const { id } = req.body;
 
@@ -213,20 +215,20 @@ const acceptOffer = async (req, res, next) => {
     });
 
     if (!offer) {
-      throw new ApiError(404, "Offer not found or you do not have permission");
+      throw new ApiError(404, t("errors.offer.notFound", lang));
     }
 
     if (offer.status !== "pending") {
       throw new ApiError(
         400,
-        `Cannot accept an offer with status "${offer.status}"`,
+        t("errors.offer.cannotAcceptStatus", lang, { status: offer.status }),
       );
     }
 
     if (offer.expiresAt < new Date()) {
       offer.status = "expired";
       await offerService.save(offer);
-      throw new ApiError(400, "This offer has expired and cannot be accepted");
+      throw new ApiError(400, t("errors.offerExtra.expired", lang));
     }
 
     // Step 1: Accept this offer
@@ -265,13 +267,13 @@ const acceptOffer = async (req, res, next) => {
     });
     try {
       const buyer = await userService.findById(offer.buyerId);
-      const lang = buyer.language || "en";
+      const notifyLang = buyer.language || "en";
       const formattedAmount = `$${(offer.amount / 100).toFixed(2)}`;
 
       await sendPushNotification({
         fcmToken: buyer.fcmToken,
-        title: t("offer.accepted.title", lang),
-        body: t("offer.accepted.body", lang, { amount: formattedAmount }),
+        title: t("offer.accepted.title", notifyLang),
+        body: t("offer.accepted.body", notifyLang, { amount: formattedAmount }),
         data: { offerId: offer._id.toString() },
       });
 
@@ -281,7 +283,7 @@ const acceptOffer = async (req, res, next) => {
         data: {
           firstName: buyer.firstName,
           amount: formattedAmount,
-          lang,
+          lang: notifyLang,
         },
       });
     } catch (err) {
@@ -305,7 +307,7 @@ const acceptOffer = async (req, res, next) => {
 
     res
       .status(200)
-      .json(new ApiResponse(200, offer, "Offer accepted successfully"));
+      .json(new ApiResponse(200, offer, t("success.offer.accepted", lang)));
   } catch (err) {
     next(err);
   }
@@ -315,6 +317,7 @@ const acceptOffer = async (req, res, next) => {
 // Auth: vendor role
 const rejectOffer = async (req, res, next) => {
   try {
+    const lang = getLang(req);
     const vendorId = req.user._id;
     const { id, reason } = req.body;
 
@@ -325,13 +328,13 @@ const rejectOffer = async (req, res, next) => {
     });
 
     if (!offer) {
-      throw new ApiError(404, "Offer not found or you do not have permission");
+      throw new ApiError(404, t("errors.offer.notFound", lang));
     }
 
     if (offer.status !== "pending") {
       throw new ApiError(
         400,
-        `Cannot reject an offer with status "${offer.status}"`,
+        t("errors.offer.cannotRejectStatus", lang, { status: offer.status }),
       );
     }
 
@@ -351,13 +354,13 @@ const rejectOffer = async (req, res, next) => {
 
     try {
       const buyer = await userService.findById(offer.buyerId);
-      const lang = buyer.language || "en";
+      const notifyLang = buyer.language || "en";
       const formattedAmount = `$${(offer.amount / 100).toFixed(2)}`;
     
       await sendPushNotification({
         fcmToken: buyer.fcmToken,
-        title: t("offer.rejected.title", lang),
-        body: t("offer.rejected.body", lang, { amount: formattedAmount }),
+        title: t("offer.rejected.title", notifyLang),
+        body: t("offer.rejected.body", notifyLang, { amount: formattedAmount }),
         data: { offerId: offer._id.toString() },
       });
     
@@ -367,7 +370,7 @@ const rejectOffer = async (req, res, next) => {
         data: {
           firstName: buyer.firstName,
           amount: formattedAmount,
-          lang,
+          lang: notifyLang,
         },
       });
     } catch (err) {
@@ -376,7 +379,7 @@ const rejectOffer = async (req, res, next) => {
 
     res
       .status(200)
-      .json(new ApiResponse(200, offer, "Offer rejected successfully"));
+      .json(new ApiResponse(200, offer, t("success.offer.rejected", lang)));
   } catch (err) {
     next(err);
   }
@@ -386,6 +389,7 @@ const rejectOffer = async (req, res, next) => {
 // Auth: buyer or vendor
 const getOffer = async (req, res, next) => {
   try {
+    const lang = getLang(req);
     const { id } = req.body;
     const userId = req.user._id;
 
@@ -395,7 +399,7 @@ const getOffer = async (req, res, next) => {
     });
 
     if (!offer) {
-      throw new ApiError(404, "Offer not found");
+      throw new ApiError(404, t("errors.offer.notFound", lang));
     }
 
     // Ownership: buyer or vendor party to this offer only
@@ -403,10 +407,10 @@ const getOffer = async (req, res, next) => {
     const isVendor = offer.vendorId._id.toString() === userId.toString();
 
     if (!isBuyer && !isVendor) {
-      throw new ApiError(403, "You do not have permission to view this offer");
+      throw new ApiError(403, t("errors.offerExtra.viewForbidden", lang));
     }
 
-    res.status(200).json(new ApiResponse(200, offer, "Offer retrieved"));
+    res.status(200).json(new ApiResponse(200, offer, t("success.offer.retrieved", lang)));
   } catch (err) {
     next(err);
   }

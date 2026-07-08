@@ -6,6 +6,8 @@ const {
 } = require("../../services/upload/upload.service");
 const ApiResponse = require("../../utils/ApiResponse");
 const ApiError = require("../../utils/ApiError");
+const { t } = require("../../utils/i18n");
+const { getLang } = require("../../utils/getLang");
 
 const MAX_PHOTOS = 10;
 
@@ -22,30 +24,31 @@ async function calculatePricing(askingPrice) {
   return { commissionPercent, displayPrice };
 }
 
-async function validateMakeModel(makeId, modelId) {
+async function validateMakeModel(makeId, modelId, lang) {
   const make = await listingService.findMakeById(makeId);
-  if (!make) throw new ApiError(404, "Selected make not found");
+  if (!make) throw new ApiError(404, t("errors.listing.makeNotFound", lang));
 
   const model = await listingService.findModelById(modelId);
-  if (!model) throw new ApiError(404, "Selected model not found");
+  if (!model) throw new ApiError(404, t("errors.listing.modelNotFound", lang));
 
   if (model.makeId.toString() !== makeId.toString()) {
-    throw new ApiError(400, "Selected model does not belong to the selected make");
+    throw new ApiError(400, t("errors.listing.modelMismatch", lang));
   }
 }
 
-async function getOwnedListingOrFail(listingId, vendorId) {
+async function getOwnedListingOrFail(listingId, vendorId, lang) {
   const listing = await listingService.findOne({ _id: listingId, deletedAt: null });
-  if (!listing) throw new ApiError(404, "Listing not found");
+  if (!listing) throw new ApiError(404, t("errors.listing.notFound", lang));
 
   if (listing.vendorId.toString() !== vendorId.toString()) {
-    throw new ApiError(403, "You do not have permission to modify this listing");
+    throw new ApiError(403, t("errors.listing.noPermission", lang));
   }
   return listing;
 }
 
 const createListing = async (req, res, next) => {
   try {
+    const lang = getLang(req);
     const {
       makeId,
       modelId,
@@ -55,7 +58,7 @@ const createListing = async (req, res, next) => {
       ...rest
     } = req.body;
 
-    await validateMakeModel(makeId, modelId);
+    await validateMakeModel(makeId, modelId, lang);
 
     const { commissionPercent, displayPrice } = await calculatePricing(rest.askingPrice);
 
@@ -73,17 +76,18 @@ const createListing = async (req, res, next) => {
       status: submitForApproval ? "pending" : "draft",
     });
 
-    res.status(201).json(new ApiResponse(201, listing, "Listing created"));
+    res.status(201).json(new ApiResponse(201, listing, t("success.listing.created", lang)));
   } catch (err) { next(err); }
 };
 
 const createListingWithPhotos = async (req, res, next) => {
   try {
+    const lang = getLang(req);
     if (!req.files || req.files.length === 0) {
-      throw new ApiError(400, "At least 1 photo is required");
+      throw new ApiError(400, t("errors.listing.photoRequired", lang));
     }
     if (req.files.length > MAX_PHOTOS) {
-      throw new ApiError(400, `Maximum ${MAX_PHOTOS} photos allowed`);
+      throw new ApiError(400, t("errors.listing.maxPhotos", lang, { max: MAX_PHOTOS }));
     }
 
     const {
@@ -95,7 +99,7 @@ const createListingWithPhotos = async (req, res, next) => {
       ...rest
     } = req.body;
 
-    await validateMakeModel(makeId, modelId);
+    await validateMakeModel(makeId, modelId, lang);
 
     const { commissionPercent, displayPrice } = await calculatePricing(rest.askingPrice);
 
@@ -130,7 +134,7 @@ const createListingWithPhotos = async (req, res, next) => {
 
     res
       .status(201)
-      .json(new ApiResponse(201, listing, "Listing created with photos"));
+      .json(new ApiResponse(201, listing, t("success.listing.createdWithPhotos", lang)));
   } catch (err) {
     next(err);
   }
@@ -138,14 +142,15 @@ const createListingWithPhotos = async (req, res, next) => {
 
 const updateListing = async (req, res, next) => {
   try {
+    const lang = getLang(req);
     const { id: listingId, ...updates } = req.body;
 
-    const listing = await getOwnedListingOrFail(listingId, req.user._id);
+    const listing = await getOwnedListingOrFail(listingId, req.user._id, lang);
 
     const newMakeId = updates.makeId || listing.makeId;
     const newModelId = updates.modelId || listing.modelId;
     if (updates.makeId || updates.modelId) {
-      await validateMakeModel(newMakeId, newModelId);
+      await validateMakeModel(newMakeId, newModelId, lang);
     }
 
     if (updates.askingPrice !== undefined) {
@@ -175,63 +180,63 @@ const updateListing = async (req, res, next) => {
     Object.assign(listing, updates);
     await listingService.save(listing);
 
-    res.status(200).json(new ApiResponse(200, listing, "Listing updated"));
+    res.status(200).json(new ApiResponse(200, listing, t("success.listing.updated", lang)));
   } catch (err) { next(err); }
 };
 
 const deleteListing = async (req, res, next) => {
   try {
-    const listing = await getOwnedListingOrFail(req.body.id, req.user._id);
+    const lang = getLang(req);
+    const listing = await getOwnedListingOrFail(req.body.id, req.user._id, lang);
     listing.deletedAt = new Date();
     await listingService.save(listing);
 
     res.status(200).json(new ApiResponse(200, {
       message: "Listing deleted successfully",
-    }, "Listing deleted"));
+    }, t("success.listing.deleted", lang)));
   } catch (err) { next(err); }
 };
 
 const submitListing = async (req, res, next) => {
   try {
-    const listing = await getOwnedListingOrFail(req.body.id, req.user._id);
+    const lang = getLang(req);
+    const listing = await getOwnedListingOrFail(req.body.id, req.user._id, lang);
 
     if (listing.status !== "draft") {
       throw new ApiError(
         400,
-        `Cannot submit a listing with status "${listing.status}"`
+        t("errors.listing.cannotSubmitStatus", lang, { status: listing.status })
       );
     }
 
     if (!listing.photos || listing.photos.length === 0) {
-      throw new ApiError(
-        400,
-        "At least 1 photo is required before submitting for approval"
-      );
+      throw new ApiError(400, t("errors.listing.photoRequired", lang));
     }
 
     listing.status = "pending";
     await listingService.save(listing);
 
-    res.status(200).json(new ApiResponse(200, listing, "Listing submitted for approval"));
+    res.status(200).json(new ApiResponse(200, listing, t("success.listing.submitted", lang)));
   } catch (err) { next(err); }
 };
 
 const addPhotos = async (req, res, next) => {
   try {
+    const lang = getLang(req);
     if (!req.files || req.files.length === 0) {
-      throw new ApiError(400, "No photo files provided");
+      throw new ApiError(400, t("errors.listing.noPhotoFiles", lang));
     }
     if (!req.body.id) {
-      throw new ApiError(400, "Listing id is required");
+      throw new ApiError(400, t("errors.listing.listingIdRequired", lang));
     }
 
-    const listing = await getOwnedListingOrFail(req.body.id, req.user._id);
+    const listing = await getOwnedListingOrFail(req.body.id, req.user._id, lang);
 
     const currentCount = listing.photos.length;
     if (currentCount + req.files.length > MAX_PHOTOS) {
       throw new ApiError(
         400,
-        `Maximum ${MAX_PHOTOS} photos allowed. You have ${currentCount}, tried to add ${req.files.length}.`
+        t("errors.listing.maxPhotos", lang, { max: MAX_PHOTOS })
       );
     }
 
@@ -247,21 +252,22 @@ const addPhotos = async (req, res, next) => {
 
     await listingService.save(listing);
 
-    res.status(200).json(new ApiResponse(200, listing, "Photos uploaded"));
+    res.status(200).json(new ApiResponse(200, listing, t("success.listing.photosUploaded", lang)));
   } catch (err) { next(err); }
 };
 
 const deletePhoto = async (req, res, next) => {
   try {
+    const lang = getLang(req);
     const { id, publicId } = req.body;
 
-    const listing = await getOwnedListingOrFail(id, req.user._id);
+    const listing = await getOwnedListingOrFail(id, req.user._id, lang);
 
     const photoIndex = listing.photos.findIndex(
       (p) => p.publicId === publicId
     );
     if (photoIndex === -1) {
-      throw new ApiError(404, "Photo not found on this listing");
+      throw new ApiError(404, t("errors.listing.photoNotFound", lang));
     }
 
     const photoToDelete = listing.photos[photoIndex];
@@ -277,12 +283,13 @@ const deletePhoto = async (req, res, next) => {
 
     await listingService.save(listing);
 
-    res.status(200).json(new ApiResponse(200, listing, "Photo removed"));
+    res.status(200).json(new ApiResponse(200, listing, t("success.listing.photoRemoved", lang)));
   } catch (err) { next(err); }
 };
 
 const getMyListings = async (req, res, next) => {
   try {
+    const lang = getLang(req);
     const { status, page = 1, limit = 20 } = req.body;
     const filter = { vendorId: req.user._id, deletedAt: null };
     if (status) filter.status = status;
@@ -298,12 +305,13 @@ const getMyListings = async (req, res, next) => {
       total,
       page,
       totalPages: Math.ceil(total / limit),
-    }, "Your listings retrieved"));
+    }, t("success.listing.mineRetrieved", lang)));
   } catch (err) { next(err); }
 };
 
 const browseListings = async (req, res, next) => {
   try {
+    const lang = getLang(req);
     const {
       search,
       makeId,
@@ -434,24 +442,25 @@ const browseListings = async (req, res, next) => {
             limit: parseInt(limit),
             totalPages: Math.ceil(total / limit),
           },
-    }, "Listings retrieved"));
+    }, t("success.listing.browseRetrieved", lang)));
   } catch (err) { next(err); }
 };
 
 const getPublicListingById = async (req, res, next) => {
   try {
+    const lang = getLang(req);
     const listing = await listingService.findOneAndIncrementView({
       _id: req.body.id,
       status: "approved",
       deletedAt: null,
     });
 
-    if (!listing) throw new ApiError(404, "Listing not found or not available");
+    if (!listing) throw new ApiError(404, t("errors.listing.notAvailable", lang));
 
     delete listing.commissionPercent;
     delete listing.askingPrice;
 
-    res.status(200).json(new ApiResponse(200, listing, "Listing retrieved"));
+    res.status(200).json(new ApiResponse(200, listing, t("success.listing.retrieved", lang)));
   } catch (err) { next(err); }
 };
 

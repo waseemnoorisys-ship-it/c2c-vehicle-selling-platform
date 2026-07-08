@@ -1,28 +1,27 @@
 const rateLimit = require("express-rate-limit");
+const { t } = require("../utils/i18n");
+const { getLang } = require("../utils/getLang");
 
-// Strict limiter for auth endpoints (prevent brute-force) only for [auth routes]
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100,
-  message: {
+function rateLimitHandler(req, res) {
+  const lang = getLang(req);
+  res.status(429).json({
     success: false,
-    message: "Too many requests, please try again later",
-  },
+    message: t("errors.common.tooManyRequests", lang),
+  });
+}
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  handler: rateLimitHandler,
   standardHeaders: true,
   legacyHeaders: false,
 });
 
-// General API limiter [for all routes]
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 200,
-  message: {
-    success: false,
-    message: "Too many requests, please try again later",
-  },
-  // RateLimit-Limit: 3
-  // RateLimit-Remaining: 1
-  // RateLimit-Reset: 600
+  handler: rateLimitHandler,
   standardHeaders: true,
   legacyHeaders: false,
 });

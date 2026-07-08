@@ -1,11 +1,14 @@
 const notificationService = require("../../services/notification/notification.service");
 const ApiResponse         = require("../../utils/ApiResponse");
 const ApiError            = require("../../utils/ApiError");
+const { t } = require("../../utils/i18n");
+const { getLang } = require("../../utils/getLang");
 
 // POST /api/v1/notifications/mine
 // Auth: any authenticated user
 const getMyNotifications = async (req, res, next) => {
   try {
+    const lang = getLang(req);
     const userId = req.user._id;
     const {
       page   = 1,
@@ -33,7 +36,7 @@ const getMyNotifications = async (req, res, next) => {
           limit:      parseInt(limit),
           totalPages: Math.ceil(total / parseInt(limit)),
         },
-      }, "Notifications retrieved")
+      }, t("success.notification.retrieved", lang))
     );
   } catch (err) {
     next(err);
@@ -44,6 +47,7 @@ const getMyNotifications = async (req, res, next) => {
 // Auth: any authenticated user
 const markAsRead = async (req, res, next) => {
   try {
+    const lang = getLang(req);
     const { id } = req.body;
     const userId = req.user._id;
 
@@ -55,12 +59,12 @@ const markAsRead = async (req, res, next) => {
     );
 
     if (!notification) {
-      throw new ApiError(404, "Notification not found");
+      throw new ApiError(404, t("errors.notification.notFound", lang));
     }
 
     res
       .status(200)
-      .json(new ApiResponse(200, notification, "Notification marked as read"));
+      .json(new ApiResponse(200, notification, t("success.notification.markedRead", lang)));
   } catch (err) {
     next(err);
   }
@@ -70,6 +74,7 @@ const markAsRead = async (req, res, next) => {
 // Auth: any authenticated user
 const markAllAsRead = async (req, res, next) => {
   try {
+    const lang = getLang(req);
     const userId = req.user._id;
 
     await notificationService.updateMany(
@@ -85,7 +90,7 @@ const markAllAsRead = async (req, res, next) => {
 
     res
       .status(200)
-      .json(new ApiResponse(200, { unreadCount }, "All notifications marked as read"));
+      .json(new ApiResponse(200, { unreadCount }, t("success.notification.allMarkedRead", lang)));
   } catch (err) {
     next(err);
   }

@@ -5,6 +5,8 @@ const ApiError = require("../../../utils/ApiError");
 const ApiResponse = require("../../../utils/ApiResponse");
 const adminAuthService = require("../../../services/admin/adminAuth/adminAuth.service");
 const { adminLoginSchema, adminRefreshSchema } = require("../../../validators/admin/adminAuth/adminAuth.validators");
+const { t } = require("../../../utils/i18n");
+const { getLang } = require("../../../utils/getLang");
 
 function generateAdminAccessToken(admin) {
   return jwt.sign(
@@ -24,18 +26,19 @@ function generateAdminRefreshToken(admin) {
 
 const adminLogin = async (req, res, next) => {
   try {
+    const lang = getLang(req);
     const { error, value } = adminLoginSchema.validate(req.body);
     if (error) throw new ApiError(400, error.details[0].message);
 
     const { email, password } = value;
 
     const admin = await adminAuthService.findAdminByEmail(email);
-    if (!admin) throw new ApiError(401, "Invalid credentials");
+    if (!admin) throw new ApiError(401, t("errors.adminAuth.invalidCredentials", lang));
 
-    if (!admin.isActive) throw new ApiError(403, "Admin account is deactivated");
+    if (!admin.isActive) throw new ApiError(403, t("errors.adminAuth.deactivated", lang));
 
     const isMatch = await bcrypt.compare(password, admin.passwordHash);
-    if (!isMatch) throw new ApiError(401, "Invalid credentials");
+    if (!isMatch) throw new ApiError(401, t("errors.adminAuth.invalidCredentials", lang));
 
     const accessToken = generateAdminAccessToken(admin);
     const refreshToken = generateAdminRefreshToken(admin);
@@ -71,7 +74,7 @@ const adminLogin = async (req, res, next) => {
             role: admin.role,
           },
         },
-        "Admin login successful"
+        t("success.admin.login", lang)
       )
     );
   } catch (err) {
@@ -81,6 +84,7 @@ const adminLogin = async (req, res, next) => {
 
 const adminRefreshToken = async (req, res, next) => {
   try {
+    const lang = getLang(req);
     const { error, value } = adminRefreshSchema.validate(req.body);
     if (error) throw new ApiError(400, error.details[0].message);
 
@@ -90,10 +94,10 @@ const adminRefreshToken = async (req, res, next) => {
     try {
       decoded = jwt.verify(refreshToken, process.env.JWT_ADMIN_REFRESH_SECRET);
     } catch {
-      throw new ApiError(401, "Invalid or expired refresh token");
+      throw new ApiError(401, t("errors.adminAuth.invalidToken", lang));
     }
 
-    if (decoded.type !== "admin") throw new ApiError(401, "Invalid token type");
+    if (decoded.type !== "admin") throw new ApiError(401, t("errors.adminAuth.invalidToken", lang));
 
     const tokenHash = crypto
       .createHash("sha256")
@@ -101,10 +105,10 @@ const adminRefreshToken = async (req, res, next) => {
       .digest("hex");
 
     const stored = await adminAuthService.findAdminRefreshToken(tokenHash);
-    if (!stored) throw new ApiError(401, "Refresh token revoked or not found");
+    if (!stored) throw new ApiError(401, t("errors.adminAuth.invalidToken", lang));
 
     const admin = await adminAuthService.findAdminById(decoded.id);
-    if (!admin) throw new ApiError(401, "Admin not found");
+    if (!admin) throw new ApiError(401, t("errors.adminAuth.notFound", lang));
 
     await adminAuthService.revokeAdminRefreshToken(tokenHash);
 
@@ -130,7 +134,7 @@ const adminRefreshToken = async (req, res, next) => {
       new ApiResponse(
         200,
         { accessToken: newAccessToken, refreshToken: newRefreshToken },
-        "Token refreshed"
+        t("success.admin.tokenRefreshed", lang)
       )
     );
   } catch (err) {
@@ -140,6 +144,7 @@ const adminRefreshToken = async (req, res, next) => {
 
 const adminLogout = async (req, res, next) => {
   try {
+    const lang = getLang(req);
     const { error, value } = adminRefreshSchema.validate(req.body);
     if (error) throw new ApiError(400, error.details[0].message);
 
@@ -154,7 +159,7 @@ const adminLogout = async (req, res, next) => {
 
     return res
       .status(200)
-      .json(new ApiResponse(200, {}, "Admin logged out successfully"));
+      .json(new ApiResponse(200, {}, t("success.admin.logout", lang)));
   } catch (err) {
     next(err);
   }

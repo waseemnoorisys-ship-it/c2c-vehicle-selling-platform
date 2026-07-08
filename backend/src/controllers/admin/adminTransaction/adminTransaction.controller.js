@@ -5,9 +5,12 @@ const {
   listTransactionsSchema,
   transactionIdSchema,
 } = require("../../../validators/admin/adminTransaction/adminTransaction.validators");
+const { t } = require("../../../utils/i18n");
+const { getLang } = require("../../../utils/getLang");
 
 const listTransactions = async (req, res, next) => {
   try {
+    const lang = getLang(req);
     const { error, value } = listTransactionsSchema.validate(req.body);
     if (error) throw new ApiError(400, error.details[0].message);
 
@@ -33,7 +36,7 @@ const listTransactions = async (req, res, next) => {
       new ApiResponse(
         200,
         { transactions, total, page, limit },
-        "Transactions fetched"
+        t("success.admin.transactionsFetched", lang)
       )
     );
   } catch (err) {
@@ -43,17 +46,18 @@ const listTransactions = async (req, res, next) => {
 
 const getTransaction = async (req, res, next) => {
   try {
+    const lang = getLang(req);
     const { error, value } = transactionIdSchema.validate(req.body);
     if (error) throw new ApiError(400, error.details[0].message);
 
     const transaction = await adminTransactionService.findTransactionById(
       value.transactionId
     );
-    if (!transaction) throw new ApiError(404, "Transaction not found");
+    if (!transaction) throw new ApiError(404, t("errors.admin.transactionNotFound", lang));
 
     return res
       .status(200)
-      .json(new ApiResponse(200, { transaction }, "Transaction fetched"));
+      .json(new ApiResponse(200, { transaction }, t("success.admin.transactionFetched", lang)));
   } catch (err) {
     next(err);
   }

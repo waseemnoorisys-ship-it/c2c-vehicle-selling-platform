@@ -1,116 +1,341 @@
 {
-    "offer": {
-      "received": {
-        "title": "Nouvelle offre reçue",
-        "body": "Vous avez reçu une offre de ${amount} sur votre annonce."
-      },
-      "accepted": {
-        "title": "Offre acceptée",
-        "body": "Votre offre de ${amount} a été acceptée. Veuillez procéder au paiement."
-      },
-      "rejected": {
-        "title": "Offre refusée",
-        "body": "Votre offre de ${amount} a été refusée par le vendeur."
-      }
+  "offer": {
+    "received": {
+      "title": "Nouvelle offre reçue",
+      "body": "Vous avez reçu une offre de ${amount} sur votre annonce."
     },
-    "listing": {
+    "accepted": {
+      "title": "Offre acceptée",
+      "body": "Votre offre de ${amount} a été acceptée. Veuillez procéder au paiement."
+    },
+    "rejected": {
+      "title": "Offre refusée",
+      "body": "Votre offre de ${amount} a été refusée par le vendeur."
+    }
+  },
+  "listing": {
+    "approved": {
+      "title": "Annonce approuvée",
+      "body": "Votre annonce de véhicule est maintenant en ligne sur la plateforme."
+    },
+    "rejected": {
+      "title": "Annonce refusée",
+      "body": "Votre annonce a été refusée. Raison : ${reason}"
+    }
+  },
+  "payment": {
+    "escrowed": {
+      "title": "Paiement reçu",
+      "body": "Un acheteur a payé pour votre véhicule. Veuillez organiser la livraison pour libérer vos fonds."
+    },
+    "released": {
+      "title": "Fonds libérés",
+      "body": "Votre paiement de ${amount} a été transféré dans votre portefeuille."
+    }
+  },
+  "withdrawal": {
+    "approved": {
+      "title": "Retrait approuvé",
+      "body": "Votre retrait de ${amount} a été approuvé et est en cours de traitement."
+    },
+    "paid": {
+      "title": "Retrait effectué",
+      "body": "Votre retrait de ${amount} a été transféré sur votre compte bancaire."
+    },
+    "rejected": {
+      "title": "Retrait refusé",
+      "body": "Votre retrait de ${amount} a été refusé. Raison : ${reason}. Les fonds ont été retournés dans votre portefeuille."
+    }
+  },
+  "email": {
+    "otp": {
+      "subject": "Votre code de vérification — C2C Véhicules",
+      "heading": "Votre code de vérification",
+      "body": "Utilisez le code ci-dessous pour vérifier votre compte. Il expire dans ${minutes} minutes.",
+      "footer": "Si vous n'avez pas demandé cela, vous pouvez ignorer cet e-mail."
+    },
+    "welcome": {
+      "subject": "Bienvenue sur C2C Véhicules",
+      "heading": "Bienvenue !",
+      "body": "Votre compte a été vérifié avec succès. Vous pouvez maintenant parcourir, publier et acheter des véhicules sur C2C Véhicules.",
+      "cta": "Parcourir les véhicules"
+    },
+    "offerReceived": {
+      "subject": "Nouvelle offre sur votre annonce — C2C Véhicules",
+      "heading": "Vous avez une nouvelle offre",
+      "body": "Un acheteur a fait une offre de ${amount} sur votre annonce. Connectez-vous pour examiner et répondre."
+    },
+    "offerAccepted": {
+      "subject": "Votre offre a été acceptée — C2C Véhicules",
+      "heading": "Offre acceptée !",
+      "body": "Bonne nouvelle ! Votre offre de ${amount} a été acceptée. Veuillez procéder au paiement."
+    },
+    "offerRejected": {
+      "subject": "Votre offre n'a pas été acceptée — C2C Véhicules",
+      "heading": "Offre non acceptée",
+      "body": "Malheureusement, votre offre de ${amount} n'a pas été acceptée par le vendeur."
+    },
+    "listingApproved": {
+      "subject": "Votre annonce est en ligne — C2C Véhicules",
+      "heading": "Annonce approuvée !",
+      "body": "Votre annonce de véhicule a été examinée et approuvée. Elle est maintenant visible par les acheteurs."
+    },
+    "listingRejected": {
+      "subject": "Votre annonce nécessite votre attention — C2C Véhicules",
+      "heading": "Annonce non approuvée",
+      "body": "Votre annonce a été examinée mais n'a pas pu être approuvée. Raison : ${reason}. Veuillez mettre à jour votre annonce et la soumettre à nouveau."
+    },
+    "paymentEscrowed": {
+      "subject": "Paiement reçu pour votre véhicule — C2C Véhicules",
+      "heading": "Paiement en séquestre",
+      "body": "Un acheteur a effectué le paiement pour votre véhicule. Veuillez organiser la livraison. Une fois que l'acheteur confirme la réception, les fonds seront libérés."
+    },
+    "paymentReleased": {
+      "subject": "Fonds transférés dans votre portefeuille — C2C Véhicules",
+      "heading": "Fonds libérés !",
+      "body": "Votre paiement de ${amount} a été libéré et est maintenant disponible dans votre portefeuille."
+    },
+    "withdrawalUpdate": {
       "approved": {
-        "title": "Annonce approuvée",
-        "body": "Votre annonce de véhicule est maintenant en ligne sur la plateforme."
-      },
-      "rejected": {
-        "title": "Annonce refusée",
-        "body": "Votre annonce a été refusée. Raison : ${reason}"
-      }
-    },
-    "payment": {
-      "escrowed": {
-        "title": "Paiement reçu",
-        "body": "Un acheteur a payé pour votre véhicule. Veuillez organiser la livraison pour libérer vos fonds."
-      },
-      "released": {
-        "title": "Fonds libérés",
-        "body": "Votre paiement de ${amount} a été transféré dans votre portefeuille."
-      }
-    },
-    "withdrawal": {
-      "approved": {
-        "title": "Retrait approuvé",
-        "body": "Votre retrait de ${amount} a été approuvé et est en cours de traitement."
+        "subject": "Retrait approuvé — C2C Véhicules",
+        "heading": "Retrait approuvé",
+        "body": "Votre retrait de ${amount} a été approuvé et est en cours de traitement vers votre compte bancaire."
       },
       "paid": {
-        "title": "Retrait effectué",
+        "subject": "Retrait envoyé à votre banque — C2C Véhicules",
+        "heading": "Retrait effectué",
         "body": "Votre retrait de ${amount} a été transféré sur votre compte bancaire."
       },
       "rejected": {
-        "title": "Retrait refusé",
-        "body": "Votre retrait de ${amount} a été refusé. Raison : ${reason}. Les fonds ont été retournés dans votre portefeuille."
-      }
-    },
-    "email": {
-      "otp": {
-        "subject": "Votre code de vérification — C2C Véhicules",
-        "heading": "Votre code de vérification",
-        "body": "Utilisez le code ci-dessous pour vérifier votre compte. Il expire dans ${minutes} minutes.",
-        "footer": "Si vous n'avez pas demandé cela, vous pouvez ignorer cet e-mail."
-      },
-      "welcome": {
-        "subject": "Bienvenue sur C2C Véhicules",
-        "heading": "Bienvenue !",
-        "body": "Votre compte a été vérifié avec succès. Vous pouvez maintenant parcourir, publier et acheter des véhicules sur C2C Véhicules.",
-        "cta": "Parcourir les véhicules"
-      },
-      "offerReceived": {
-        "subject": "Nouvelle offre sur votre annonce — C2C Véhicules",
-        "heading": "Vous avez une nouvelle offre",
-        "body": "Un acheteur a fait une offre de ${amount} sur votre annonce. Connectez-vous pour examiner et répondre."
-      },
-      "offerAccepted": {
-        "subject": "Votre offre a été acceptée — C2C Véhicules",
-        "heading": "Offre acceptée !",
-        "body": "Bonne nouvelle ! Votre offre de ${amount} a été acceptée. Veuillez procéder au paiement."
-      },
-      "offerRejected": {
-        "subject": "Votre offre n'a pas été acceptée — C2C Véhicules",
-        "heading": "Offre non acceptée",
-        "body": "Malheureusement, votre offre de ${amount} n'a pas été acceptée par le vendeur."
-      },
-      "listingApproved": {
-        "subject": "Votre annonce est en ligne — C2C Véhicules",
-        "heading": "Annonce approuvée !",
-        "body": "Votre annonce de véhicule a été examinée et approuvée. Elle est maintenant visible par les acheteurs."
-      },
-      "listingRejected": {
-        "subject": "Votre annonce nécessite votre attention — C2C Véhicules",
-        "heading": "Annonce non approuvée",
-        "body": "Votre annonce a été examinée mais n'a pas pu être approuvée. Raison : ${reason}. Veuillez mettre à jour votre annonce et la soumettre à nouveau."
-      },
-      "paymentEscrowed": {
-        "subject": "Paiement reçu pour votre véhicule — C2C Véhicules",
-        "heading": "Paiement en séquestre",
-        "body": "Un acheteur a effectué le paiement pour votre véhicule. Veuillez organiser la livraison. Une fois que l'acheteur confirme la réception, les fonds seront libérés."
-      },
-      "paymentReleased": {
-        "subject": "Fonds transférés dans votre portefeuille — C2C Véhicules",
-        "heading": "Fonds libérés !",
-        "body": "Votre paiement de ${amount} a été libéré et est maintenant disponible dans votre portefeuille."
-      },
-      "withdrawalUpdate": {
-        "approved": {
-          "subject": "Retrait approuvé — C2C Véhicules",
-          "heading": "Retrait approuvé",
-          "body": "Votre retrait de ${amount} a été approuvé et est en cours de traitement vers votre compte bancaire."
-        },
-        "paid": {
-          "subject": "Retrait envoyé à votre banque — C2C Véhicules",
-          "heading": "Retrait effectué",
-          "body": "Votre retrait de ${amount} a été transféré sur votre compte bancaire."
-        },
-        "rejected": {
-          "subject": "Le retrait n'a pas pu être traité — C2C Véhicules",
-          "heading": "Retrait refusé",
-          "body": "Votre retrait de ${amount} n'a pas pu être traité. Raison : ${reason}. Les fonds ont été retournés dans votre portefeuille."
-        }
+        "subject": "Le retrait n'a pas pu être traité — C2C Véhicules",
+        "heading": "Retrait refusé",
+        "body": "Votre retrait de ${amount} n'a pas pu être traité. Raison : ${reason}. Les fonds ont été retournés dans votre portefeuille."
       }
     }
+  },
+  "success": {
+    "auth": {
+      "register": "Inscription réussie. OTP envoyé par e-mail.",
+      "emailVerified": "E-mail vérifié avec succès",
+      "otpSent": "OTP envoyé",
+      "login": "Connexion réussie",
+      "tokenRefreshed": "Jeton actualisé",
+      "logout": "Déconnexion réussie",
+      "forgotPassword": "Si cet e-mail existe, un OTP a été envoyé",
+      "passwordReset": "Mot de passe réinitialisé avec succès"
+    },
+    "user": {
+      "profileUpdated": "Profil mis à jour",
+      "photoUploaded": "Photo de profil téléversée",
+      "fcmSaved": "Jeton FCM enregistré"
+    },
+    "listing": {
+      "created": "Annonce créée",
+      "createdWithPhotos": "Annonce créée avec photos",
+      "updated": "Annonce mise à jour",
+      "deleted": "Annonce supprimée",
+      "submitted": "Annonce soumise pour approbation",
+      "photosUploaded": "Photos téléversées",
+      "photoRemoved": "Photo supprimée",
+      "mineRetrieved": "Vos annonces récupérées",
+      "browseRetrieved": "Annonces récupérées",
+      "retrieved": "Annonce récupérée",
+      "approved": "Annonce approuvée avec succès",
+      "rejected": "Annonce refusée avec succès",
+      "verifiedToggled": "Annonce ${state} avec succès"
+    },
+    "offer": {
+      "created": "Offre soumise avec succès",
+      "mineRetrieved": "Vos offres récupérées",
+      "receivedRetrieved": "Offres reçues récupérées",
+      "accepted": "Offre acceptée",
+      "rejected": "Offre refusée",
+      "retrieved": "Offre récupérée"
+    },
+    "payment": {
+      "intentCreated": "Intention de paiement créée",
+      "deliveryConfirmed": "Livraison confirmée et fonds libérés",
+      "transactionFetched": "Transaction récupérée"
+    },
+    "wallet": {
+      "fetched": "Portefeuille récupéré",
+      "ledgerFetched": "Historique récupéré",
+      "bankSaved": "Coordonnées bancaires enregistrées",
+      "bankFetched": "Coordonnées bancaires récupérées",
+      "withdrawalCreated": "Demande de retrait créée",
+      "withdrawalsFetched": "Retraits récupérés",
+      "withdrawalFetched": "Retrait récupéré",
+      "invoiceFetched": "Facture récupérée"
+    },
+    "notification": {
+      "retrieved": "Notifications récupérées",
+      "markedRead": "Notification marquée comme lue",
+      "allMarkedRead": "Toutes les notifications marquées comme lues"
+    },
+    "make": {
+      "created": "Marque créée",
+      "updated": "Marque mise à jour",
+      "deleted": "Marque supprimée"
+    },
+    "model": {
+      "created": "Modèle créé",
+      "updated": "Modèle mis à jour",
+      "deleted": "Modèle supprimé"
+    },
+    "master": {
+      "fetched": "Données de référence récupérées avec succès"
+    },
+    "cms": {
+      "fetched": "Page récupérée",
+      "created": "Page CMS créée",
+      "updated": "Page CMS mise à jour",
+      "deleted": "Page CMS supprimée",
+      "listed": "Pages CMS récupérées"
+    },
+    "landing": {
+      "fetched": "Données de la page d'accueil récupérées"
+    },
+    "admin": {
+      "login": "Connexion administrateur réussie",
+      "logout": "Déconnexion administrateur réussie",
+      "tokenRefreshed": "Jeton actualisé",
+      "dashboardFetched": "Statistiques du tableau de bord récupérées",
+      "usersFetched": "Utilisateurs récupérés",
+      "userFetched": "Utilisateur récupéré",
+      "userActivated": "Utilisateur activé avec succès",
+      "userDeactivated": "Utilisateur désactivé avec succès",
+      "userDeleted": "Utilisateur supprimé avec succès",
+      "listingsFetched": "Annonces récupérées",
+      "listingFetched": "Annonce récupérée",
+      "commissionFetched": "Configuration de commission récupérée",
+      "commissionUpdated": "Commission mise à jour avec succès",
+      "withdrawalsFetched": "Retraits récupérés",
+      "withdrawalFetched": "Retrait récupéré",
+      "withdrawalApproved": "Retrait approuvé",
+      "withdrawalPaid": "Retrait marqué comme payé",
+      "withdrawalRejected": "Retrait refusé",
+      "transactionsFetched": "Transactions récupérées",
+      "transactionFetched": "Transaction récupérée",
+      "settingsFetched": "Paramètres récupérés",
+      "settingsUpdated": "Paramètres mis à jour",
+      "auditFetched": "Journaux d'audit récupérés"
+    }
+  },
+  "errors": {
+    "common": {
+      "validationFailed": "Échec de la validation",
+      "validationError": "Erreur de validation",
+      "alreadyExists": "${field} existe déjà",
+      "invalidToken": "Jeton invalide",
+      "tokenExpired": "Jeton expiré",
+      "internal": "Erreur interne du serveur",
+      "tooManyRequests": "Trop de requêtes, veuillez réessayer plus tard",
+      "invalidImageType": "Seules les images JPEG, PNG et WEBP sont autorisées",
+      "forbidden": "Interdit : permissions insuffisantes"
+    },
+    "auth": {
+      "emailRegistered": "E-mail déjà enregistré",
+      "userNotFound": "Utilisateur introuvable",
+      "emailAlreadyVerified": "E-mail déjà vérifié",
+      "invalidCredentials": "E-mail ou mot de passe invalide",
+      "accountDeactivated": "Le compte est désactivé",
+      "verifyEmailFirst": "Veuillez d'abord vérifier votre e-mail",
+      "invalidRefreshToken": "Jeton d'actualisation invalide ou expiré",
+      "userInactive": "Utilisateur introuvable ou inactif",
+      "invalidResetToken": "Jeton de réinitialisation invalide ou expiré",
+      "invalidTokenPurpose": "Objectif du jeton invalide",
+      "tokenUserMismatch": "Le jeton ne correspond pas à l'utilisateur",
+      "noToken": "Aucun jeton fourni",
+      "accountDeleted": "Le compte a été supprimé"
+    },
+    "adminAuth": {
+      "tokenRequired": "Jeton d'accès administrateur requis",
+      "invalidToken": "Jeton administrateur invalide ou expiré",
+      "notFound": "Administrateur introuvable ou désactivé",
+      "invalidCredentials": "Identifiants invalides",
+      "deactivated": "Le compte administrateur est désactivé"
+    },
+    "listing": {
+      "makeNotFound": "Marque sélectionnée introuvable",
+      "modelNotFound": "Modèle sélectionné introuvable",
+      "modelMismatch": "Le modèle sélectionné n'appartient pas à la marque sélectionnée",
+      "notFound": "Annonce introuvable",
+      "noPermission": "Vous n'avez pas la permission de modifier cette annonce",
+      "photoRequired": "Au moins 1 photo est requise",
+      "maxPhotos": "Maximum ${max} photos autorisées",
+      "listingIdRequired": "L'identifiant de l'annonce est requis",
+      "noPhotoFiles": "Aucun fichier photo fourni",
+      "photoNotFound": "Photo introuvable sur cette annonce",
+      "notAvailable": "Annonce introuvable ou indisponible",
+      "cannotSubmitStatus": "Impossible de soumettre une annonce avec le statut « ${status} »",
+      "onlyPendingApprove": "Seules les annonces en attente peuvent être approuvées",
+      "onlyPendingReject": "Seules les annonces en attente peuvent être refusées"
+    },
+    "offer": {
+      "listingUnavailable": "Annonce introuvable ou non disponible pour les offres",
+      "ownListing": "Vous ne pouvez pas faire d'offre sur votre propre annonce",
+      "alreadyPending": "Vous avez déjà une offre en attente sur cette annonce. Retirez-la avant d'en soumettre une nouvelle.",
+      "notFound": "Offre introuvable",
+      "cannotRejectStatus": "Impossible de refuser une offre avec le statut « ${status} »",
+      "cannotAcceptStatus": "Impossible d'accepter une offre avec le statut « ${status} »"
+    },
+    "payment": {
+      "offerNotFound": "Offre introuvable",
+      "notOwner": "Vous n'êtes pas propriétaire de cette offre",
+      "onlyAccepted": "Seules les offres acceptées peuvent être payées",
+      "listingNotFound": "Annonce introuvable",
+      "transactionExists": "Une transaction existe déjà pour cette offre",
+      "invalidPrice": "Prix de l'annonce invalide pour le paiement",
+      "transactionNotFound": "Transaction introuvable",
+      "onlyBuyerConfirm": "Seul l'acheteur peut confirmer la livraison",
+      "notInEscrow": "La transaction n'est pas en séquestre"
+    },
+    "wallet": {
+      "noBankDetails": "Aucune coordonnée bancaire trouvée",
+      "addBankFirst": "Ajoutez des coordonnées bancaires avant de demander un retrait",
+      "exceedsBalance": "Le montant du retrait dépasse le solde du portefeuille",
+      "withdrawalNotFound": "Retrait introuvable",
+      "invoiceNotFound": "Facture introuvable"
+    },
+    "user": {
+      "notFound": "Utilisateur introuvable",
+      "noPhoto": "Aucun fichier photo fourni",
+      "alreadyActive": "L'utilisateur est déjà actif",
+      "alreadyDeactivated": "L'utilisateur est déjà désactivé",
+      "alreadyDeleted": "Utilisateur déjà supprimé"
+    },
+    "make": {
+      "notFound": "Marque introuvable",
+      "exists": "Cette marque existe déjà"
+    },
+    "model": {
+      "notFound": "Modèle introuvable",
+      "exists": "Ce modèle existe déjà"
+    },
+    "cms": {
+      "notFound": "Page introuvable",
+      "slugExists": "Une page avec ce slug existe déjà",
+      "alreadyDeleted": "Page déjà supprimée"
+    },
+    "admin": {
+      "withdrawalNotFound": "Retrait introuvable",
+      "transactionNotFound": "Transaction introuvable",
+      "onlyPendingApprove": "Seuls les retraits en attente peuvent être approuvés",
+      "onlyPendingReject": "Seuls les retraits en attente peuvent être refusés",
+      "onlyApprovedPaid": "Seuls les retraits approuvés peuvent être marqués comme payés"
+    },
+    "commonExtra": {
+      "accessDenied": "Accès refusé"
+    },
+    "offerExtra": {
+      "expired": "Cette offre a expiré et ne peut pas être acceptée",
+      "viewForbidden": "Vous n'avez pas la permission de voir cette offre"
+    },
+    "notification": {
+      "notFound": "Notification introuvable"
+    },
+    "walletExtra": {
+      "transactionNotFound": "Transaction introuvable"
+    }
   }
+}

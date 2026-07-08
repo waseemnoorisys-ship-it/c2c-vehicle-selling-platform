@@ -5,9 +5,12 @@ const {
   listUsersSchema,
   userIdSchema,
 } = require("../../../validators/admin/adminUser/adminUser.validators");
+const { t } = require("../../../utils/i18n");
+const { getLang } = require("../../../utils/getLang");
 
 const listUsers = async (req, res, next) => {
   try {
+    const lang = getLang(req);
     const { error, value } = listUsersSchema.validate(req.body);
     if (error) throw new ApiError(400, error.details[0].message);
 
@@ -30,7 +33,7 @@ const listUsers = async (req, res, next) => {
     ]);
 
     return res.status(200).json(
-      new ApiResponse(200, { users, total, page, limit }, "Users fetched")
+      new ApiResponse(200, { users, total, page, limit }, t("success.admin.usersFetched", lang))
     );
   } catch (err) {
     next(err);
@@ -39,13 +42,14 @@ const listUsers = async (req, res, next) => {
 
 const getUser = async (req, res, next) => {
   try {
+    const lang = getLang(req);
     const { error, value } = userIdSchema.validate(req.body);
     if (error) throw new ApiError(400, error.details[0].message);
 
     const user = await adminUserService.findUserById(value.userId);
-    if (!user) throw new ApiError(404, "User not found");
+    if (!user) throw new ApiError(404, t("errors.user.notFound", lang));
 
-    return res.status(200).json(new ApiResponse(200, { user }, "User fetched"));
+    return res.status(200).json(new ApiResponse(200, { user }, t("success.admin.userFetched", lang)));
   } catch (err) {
     next(err);
   }
@@ -53,19 +57,20 @@ const getUser = async (req, res, next) => {
 
 const activateUser = async (req, res, next) => {
   try {
+    const lang = getLang(req);
     const { error, value } = userIdSchema.validate(req.body);
     if (error) throw new ApiError(400, error.details[0].message);
 
     const user = await adminUserService.findUserById(value.userId);
-    if (!user) throw new ApiError(404, "User not found");
+    if (!user) throw new ApiError(404, t("errors.user.notFound", lang));
 
-    if (user.isActive) throw new ApiError(400, "User is already active");
+    if (user.isActive) throw new ApiError(400, t("errors.user.alreadyActive", lang));
 
     await adminUserService.updateUserById(value.userId, { isActive: true });
 
     return res
       .status(200)
-      .json(new ApiResponse(200, {}, "User activated successfully"));
+      .json(new ApiResponse(200, {}, t("success.admin.userActivated", lang)));
   } catch (err) {
     next(err);
   }
@@ -73,19 +78,20 @@ const activateUser = async (req, res, next) => {
 
 const deactivateUser = async (req, res, next) => {
   try {
+    const lang = getLang(req);
     const { error, value } = userIdSchema.validate(req.body);
     if (error) throw new ApiError(400, error.details[0].message);
 
     const user = await adminUserService.findUserById(value.userId);
-    if (!user) throw new ApiError(404, "User not found");
+    if (!user) throw new ApiError(404, t("errors.user.notFound", lang));
 
-    if (!user.isActive) throw new ApiError(400, "User is already deactivated");
+    if (!user.isActive) throw new ApiError(400, t("errors.user.alreadyDeactivated", lang));
 
     await adminUserService.updateUserById(value.userId, { isActive: false });
 
     return res
       .status(200)
-      .json(new ApiResponse(200, {}, "User deactivated successfully"));
+      .json(new ApiResponse(200, {}, t("success.admin.userDeactivated", lang)));
   } catch (err) {
     next(err);
   }
@@ -93,13 +99,14 @@ const deactivateUser = async (req, res, next) => {
 
 const deleteUser = async (req, res, next) => {
   try {
+    const lang = getLang(req);
     const { error, value } = userIdSchema.validate(req.body);
     if (error) throw new ApiError(400, error.details[0].message);
 
     const user = await adminUserService.findUserById(value.userId);
-    if (!user) throw new ApiError(404, "User not found");
+    if (!user) throw new ApiError(404, t("errors.user.notFound", lang));
 
-    if (user.deletedAt) throw new ApiError(400, "User already deleted");
+    if (user.deletedAt) throw new ApiError(400, t("errors.user.alreadyDeleted", lang));
 
     await adminUserService.updateUserById(value.userId, {
       deletedAt: new Date(),
@@ -107,7 +114,7 @@ const deleteUser = async (req, res, next) => {
 
     return res
       .status(200)
-      .json(new ApiResponse(200, {}, "User deleted successfully"));
+      .json(new ApiResponse(200, {}, t("success.admin.userDeleted", lang)));
   } catch (err) {
     next(err);
   }

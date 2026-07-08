@@ -7,9 +7,12 @@ const {
   listingIdSchema,
   rejectListingSchema,
 } = require("../../../validators/admin/adminListing/adminListing.validators");
+const { t } = require("../../../utils/i18n");
+const { getLang } = require("../../../utils/getLang");
 
 const listListings = async (req, res, next) => {
   try {
+    const lang = getLang(req);
     const { error, value } = listListingsSchema.validate(req.body);
     if (error) throw new ApiError(400, error.details[0].message);
 
@@ -25,7 +28,7 @@ const listListings = async (req, res, next) => {
     ]);
 
     return res.status(200).json(
-      new ApiResponse(200, { listings, total, page, limit }, "Listings fetched")
+      new ApiResponse(200, { listings, total, page, limit }, t("success.admin.listingsFetched", lang))
     );
   } catch (err) {
     next(err);
@@ -34,15 +37,16 @@ const listListings = async (req, res, next) => {
 
 const getListing = async (req, res, next) => {
   try {
+    const lang = getLang(req);
     const { error, value } = listingIdSchema.validate(req.body);
     if (error) throw new ApiError(400, error.details[0].message);
 
     const listing = await adminListingService.findListingById(value.listingId);
-    if (!listing) throw new ApiError(404, "Listing not found");
+    if (!listing) throw new ApiError(404, t("errors.listing.notFound", lang));
 
     return res
       .status(200)
-      .json(new ApiResponse(200, { listing }, "Listing fetched"));
+      .json(new ApiResponse(200, { listing }, t("success.admin.listingFetched", lang)));
   } catch (err) {
     next(err);
   }
@@ -50,14 +54,15 @@ const getListing = async (req, res, next) => {
 
 const approveListing = async (req, res, next) => {
   try {
+    const lang = getLang(req);
     const { error, value } = listingIdSchema.validate(req.body);
     if (error) throw new ApiError(400, error.details[0].message);
 
     const listing = await adminListingService.findListingById(value.listingId);
-    if (!listing) throw new ApiError(404, "Listing not found");
+    if (!listing) throw new ApiError(404, t("errors.listing.notFound", lang));
 
     if (listing.status !== "pending") {
-      throw new ApiError(400, "Only pending listings can be approved");
+      throw new ApiError(400, t("errors.listing.onlyPendingApprove", lang));
     }
 
     await adminListingService.updateListingById(value.listingId, {
@@ -75,7 +80,7 @@ const approveListing = async (req, res, next) => {
 
     return res
       .status(200)
-      .json(new ApiResponse(200, {}, "Listing approved successfully"));
+      .json(new ApiResponse(200, {}, t("success.listing.approved", lang)));
   } catch (err) {
     next(err);
   }
@@ -83,16 +88,17 @@ const approveListing = async (req, res, next) => {
 
 const rejectListing = async (req, res, next) => {
   try {
+    const lang = getLang(req);
     const { error, value } = rejectListingSchema.validate(req.body);
     if (error) throw new ApiError(400, error.details[0].message);
 
     const { listingId, rejectionReason } = value;
 
     const listing = await adminListingService.findListingById(listingId);
-    if (!listing) throw new ApiError(404, "Listing not found");
+    if (!listing) throw new ApiError(404, t("errors.listing.notFound", lang));
 
     if (listing.status !== "pending") {
-      throw new ApiError(400, "Only pending listings can be rejected");
+      throw new ApiError(400, t("errors.listing.onlyPendingReject", lang));
     }
 
     await adminListingService.updateListingById(listingId, {
@@ -110,7 +116,7 @@ const rejectListing = async (req, res, next) => {
 
     return res
       .status(200)
-      .json(new ApiResponse(200, {}, "Listing rejected successfully"));
+      .json(new ApiResponse(200, {}, t("success.listing.rejected", lang)));
   } catch (err) {
     next(err);
   }
@@ -118,11 +124,12 @@ const rejectListing = async (req, res, next) => {
 
 const toggleVerified = async (req, res, next) => {
   try {
+    const lang = getLang(req);
     const { error, value } = listingIdSchema.validate(req.body);
     if (error) throw new ApiError(400, error.details[0].message);
 
     const listing = await adminListingService.findListingById(value.listingId);
-    if (!listing) throw new ApiError(404, "Listing not found");
+    if (!listing) throw new ApiError(404, t("errors.listing.notFound", lang));
 
     await adminListingService.updateListingById(value.listingId, {
       isVerified: !listing.isVerified,
@@ -132,7 +139,7 @@ const toggleVerified = async (req, res, next) => {
       new ApiResponse(
         200,
         { isVerified: !listing.isVerified },
-        `Listing ${!listing.isVerified ? "verified" : "unverified"} successfully`
+        t("success.listing.verifiedToggled", lang, { state: !listing.isVerified ? "verified" : "unverified" })
       )
     );
   } catch (err) {

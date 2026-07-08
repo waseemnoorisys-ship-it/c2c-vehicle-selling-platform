@@ -1,9 +1,8 @@
 const multer  = require("multer");
 const ApiError = require("../utils/ApiError");
+const { t } = require("../utils/i18n");
+const { getLang } = require("../utils/getLang");
 
-// WHY memoryStorage (same reason as before):
-// We don't save to disk. File lives in RAM as a buffer,
-// then goes straight to Cloudinary. No temp files on server.
 const storage = multer.memoryStorage();
 
 function imageFileFilter(req, file, cb) {
@@ -11,14 +10,14 @@ function imageFileFilter(req, file, cb) {
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new ApiError(400, "Only JPEG, PNG, and WEBP images are allowed"), false);
+    cb(new ApiError(400, t("errors.common.invalidImageType", getLang(req))), false);
   }
 }
 
 const uploadProfilePhoto = multer({
   storage,
   fileFilter: imageFileFilter,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  limits: { fileSize: 5 * 1024 * 1024 },
 }).single("photo");
 
 const uploadListingPhotos = multer({

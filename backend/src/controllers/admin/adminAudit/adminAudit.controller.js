@@ -2,6 +2,8 @@ const ApiError = require("../../../utils/ApiError");
 const ApiResponse = require("../../../utils/ApiResponse");
 const adminAuditService = require("../../../services/admin/adminAudit/adminAudit.service");
 const Joi = require("joi");
+const { t } = require("../../../utils/i18n");
+const { getLang } = require("../../../utils/getLang");
 
 const listAuditLogsSchema = Joi.object({
   page: Joi.number().integer().min(1).default(1),
@@ -15,6 +17,7 @@ const listAuditLogsSchema = Joi.object({
 
 const listAuditLogs = async (req, res, next) => {
   try {
+    const lang = getLang(req);
     const { error, value } = listAuditLogsSchema.validate(req.body);
     if (error) throw new ApiError(400, error.details[0].message);
 
@@ -37,7 +40,7 @@ const listAuditLogs = async (req, res, next) => {
     ]);
 
     return res.status(200).json(
-      new ApiResponse(200, { logs, total, page, limit }, "Audit logs fetched")
+      new ApiResponse(200, { logs, total, page, limit }, t("success.admin.auditFetched", lang))
     );
   } catch (err) {
     next(err);

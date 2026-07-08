@@ -21,6 +21,7 @@ const invoiceService = require("../../services/invoice/invoice.service");
 const { sendPushNotification } = require("../../services/push/push.service");
 const { sendEmail } = require("../../services/email/email.service");
 const { t } = require("../../utils/i18n");
+const { getLang } = require("../../utils/getLang");
 const userService = require("../../services/user/user.service");
 
 
@@ -45,6 +46,7 @@ const userService = require("../../services/user/user.service");
 //9. payment_intent.payment_method_garbage_collected
 const createPaymentIntent = async (req, res, next) => {
   try {
+    const lang = getLang(req);
     const { error, value } = createIntentSchema.validate(req.body);
     if (error) throw new ApiError(400, error.details[0].message);
 
@@ -52,29 +54,29 @@ const createPaymentIntent = async (req, res, next) => {
     const buyerId = req.user._id;
 
     const offer = await offerService.findOfferById(offerId);
-    if (!offer || offer.deletedAt) throw new ApiError(404, "Offer not found");
+    if (!offer || offer.deletedAt) throw new ApiError(404, t("errors.payment.offerNotFound", lang));
 
     if (offer.buyerId.toString() !== buyerId.toString()) {
-      throw new ApiError(403, "You do not own this offer");
+      throw new ApiError(403, t("errors.payment.notOwner", lang));
     }
 
     if (offer.status !== "accepted") {
-      throw new ApiError(400, "Only accepted offers can be paid");
+      throw new ApiError(400, t("errors.payment.onlyAccepted", lang));
     }
 
     const listing = await listingService.findListingById(offer.listingId);
     if (!listing || listing.deletedAt) {
-      throw new ApiError(404, "Listing not found");
+      throw new ApiError(404, t("errors.payment.listingNotFound", lang));
     }
 
     const existing = await paymentService.findTransactionByOfferId(offerId);
     if (existing) {
-      throw new ApiError(409, "A transaction already exists for this offer");
+      throw new ApiError(409, t("errors.payment.transactionExists", lang));
     }
 
     const amountInCents = Math.round(listing.displayPrice);
     if (!Number.isInteger(amountInCents) || amountInCents < 50) {
-      throw new ApiError(400, "Invalid listing price for payment");
+      throw new ApiError(400, t("errors.payment.invalidPrice", lang));
     }
 
     const vendorAmount = Math.round(listing.askingPrice);
@@ -117,7 +119,7 @@ const createPaymentIntent = async (req, res, next) => {
         new ApiResponse(
           200,
           { clientSecret: paymentIntent.client_secret, transactionId: transaction._id },
-          "Payment intent created"
+          t("success.payment.intentCreated", lang)
         )
       );
   } catch (err) {
@@ -225,6 +227,7 @@ const handleWebhook = async (req, res, next) => {
 
 const confirmDelivery = async (req, res, next) => {
   try {
+    const lang = getLang(req);
     const { error, value } = confirmDeliverySchema.validate(req.body);
     if (error) throw new ApiError(400, error.details[0].message);
 
@@ -233,15 +236,15 @@ const confirmDelivery = async (req, res, next) => {
 
     const transaction = await paymentService.findTransactionById(transactionId);
     if (!transaction || transaction.deletedAt) {
-      throw new ApiError(404, "Transaction not found");
+      throw new ApiError(404, t("errors.payment.transactionNotFound", lang));
     }
 
     if (transaction.buyerId.toString() !== buyerId.toString()) {
-      throw new ApiError(403, "Only the buyer can confirm delivery");
+      throw new ApiError(403, t("errors.payment.onlyBuyerConfirm", lang));
     }
 
     if (transaction.status !== "escrowed") {
-      throw new ApiError(400, "Transaction is not in escrow");
+      throw new ApiError(400, t("errors.payment.notInEscrow", lang));
     }
 
     const wallet = await walletService.findOrCreateWallet(
@@ -315,7 +318,7 @@ const confirmDelivery = async (req, res, next) => {
       new ApiResponse(
         200,
         { transactionId, invoice },
-        "Delivery confirmed and funds released"
+        t("success.payment.deliveryConfirmed", lang)
       )
     );
   } catch (err) {
@@ -325,6 +328,7 @@ const confirmDelivery = async (req, res, next) => {
 
 const getTransaction = async (req, res, next) => {
   try {
+    const lang = getLang(req);
     const { error, value } = getTransactionSchema.validate(req.body);
     if (error) throw new ApiError(400, error.details[0].message);
 
@@ -333,19 +337,19 @@ const getTransaction = async (req, res, next) => {
 
     const transaction = await paymentService.findTransactionById(transactionId);
     if (!transaction || transaction.deletedAt) {
-      throw new ApiError(404, "Transaction not found");
+      throw new ApiError(404, t("errors.payment.transactionNotFound", lang));
     }
 
     const isBuyer = transaction.buyerId.toString() === userId.toString();
     const isVendor = transaction.vendorId.toString() === userId.toString();
 
     if (!isBuyer && !isVendor) {
-      throw new ApiError(403, "Access denied");
+      throw new ApiError(403, t("errors.commonExtra.accessDenied", lang));
     }
 
     return res
       .status(200)
-      .json(new ApiResponse(200, { transaction }, "Transaction fetched"));
+      .json(new ApiResponse(200, { transaction }, t("success.payment.transactionFetched", lang)));
   } catch (err) {
     next(err);
   }

@@ -12,10 +12,12 @@ const {
 const { sendPushNotification } = require("../../../services/push/push.service");
 const { sendEmail } = require("../../../services/email/email.service");
 const { t } = require("../../../utils/i18n");
+const { getLang } = require("../../../utils/getLang");
 const logger = require("../../../config/logger");
 
 const listWithdrawals = async (req, res, next) => {
   try {
+    const lang = getLang(req);
     const { error, value } = listWithdrawalsSchema.validate(req.body);
     if (error) throw new ApiError(400, error.details[0].message);
 
@@ -36,7 +38,7 @@ const listWithdrawals = async (req, res, next) => {
         new ApiResponse(
           200,
           { withdrawals, total, page, limit },
-          "Withdrawals fetched",
+          t("success.admin.withdrawalsFetched", lang),
         ),
       );
   } catch (err) {
@@ -46,13 +48,14 @@ const listWithdrawals = async (req, res, next) => {
 
 const getWithdrawal = async (req, res, next) => {
   try {
+    const lang = getLang(req);
     const { error, value } = withdrawalIdSchema.validate(req.body);
     if (error) throw new ApiError(400, error.details[0].message);
 
     const withdrawal = await adminWithdrawalService.findWithdrawalById(
       value.withdrawalId,
     );
-    if (!withdrawal) throw new ApiError(404, "Withdrawal not found");
+    if (!withdrawal) throw new ApiError(404, t("errors.admin.withdrawalNotFound", lang));
 
     let bankDetails = null;
     if (withdrawal.bankDetailsId) {
@@ -68,7 +71,7 @@ const getWithdrawal = async (req, res, next) => {
     return res
       .status(200)
       .json(
-        new ApiResponse(200, { withdrawal, bankDetails }, "Withdrawal fetched"),
+        new ApiResponse(200, { withdrawal, bankDetails }, t("success.admin.withdrawalFetched", lang)),
       );
   } catch (err) {
     next(err);
@@ -77,16 +80,17 @@ const getWithdrawal = async (req, res, next) => {
 
 const approveWithdrawal = async (req, res, next) => {
   try {
+    const lang = getLang(req);
     const { error, value } = withdrawalIdSchema.validate(req.body);
     if (error) throw new ApiError(400, error.details[0].message);
 
     const withdrawal = await adminWithdrawalService.findWithdrawalById(
       value.withdrawalId,
     );
-    if (!withdrawal) throw new ApiError(404, "Withdrawal not found");
+    if (!withdrawal) throw new ApiError(404, t("errors.admin.withdrawalNotFound", lang));
 
     if (withdrawal.status !== "pending") {
-      throw new ApiError(400, "Only pending withdrawals can be approved");
+      throw new ApiError(400, t("errors.admin.onlyPendingApprove", lang));
     }
 
     await adminWithdrawalService.updateWithdrawalById(value.withdrawalId, {
@@ -132,7 +136,7 @@ const approveWithdrawal = async (req, res, next) => {
 
     return res
       .status(200)
-      .json(new ApiResponse(200, {}, "Withdrawal approved successfully"));
+      .json(new ApiResponse(200, {}, t("success.admin.withdrawalApproved", lang)));
   } catch (err) {
     next(err);
   }
@@ -140,18 +144,19 @@ const approveWithdrawal = async (req, res, next) => {
 
 const markWithdrawalPaid = async (req, res, next) => {
   try {
+    const lang = getLang(req);
     const { error, value } = withdrawalIdSchema.validate(req.body);
     if (error) throw new ApiError(400, error.details[0].message);
 
     const withdrawal = await adminWithdrawalService.findWithdrawalById(
       value.withdrawalId,
     );
-    if (!withdrawal) throw new ApiError(404, "Withdrawal not found");
+    if (!withdrawal) throw new ApiError(404, t("errors.admin.withdrawalNotFound", lang));
 
     if (withdrawal.status !== "approved") {
       throw new ApiError(
         400,
-        "Only approved withdrawals can be marked as paid",
+        t("errors.admin.onlyApprovedPaid", lang),
       );
     }
 
@@ -197,7 +202,7 @@ const markWithdrawalPaid = async (req, res, next) => {
     }
     return res
       .status(200)
-      .json(new ApiResponse(200, {}, "Withdrawal marked as paid"));
+      .json(new ApiResponse(200, {}, t("success.admin.withdrawalPaid", lang)));
   } catch (err) {
     next(err);
   }
@@ -205,6 +210,7 @@ const markWithdrawalPaid = async (req, res, next) => {
 
 const rejectWithdrawal = async (req, res, next) => {
   try {
+    const lang = getLang(req);
     const { error, value } = rejectWithdrawalSchema.validate(req.body);
     if (error) throw new ApiError(400, error.details[0].message);
 
@@ -212,10 +218,10 @@ const rejectWithdrawal = async (req, res, next) => {
 
     const withdrawal =
       await adminWithdrawalService.findWithdrawalById(withdrawalId);
-    if (!withdrawal) throw new ApiError(404, "Withdrawal not found");
+    if (!withdrawal) throw new ApiError(404, t("errors.admin.withdrawalNotFound", lang));
 
     if (withdrawal.status !== "pending") {
-      throw new ApiError(400, "Only pending withdrawals can be rejected");
+      throw new ApiError(400, t("errors.admin.onlyPendingReject", lang));
     }
 
     await adminWithdrawalService.updateWithdrawalById(withdrawalId, {
@@ -291,7 +297,7 @@ const rejectWithdrawal = async (req, res, next) => {
         new ApiResponse(
           200,
           {},
-          "Withdrawal rejected and funds returned to wallet",
+          t("success.admin.withdrawalRejected", lang),
         ),
       );
   } catch (err) {
