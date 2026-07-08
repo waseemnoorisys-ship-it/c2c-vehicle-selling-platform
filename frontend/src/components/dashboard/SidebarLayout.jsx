@@ -3,6 +3,8 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import Logo from "../layout/Logo";
 import ThemeToggle from "../theme/ThemeToggle";
 import useAuthStore from "../../store/useAuthStore";
+import { logoutApi } from "../../api/auth.api";
+import { adminLogoutApi } from "../../api/adminAuth.api";
 
 function NavIcon({ name }) {
   const icons = {
@@ -31,12 +33,23 @@ function NavIcon({ name }) {
 export default function SidebarLayout({ children, navItems, roleLabel }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, logout } = useAuthStore();
+  const { user, logout, refreshToken, isAdmin } = useAuthStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  function handleLogout() {
+  async function handleLogout() {
+    try {
+      if (refreshToken) {
+        if (isAdmin) {
+          await adminLogoutApi({ refreshToken });
+        } else {
+          await logoutApi({ refreshToken });
+        }
+      }
+    } catch {
+      // still clear local session
+    }
     logout();
-    navigate("/login");
+    navigate(isAdmin ? "/admin/login" : "/login");
   }
 
   return (

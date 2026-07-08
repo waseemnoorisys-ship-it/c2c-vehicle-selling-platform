@@ -1,64 +1,123 @@
 import api from "./axios";
 import {
-  MOCK_VENDOR_LISTINGS,
-  MOCK_VENDOR_OFFERS,
-  MOCK_WALLET,
-  MOCK_TRANSACTIONS,
-  MOCK_BANK,
-} from "../data/mockData";
-
-const USE_MOCK = true;
-const delay = (data, ms = 300) =>
-  new Promise((r) => setTimeout(() => r({ data: { data } }), ms));
+  wrap,
+  mapListingToVehicle,
+  mapOfferToVendorRow,
+  mapWalletResponse,
+  mapLedgerEntry,
+  eurosToCents,
+} from "./mappers";
 
 export async function fetchVendorDashboard() {
-  if (USE_MOCK) {
-    return delay({
-      activeListings: MOCK_VENDOR_LISTINGS.filter((l) => l.status === "active").length,
-      pendingOffers: MOCK_VENDOR_OFFERS.filter((o) => o.status === "pending").length,
-      totalEarnings: MOCK_WALLET.totalEarnings,
-      recentOffers: MOCK_VENDOR_OFFERS.slice(0, 3),
-    });
-  }
-  return (await api.get("/vendor/dashboard")).data;
+  const [listingsRes, offersRes, walletRes] = await Promise.all([
+    api.post("/listings/mine", { page: 1, limit: 100 }),
+    api.post("/offers/received", { page: 1, limit: 50 }),
+    api.post("/wallet/get"),
+  ]);
+
+  const listings = listingsRes.data.data?.listings || [];
+  const offers = offersRes.data.data?.offers || [];
+  const wallet = walletRes.data.data?.wallet;
+
+  const activeListings = listings.filter((l) => l.status === "approved").length;
+  const pendingOffers = offers.filter((o) => o.status === "pending").length;
+  const recentOffers = offers.slice(0, 3).map(mapOfferToVendorRow);
+
+  return wrap({
+    activeListings,
+    pendingOffers,
+    totalEarnings: (wallet?.balance ?? 0) / 100,
+    recentOffers,
+  });
 }
 
 export async function fetchVendorListings() {
-  if (USE_MOCK) return delay(MOCK_VENDOR_LISTINGS);
-  return (await api.get("/vendor/listings")).data;
+  const { data } = await api.post("/listings/mine", { page: 1, limit: 100 });
+  const listings = (data.data?.listings || []).map(mapListingToVehicle);
+  return wrap(listings);
+}
+
+export async function fetchVendorListingById(id) {
+  const { data } = await api.post("/listings/mine", { page: 1, limit: 100 });
+  const listing = (data.data?.listings || []).find((l) => l._id === id);
+  if (!listing) throw new Error("Listing not found");
+  return wrap(mapListingToVehicle(listing));
 }
 
 export async function fetchVendorOffers() {
-  if (USE_MOCK) return delay(MOCK_VENDOR_OFFERS);
-  return (await api.get("/vendor/offers")).data;
+  const { data } = await api.post("/offers/received", { page: 1, limit: 50 });
+  const offers = (data.data?.offers || []).map(mapOfferToVendorRow);
+  return wrap(offers);
 }
 
 export async function respondToOffer(offerId, action) {
-  if (USE_MOCK) return delay({ id: offerId, status: action === "accept" ? "accepted" : "rejected" });
-  return (await api.patch(`/vendor/offers/${offerId}`, { action })).data;
+  if (action === "accept") {
+    const { data } = await api.post("/offers/accept", { id: offerId });
+    return data;
+  }
+  const { data } = await api.post("/offers/reject", { id: offerId });
+  return data;
 }
 
 export async function fetchWallet() {
-  if (USE_MOCK) return delay({ wallet: MOCK_WALLET, transactions: MOCK_TRANSACTIONS });
-  return (await api.get("/vendor/wallet")).data;
+  const [walletRes, ledgerRes] = await Promise.all([
+    api.post("/wallet/get"),
+    api.post("/wallet/ledger", { page: 1, limit: 50 }),
+  ]);
+
+  const wallet = walletRes.data.data?.wallet;
+  const entries = ledgerRes.data.data?.entries || [];
+  const transactions = entries.map(mapLedgerEntry);
+
+  return wrap({
+    wallet: mapWalletResponse(wallet, entries),
+    transactions,
+  });
 }
 
-export async function requestWithdrawal(amount) {
-  if (USE_MOCK) return delay({ id: `w${Date.now()}`, amount, status: "pending" });
-  return (await api.post("/vendor/wallet/withdraw", { amount })).data;
+export async function requestWithdrawal(amountEuros) {
+  const { data } = await api.post("/wallet/withdrawals/create", {
+    amount: eurosToCents(amountEuros),
+  });
+  return data;
 }
 
 export async function fetchBankDetails() {
-  if (USE_MOCK) return delay(MOCK_BANK);
-  return (await api.get("/vendor/bank")).data;
+  try {
+    const { data } = await api.post("/wallet/bank-details/get");
+    const bd = data.data?.bankDetails;
+    return wrap({
+      accountName: bd?.accountHolderName || "",
+      bankName: bd?.bankName || "",
+      iban: bd?.accountNumberMasked || "",
+      swift: "",
+      country: "",
+    });
+  } catch (err) {
+    if (err.response?.status === 404) {
+      return wrap({
+        accountName: "",
+        bankName: "",
+        iban: "",
+        swift: "",
+        country: "",
+      });
+    }
+    throw err;
+  }
 }
 
 export async function updateBankDetails(payload) {
-  if (USE_MOCK) return delay(payload);
-  return (await api.put("/vendor/bank", payload)).data;
+  const { data } = await api.post("/wallet/bank-details/create", {
+    accountHolderName: payload.accountName,
+    bankName: payload.bankName,
+    accountNumber: payload.iban?.replace(/\s/g, "") || payload.accountNumber,
+    ifscOrRouting: payload.swift || payload.ifscOrRouting || "NA",
+  });
+  return data;
 }
 
 export async function deleteListing(id) {
-  if (USE_MOCK) return delay({ id });
-  return (await api.delete(`/vendor/listings/${id}`)).data;
+  const { data } = await api.post("/listings/delete", { id });
+  return data;
 }

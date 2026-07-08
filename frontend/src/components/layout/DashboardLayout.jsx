@@ -2,14 +2,24 @@ import { Link, useNavigate } from "react-router-dom";
 import Logo from "./Logo";
 import ThemeToggle from "../theme/ThemeToggle";
 import useAuthStore from "../../store/useAuthStore";
+import { logoutApi } from "../../api/auth.api";
+import { adminLogoutApi } from "../../api/adminAuth.api";
 
 export default function DashboardLayout({ children, title }) {
-  const { user, logout } = useAuthStore();
+  const { user, logout, refreshToken, isAdmin } = useAuthStore();
   const navigate = useNavigate();
 
-  function handleLogout() {
+  async function handleLogout() {
+    try {
+      if (refreshToken) {
+        if (isAdmin) await adminLogoutApi({ refreshToken });
+        else await logoutApi({ refreshToken });
+      }
+    } catch {
+      // ignore
+    }
     logout();
-    navigate("/login");
+    navigate(isAdmin ? "/admin/login" : "/login");
   }
 
   return (

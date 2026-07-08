@@ -5,39 +5,40 @@ const api = axios.create({
   baseURL: "/api/v1",
   headers: { "Content-Type": "application/json" },
 });
- 
-// Attach access token to every request automatically
+
 api.interceptors.request.use((config) => {
   const token = useAuthStore.getState().accessToken;
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
-// If 401 → try refresh, retry original request once
 api.interceptors.response.use(
   (res) => res,
   async (error) => {
     const original = error.config;
-    const isAuthRoute = ["/auth/login", "/auth/register", "/auth/refresh-token"].some(
-      (path) => original?.url?.includes(path)
-    );
+    const url = original?.url || "";
+    const isAuthRoute =
+      url.includes("/auth/login") ||
+      url.includes("/auth/register") ||
+      url.includes("/auth/refresh-token") ||
+      url.includes("/admin/auth/login") ||
+      url.includes("/admin/auth/refresh-token");
 
     if (error.response?.status === 401 && !original._retry && !isAuthRoute) {
       original._retry = true;
       try {
-        const refreshToken = useAuthStore.getState().refreshToken;
-        const { data } = await axios.post("/api/v1/auth/refresh-token", {
-          refreshToken,
-        });
-        useAuthStore.getState().setTokens(
-          data.data.accessToken,
-          data.data.refreshToken
-        );
+        const { refreshToken, isAdmin, setTokens } = useAuthStore.getState();
+        const refreshPath = isAdmin
+          ? "/api/v1/admin/auth/refresh-token"
+          : "/api/v1/auth/refresh-token";
+        const { data } = await axios.post(refreshPath, { refreshToken });
+        setTokens(data.data.accessToken, data.data.refreshToken);
         original.headers.Authorization = `Bearer ${data.data.accessToken}`;
         return api(original);
       } catch {
+        const wasAdmin = useAuthStore.getState().isAdmin;
         useAuthStore.getState().logout();
-        window.location.href = "/login";
+        window.location.href = wasAdmin ? "/admin/login" : "/login";
       }
     }
     return Promise.reject(error);

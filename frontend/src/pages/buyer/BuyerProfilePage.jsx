@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import SidebarLayout from "../../components/dashboard/SidebarLayout";
 import PageHeader from "../../components/dashboard/PageHeader";
 import Input from "../../components/common/Input";
 import Button from "../../components/common/Button";
 import { BUYER_NAV } from "../../config/navigation";
-import { updateBuyerProfile } from "../../api/buyer.api";
+import { updateBuyerProfile, fetchBuyerProfile } from "../../api/buyer.api";
 import useAuthStore from "../../store/useAuthStore";
 
 export default function BuyerProfilePage() {
@@ -18,6 +18,21 @@ export default function BuyerProfilePage() {
   });
   const [passwords, setPasswords] = useState({ current: "", newPass: "", confirm: "" });
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetchBuyerProfile()
+      .then((res) => {
+        const u = res.data.data;
+        setForm({
+          firstName: u.firstName || "",
+          lastName: u.lastName || "",
+          email: u.email || "",
+          phone: u.mobile ? `${u.countryCode || ""} ${u.mobile}`.trim() : "",
+        });
+        setUser({ ...user, ...u });
+      })
+      .catch(() => {});
+  }, []);
 
   function handleChange(e) {
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }));

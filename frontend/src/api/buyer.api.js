@@ -1,38 +1,89 @@
 import api from "./axios";
-import { MOCK_OFFERS, MOCK_PURCHASES, MOCK_PAYMENTS } from "../data/mockData";
-
-const USE_MOCK = true;
-const delay = (data, ms = 300) =>
-  new Promise((r) => setTimeout(() => r({ data: { data } }), ms));
+import { fetchMe, updateProfile } from "./user.api";
+import {
+  wrap,
+  mapOfferToBuyerRow,
+  centsToEuros,
+} from "./mappers";
 
 export async function fetchBuyerOffers() {
-  if (USE_MOCK) return delay(MOCK_OFFERS);
-  return (await api.get("/buyer/offers")).data;
+  const { data } = await api.post("/offers/mine", { page: 1, limit: 50 });
+  const offers = (data.data?.offers || []).map(mapOfferToBuyerRow);
+  return wrap(offers);
 }
 
 export async function fetchBuyerPurchases() {
-  if (USE_MOCK) return delay(MOCK_PURCHASES);
-  return (await api.get("/buyer/purchases")).data;
+  const { data } = await api.post("/offers/mine", { page: 1, limit: 50 });
+  const purchases = (data.data?.offers || [])
+    .filter((o) => o.status === "accepted")
+    .map((o) => {
+      const row = mapOfferToBuyerRow(o);
+      return {
+        id: row.id,
+        vehicleTitle: row.vehicleTitle,
+        amount: row.amount,
+        date: row.createdAt,
+        status: "completed",
+        invoiceId: "—",
+      };
+    });
+  return wrap(purchases);
 }
 
 export async function fetchBuyerPayments() {
-  if (USE_MOCK) return delay(MOCK_PAYMENTS);
-  return (await api.get("/buyer/payments")).data;
+  const { data } = await api.post("/offers/mine", { page: 1, limit: 50 });
+  const payments = (data.data?.offers || [])
+    .filter((o) => ["accepted", "pending"].includes(o.status))
+    .map((o) => ({
+      id: o._id,
+      description: "Vehicle offer",
+      amount: centsToEuros(o.amount),
+      date: formatDate(o.createdAt),
+      status: o.status === "accepted" ? "paid" : "pending",
+      method: "Escrow",
+    }));
+  return wrap(payments);
 }
 
 export async function updateBuyerProfile(payload) {
-  if (USE_MOCK) return delay(payload);
-  return (await api.put("/buyer/profile", payload)).data;
+  const body = {
+    firstName: payload.firstName,
+    lastName: payload.lastName,
+  };
+  if (payload.phone) {
+    const digits = payload.phone.replace(/\D/g, "");
+    body.mobile = digits.slice(-15);
+    if (payload.phone.trim().startsWith("+")) {
+      body.countryCode = payload.phone.trim().split(/\s+/)[0];
+    }
+  }
+  const res = await updateProfile(body);
+  return wrap(res.data);
+}
+
+export async function fetchBuyerProfile() {
+  const res = await fetchMe();
+  return wrap(res.data);
 }
 
 export async function fetchBuyerDashboard() {
-  if (USE_MOCK) {
-    return delay({
-      totalPurchases: MOCK_PURCHASES.length,
-      totalSpent: MOCK_PURCHASES.reduce((s, p) => s + p.amount, 0),
-      activeOffers: MOCK_OFFERS.filter((o) => o.status === "pending").length,
-      recentPurchases: MOCK_PURCHASES,
-    });
-  }
-  return (await api.get("/buyer/dashboard")).data;
+  const { data } = await api.post("/offers/mine", { page: 1, limit: 50 });
+  const offers = data.data?.offers || [];
+  const accepted = offers.filter((o) => o.status === "accepted");
+  const pending = offers.filter((o) => o.status === "pending");
+
+  return wrap({
+    totalPurchases: accepted.length,
+    totalSpent: accepted.reduce((s, o) => s + centsToEuros(o.amount), 0),
+    activeOffers: pending.length,
+    recentPurchases: accepted.slice(0, 5).map((o) => {
+      const row = mapOfferToBuyerRow(o);
+      return {
+        vehicleTitle: row.vehicleTitle,
+        amount: row.amount,
+        date: row.createdAt,
+        status: "completed",
+      };
+    }),
+  });
 }

@@ -102,6 +102,12 @@ export default function LoginPage() {
           {t("register")}
         </Link>
       </p>
+
+      <p className="text-center text-xs text-text-muted mt-3">
+        <Link to="/admin/login" className="hover:text-text-accent hover:underline">
+          Admin login →
+        </Link>
+      </p>
     </AuthLayout>
   );
 }

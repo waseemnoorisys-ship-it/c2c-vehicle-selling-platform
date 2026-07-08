@@ -4,7 +4,7 @@ import LandingHeader from "../../components/landing/LandingHeader";
 import LandingFooter from "../../components/landing/LandingFooter";
 import PageHeader from "../../components/dashboard/PageHeader";
 import BrowseVehicleCard from "../../components/vehicles/BrowseVehicleCard";
-import { fetchVehicles, fetchFilterOptions } from "../../api/vehicles.api";
+import { fetchVehicles, fetchFilterOptions, warmVehicleMasterCache } from "../../api/vehicles.api";
 import useAuthStore from "../../store/useAuthStore";
 
 export default function BrowsePage() {
@@ -18,7 +18,9 @@ export default function BrowsePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchFilterOptions().then((res) => setOptions(res.data.data));
+    warmVehicleMasterCache().finally(() => {
+      fetchFilterOptions().then((res) => setOptions(res.data.data));
+    });
   }, []);
 
   useEffect(() => {

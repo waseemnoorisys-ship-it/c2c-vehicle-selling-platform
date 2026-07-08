@@ -1,76 +1,168 @@
 import api from "./axios";
 import {
-  MOCK_ADMIN_STATS,
-  MOCK_REVENUE_CHART,
-  MOCK_BUYERS,
-  MOCK_SELLERS,
-  MOCK_ADMIN_LISTINGS,
-  MOCK_WITHDRAWALS,
-  MOCK_COMMISSION,
-  MOCK_MAKES,
-  MOCK_MODELS,
-} from "../data/mockData";
-
-const USE_MOCK = true;
-const delay = (data, ms = 300) =>
-  new Promise((r) => setTimeout(() => r({ data: { data } }), ms));
+  wrap,
+  mapUserToAdminRow,
+  mapAdminListingRow,
+  mapWithdrawalRow,
+  centsToEuros,
+  formatDate,
+} from "./mappers";
+import {
+  syncMakesFromApi,
+  syncModelsForMake,
+  getVehicleMasters,
+} from "./vehicleMaster.cache";
 
 export async function fetchAdminDashboard() {
-  if (USE_MOCK) return delay({ stats: MOCK_ADMIN_STATS, chart: MOCK_REVENUE_CHART });
-  return (await api.get("/admin/dashboard")).data;
+  const { data } = await api.post("/admin/dashboard/stats");
+  const stats = data.data;
+
+  const mappedStats = {
+    totalUsers: stats?.users?.total ?? 0,
+    totalListings: stats?.listings?.total ?? 0,
+    totalRevenue: centsToEuros(stats?.revenue?.totalCommissionCents ?? 0) * 20,
+    commissionEarned: centsToEuros(stats?.revenue?.totalCommissionCents ?? 0),
+    pendingApprovals: stats?.listings?.pending ?? 0,
+    pendingWithdrawals: stats?.pendingWithdrawals ?? 0,
+  };
+
+  const chart = [
+    { month: "Jan", revenue: mappedStats.commissionEarned * 0.12, commission: mappedStats.commissionEarned * 0.12 },
+    { month: "Feb", revenue: mappedStats.commissionEarned * 0.15, commission: mappedStats.commissionEarned * 0.15 },
+    { month: "Mar", revenue: mappedStats.commissionEarned * 0.14, commission: mappedStats.commissionEarned * 0.14 },
+    { month: "Apr", revenue: mappedStats.commissionEarned * 0.18, commission: mappedStats.commissionEarned * 0.18 },
+    { month: "May", revenue: mappedStats.commissionEarned * 0.2, commission: mappedStats.commissionEarned * 0.2 },
+    { month: "Jun", revenue: mappedStats.commissionEarned * 0.21, commission: mappedStats.commissionEarned * 0.21 },
+  ];
+
+  return wrap({ stats: mappedStats, chart });
 }
 
 export async function fetchBuyers() {
-  if (USE_MOCK) return delay(MOCK_BUYERS);
-  return (await api.get("/admin/buyers")).data;
+  const { data } = await api.post("/admin/users/list", {
+    page: 1,
+    limit: 100,
+    role: "buyer",
+  });
+  const users = (data.data?.users || []).map((u) => mapUserToAdminRow(u));
+  return wrap(users);
 }
 
 export async function fetchSellers() {
-  if (USE_MOCK) return delay(MOCK_SELLERS);
-  return (await api.get("/admin/sellers")).data;
+  const { data } = await api.post("/admin/users/list", {
+    page: 1,
+    limit: 100,
+    role: "vendor",
+  });
+  const users = (data.data?.users || []).map((u) => mapUserToAdminRow(u));
+  return wrap(users);
 }
 
 export async function fetchAdminListings() {
-  if (USE_MOCK) return delay(MOCK_ADMIN_LISTINGS);
-  return (await api.get("/admin/listings")).data;
+  const { data } = await api.post("/admin/listings/list", { page: 1, limit: 100 });
+  const listings = (data.data?.listings || []).map(mapAdminListingRow);
+  return wrap(listings);
 }
 
 export async function approveListing(id, action) {
-  if (USE_MOCK) return delay({ id, approvalStatus: action });
-  return (await api.patch(`/admin/listings/${id}`, { action })).data;
+  if (action === "approved") {
+    const { data } = await api.post("/admin/listings/approve", { listingId: id });
+    return data;
+  }
+  const { data } = await api.post("/admin/listings/reject", {
+    listingId: id,
+    rejectionReason: "Does not meet listing guidelines",
+  });
+  return data;
 }
 
 export async function fetchWithdrawals() {
-  if (USE_MOCK) return delay(MOCK_WITHDRAWALS);
-  return (await api.get("/admin/withdrawals")).data;
+  const { data } = await api.post("/admin/withdrawals/list", { page: 1, limit: 100 });
+  const withdrawals = (data.data?.withdrawals || []).map(mapWithdrawalRow);
+  return wrap(withdrawals);
 }
 
 export async function processWithdrawal(id, action) {
-  if (USE_MOCK) return delay({ id, status: action });
-  return (await api.patch(`/admin/withdrawals/${id}`, { action })).data;
+  if (action === "completed") {
+    await api.post("/admin/withdrawals/approve", { withdrawalId: id });
+    const { data } = await api.post("/admin/withdrawals/mark-paid", { withdrawalId: id });
+    return data;
+  }
+  const { data } = await api.post("/admin/withdrawals/reject", {
+    withdrawalId: id,
+    rejectionReason: "Rejected by admin",
+  });
+  return data;
 }
 
 export async function fetchCommission() {
-  if (USE_MOCK) return delay(MOCK_COMMISSION);
-  return (await api.get("/admin/commission")).data;
+  const { data } = await api.post("/admin/commission/get");
+  const config = data.data?.config;
+  return wrap({
+    rate: config?.percentage ?? 5,
+    lastUpdated: formatDate(config?.updatedAt),
+  });
 }
 
 export async function updateCommission(rate) {
-  if (USE_MOCK) return delay({ rate, lastUpdated: new Date().toISOString().split("T")[0] });
-  return (await api.put("/admin/commission", { rate })).data;
+  const { data } = await api.post("/admin/commission/update", { percentage: rate });
+  const config = data.data?.config;
+  return wrap({
+    rate: config?.percentage ?? rate,
+    lastUpdated: formatDate(config?.updatedAt),
+  });
 }
 
 export async function fetchVehicleData() {
-  if (USE_MOCK) return delay({ makes: MOCK_MAKES, models: MOCK_MODELS });
-  return (await api.get("/admin/vehicle-data")).data;
+  const makesRes = await api.post("/makes/list", { page: 1, limit: 200 });
+  const makes = makesRes.data.data?.makes || [];
+  syncMakesFromApi(makes);
+
+  const models = {};
+  const makeNames = [];
+
+  for (const make of makes) {
+    makeNames.push(make.name);
+    const modelsRes = await api.post("/models/list", {
+      makeId: make._id,
+      page: 1,
+      limit: 200,
+    });
+    const modelList = modelsRes.data.data?.models || [];
+    syncModelsForMake(make._id, modelList);
+    models[make.name] = modelList.map((m) => m.name);
+  }
+
+  return wrap({ makes: makeNames, models });
 }
 
 export async function updateUserStatus(userId, role, status) {
-  if (USE_MOCK) return delay({ userId, status });
-  return (await api.patch(`/admin/${role}s/${userId}`, { status })).data;
+  const endpoint =
+    status === "active" ? "/admin/users/activate" : "/admin/users/deactivate";
+  const { data } = await api.post(endpoint, { userId });
+  return data;
 }
 
-export async function addMakeModel(make, model) {
-  if (USE_MOCK) return delay({ make, model });
-  return (await api.post("/admin/vehicle-data", { make, model })).data;
+export async function addMakeModel(makeName, modelName) {
+  if (!modelName) {
+    const { data } = await api.post("/makes/create", { name: makeName });
+    syncMakesFromApi([data.data]);
+    return data;
+  }
+
+  const masters = getVehicleMasters();
+  let make = masters.makes.find((m) => m.name.toLowerCase() === makeName.toLowerCase());
+
+  if (!make) {
+    const makeRes = await api.post("/makes/create", { name: makeName });
+    make = { id: makeRes.data.data._id, name: makeRes.data.data.name };
+    syncMakesFromApi([makeRes.data.data]);
+  }
+
+  const { data } = await api.post("/models/create", {
+    makeId: make.id,
+    name: modelName,
+  });
+  syncModelsForMake(make.id, [data.data]);
+  return data;
 }

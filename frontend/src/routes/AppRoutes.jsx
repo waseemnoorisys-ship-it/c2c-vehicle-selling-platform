@@ -4,6 +4,7 @@ import useAuthStore from "../store/useAuthStore";
 // Public
 import LandingPage from "../pages/landing/LandingPage";
 import LoginPage from "../pages/auth/LoginPage";
+import AdminLoginPage from "../pages/auth/AdminLoginPage";
 import RegisterPage from "../pages/auth/RegisterPage";
 import VerifyOtpPage from "../pages/auth/VerifyOtpPage";
 import ForgotPasswordPage from "../pages/auth/ForgotPasswordPage";
@@ -46,6 +47,7 @@ export default function AppRoutes() {
       {/* Public */}
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/admin/login" element={<AdminLoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/verify-email" element={<VerifyOtpPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
