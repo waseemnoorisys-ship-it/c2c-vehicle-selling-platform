@@ -17,6 +17,16 @@ export default function BrowsePage() {
   const [options, setOptions] = useState({ makes: [], bodyTypes: [], fuelTypes: [] });
   const [loading, setLoading] = useState(true);
 
+  const updateFilters = (patch) => {
+    setLoading(true);
+    setFilters((f) => ({ ...f, ...patch }));
+  };
+
+  const clearFilters = () => {
+    setLoading(true);
+    setFilters({ make: "", bodyType: "", fuel: "", minPrice: "", maxPrice: "", search: "" });
+  };
+
   useEffect(() => {
     warmVehicleMasterCache().finally(() => {
       fetchFilterOptions().then((res) => setOptions(res.data.data));
@@ -24,7 +34,6 @@ export default function BrowsePage() {
   }, []);
 
   useEffect(() => {
-    setLoading(true);
     const params = {};
     if (filters.make) params.make = filters.make;
     if (filters.bodyType) params.bodyType = filters.bodyType;
@@ -32,10 +41,20 @@ export default function BrowsePage() {
     if (filters.minPrice) params.minPrice = Number(filters.minPrice);
     if (filters.maxPrice) params.maxPrice = Number(filters.maxPrice);
     if (filters.search) params.search = filters.search;
-    fetchVehicles(params).then((res) => {
-      setVehicles(res.data.data);
-      setLoading(false);
-    });
+
+    let cancelled = false;
+    fetchVehicles(params)
+      .then((res) => {
+        if (!cancelled) {
+          setVehicles(res.data.data);
+          setLoading(false);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => { cancelled = true; };
   }, [filters]);
 
   const content = (
@@ -66,7 +85,7 @@ export default function BrowsePage() {
               type="text"
               placeholder="Search..."
               value={filters.search}
-              onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value }))}
+              onChange={(e) => updateFilters({ search: e.target.value })}
               className="w-full px-3 py-2 rounded-lg bg-background border border-border text-sm text-text-primary placeholder:text-text-muted outline-none focus:ring-2 focus:ring-primary-400"
             />
 
@@ -74,7 +93,7 @@ export default function BrowsePage() {
               <label className="text-xs text-text-muted mb-1 block">Make</label>
               <select
                 value={filters.make}
-                onChange={(e) => setFilters((f) => ({ ...f, make: e.target.value }))}
+                onChange={(e) => updateFilters({ make: e.target.value })}
                 className="w-full px-3 py-2 rounded-lg bg-background border border-border text-sm text-text-primary outline-none"
               >
                 <option value="">All Makes</option>
@@ -86,7 +105,7 @@ export default function BrowsePage() {
               <label className="text-xs text-text-muted mb-1 block">Body Type</label>
               <select
                 value={filters.bodyType}
-                onChange={(e) => setFilters((f) => ({ ...f, bodyType: e.target.value }))}
+                onChange={(e) => updateFilters({ bodyType: e.target.value })}
                 className="w-full px-3 py-2 rounded-lg bg-background border border-border text-sm text-text-primary outline-none"
               >
                 <option value="">All Types</option>
@@ -98,7 +117,7 @@ export default function BrowsePage() {
               <label className="text-xs text-text-muted mb-1 block">Fuel</label>
               <select
                 value={filters.fuel}
-                onChange={(e) => setFilters((f) => ({ ...f, fuel: e.target.value }))}
+                onChange={(e) => updateFilters({ fuel: e.target.value })}
                 className="w-full px-3 py-2 rounded-lg bg-background border border-border text-sm text-text-primary outline-none"
               >
                 <option value="">All Fuel Types</option>
@@ -112,7 +131,7 @@ export default function BrowsePage() {
                 <input
                   type="number"
                   value={filters.minPrice}
-                  onChange={(e) => setFilters((f) => ({ ...f, minPrice: e.target.value }))}
+                  onChange={(e) => updateFilters({ minPrice: e.target.value })}
                   className="w-full px-3 py-2 rounded-lg bg-background border border-border text-sm text-text-primary outline-none"
                   placeholder="0"
                 />
@@ -122,7 +141,7 @@ export default function BrowsePage() {
                 <input
                   type="number"
                   value={filters.maxPrice}
-                  onChange={(e) => setFilters((f) => ({ ...f, maxPrice: e.target.value }))}
+                  onChange={(e) => updateFilters({ maxPrice: e.target.value })}
                   className="w-full px-3 py-2 rounded-lg bg-background border border-border text-sm text-text-primary outline-none"
                   placeholder="100000"
                 />
@@ -131,7 +150,7 @@ export default function BrowsePage() {
 
             <button
               type="button"
-              onClick={() => setFilters({ make: "", bodyType: "", fuel: "", minPrice: "", maxPrice: "", search: "" })}
+              onClick={clearFilters}
               className="w-full py-2 text-sm text-text-muted hover:text-text-accent border border-border rounded-lg hover:bg-surface-hover transition"
             >
               Clear Filters
