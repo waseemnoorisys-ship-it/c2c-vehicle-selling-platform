@@ -23,6 +23,21 @@ function formatUserName(user, fallback) {
   return name || user.email || fallback;
 }
 
+function formatPhone(user) {
+  if (!user?.mobile) return "—";
+  return `${user.countryCode || ""} ${user.mobile}`.trim();
+}
+
+function formatListingTitle(listing) {
+  const make = listing.makeId?.name || "";
+  const model = listing.modelId?.name || "";
+  const vehicleName = [make, model].filter(Boolean).join(" ");
+  if (listing.year && vehicleName) return `${listing.year} ${vehicleName}`;
+  if (vehicleName) return vehicleName;
+  if (listing.year) return `${listing.year} Vehicle`;
+  return "Vehicle";
+}
+
 async function generateInvoiceForTransaction(transaction) {
   const existing = await findInvoiceByTransactionId(transaction._id);
   if (existing) return existing;
@@ -38,6 +53,7 @@ async function generateInvoiceForTransaction(transaction) {
     userService.findById(transaction.buyerId),
     userService.findById(transaction.vendorId),
     listingService.findListingById(transaction.listingId),
+
   ]);
 
   if (!buyer || !vendor || !listing) {
@@ -52,10 +68,15 @@ async function generateInvoiceForTransaction(transaction) {
     date: new Date().toLocaleDateString(),
     buyerName: formatUserName(buyer, "Buyer"),
     vendorName: formatUserName(vendor, "Vendor"),
-    listingTitle: `${listing.year} vehicle — ${listing.registrationNumber || listing._id}`,
+    listingTitle: formatListingTitle(listing),
     askingPrice: transaction.vendorAmount,
     commission: transaction.commission,
     displayPrice: transaction.amount,
+    buyerEmail: buyer.email || "—",
+    buyerPhone: formatPhone(buyer),
+    vendorEmail: vendor.email || "—",
+    vendorPhone: formatPhone(vendor),
+    vendorAddress: listing.locationText || "—",
   });
 
   const uploadResult = await uploadBufferToCloudinary(pdfBuffer, "invoices", "raw");
@@ -71,9 +92,16 @@ async function generateInvoiceForTransaction(transaction) {
   });
 }
 
+function getInvoiceDownloadUrl(url) {
+  if (!url) return url;
+  if (url.includes("/upload/fl_attachment/")) return url;
+  return url.replace("/upload/", "/upload/fl_attachment/");
+}
+
 module.exports = {
   createInvoice,
   findInvoiceByTransactionId,
   countInvoices,
   generateInvoiceForTransaction,
+  getInvoiceDownloadUrl,
 };

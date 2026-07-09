@@ -71,7 +71,9 @@ async function findOneAndIncrementView(filter) {
     .lean();
 }
 async function findListingById(id) {
-  return Listing.findById(id);
+  return Listing.findById(id)
+    .populate("makeId", "name")
+    .populate("modelId", "name");
 }
 
 async function updateListingById(id, update) {

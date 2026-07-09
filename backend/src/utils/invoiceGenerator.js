@@ -62,9 +62,11 @@ function generateInvoicePDF({
   askingPrice,
   commission,
   displayPrice,
-  email,
-  phone,
-  address,
+  buyerEmail,
+  buyerPhone,
+  vendorEmail,
+  vendorPhone,
+  vendorAddress,
 }) {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({
@@ -134,15 +136,14 @@ function generateInvoicePDF({
     doc
       .fontSize(10)
       .text(`Buyer : ${buyerName}`, 50, y + 10)
-      .text(`Phone:${phone}`, 50, y + 28)
-      // .text("Phone : -", 50, y + 46)
-      .text(`Email:${email}`, 50, y + 64);
+      .text(`Phone : ${buyerPhone}`, 50, y + 28)
+      .text(`Email : ${buyerEmail}`, 50, y + 64);
 
     doc
       .text(`Vendor : ${vendorName}`, 315, y + 10)
-      .text(`Address:${address}`, 315, y + 28)
-      .text(`Phone:${phone}`, 315, y + 46)
-      .text(`Email:${email}`, 315, y + 64);
+      .text(`Address : ${vendorAddress}`, 315, y + 28)
+      .text(`Phone : ${vendorPhone}`, 315, y + 46)
+      .text(`Email : ${vendorEmail}`, 315, y + 64);
 
     // =====================================================
     // TABLE HEADER

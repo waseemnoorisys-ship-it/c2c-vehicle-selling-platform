@@ -310,6 +310,47 @@ const confirmDelivery = async (req, res, next) => {
     try {
       transaction.status = "released";
       invoice = await invoiceService.generateInvoiceForTransaction(transaction);
+
+      if (invoice) {
+        const [buyerUser, vendorUser] = await Promise.all([
+          userService.findById(transaction.buyerId),
+          userService.findById(transaction.vendorId),
+        ]);
+        const downloadUrl = invoiceService.getInvoiceDownloadUrl(invoice.url);
+
+        const emailTasks = [];
+        if (buyerUser?.email) {
+          emailTasks.push(
+            sendEmail({
+              to: buyerUser.email,
+              templateName: "invoiceReady",
+              data: {
+                firstName: buyerUser.firstName,
+                invoiceNumber: invoice.invoiceNumber,
+                downloadUrl,
+                role: "buyer",
+                lang: buyerUser.language || "en",
+              },
+            })
+          );
+        }
+        if (vendorUser?.email) {
+          emailTasks.push(
+            sendEmail({
+              to: vendorUser.email,
+              templateName: "invoiceReady",
+              data: {
+                firstName: vendorUser.firstName,
+                invoiceNumber: invoice.invoiceNumber,
+                downloadUrl,
+                role: "vendor",
+                lang: vendorUser.language || "en",
+              },
+            })
+          );
+        }
+        await Promise.all(emailTasks);
+      }
     } catch (invoiceErr) {
       logger.error("Invoice generation failed (non-blocking)", invoiceErr);
     }

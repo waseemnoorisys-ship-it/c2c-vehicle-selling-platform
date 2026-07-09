@@ -46,6 +46,7 @@ const { listingRejectedTemplate } = require("../../templates/email/listingReject
 const { paymentEscrowedTemplate } = require("../../templates/email/paymentEscrowed.template");
 const { paymentReleasedTemplate } = require("../../templates/email/paymentReleased.template");
 const { withdrawalUpdateTemplate } = require("../../templates/email/withdrawalUpdate.template");
+const { invoiceReadyTemplate } = require("../../templates/email/invoiceReady.template");
 const transporter = require("../../config/mailer");
 
 // const transporter = nodemailer.createTransport({
@@ -68,6 +69,7 @@ const templateMap = {
   paymentEscrowed: paymentEscrowedTemplate,
   paymentReleased: paymentReleasedTemplate,
   withdrawalUpdate: withdrawalUpdateTemplate,
+  invoiceReady: invoiceReadyTemplate,
 };
 
 async function sendEmail({ to, templateName, data }) {

@@ -95,6 +95,13 @@
       "heading": "Funds released!",
       "body": "Your payment of ${amount} has been released and is now available in your wallet."
     },
+    "invoiceReady": {
+      "subject": "Invoice ${invoiceNumber} — C2C Vehicles",
+      "heading": "Your invoice is ready",
+      "buyerBody": "Your purchase invoice ${invoiceNumber} is ready. Click the button below to download your PDF invoice.",
+      "vendorBody": "Your sale invoice ${invoiceNumber} is ready. Click the button below to download your PDF invoice.",
+      "cta": "Download invoice"
+    },
     "withdrawalUpdate": {
       "approved": {
         "subject": "Withdrawal approved — C2C Vehicles",

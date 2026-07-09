@@ -95,6 +95,13 @@
       "heading": "Fonds libérés !",
       "body": "Votre paiement de ${amount} a été libéré et est maintenant disponible dans votre portefeuille."
     },
+    "invoiceReady": {
+      "subject": "Facture ${invoiceNumber} — C2C Véhicules",
+      "heading": "Votre facture est prête",
+      "buyerBody": "Votre facture d'achat ${invoiceNumber} est prête. Cliquez sur le bouton ci-dessous pour télécharger votre facture PDF.",
+      "vendorBody": "Votre facture de vente ${invoiceNumber} est prête. Cliquez sur le bouton ci-dessous pour télécharger votre facture PDF.",
+      "cta": "Télécharger la facture"
+    },
     "withdrawalUpdate": {
       "approved": {
         "subject": "Retrait approuvé — C2C Véhicules",
