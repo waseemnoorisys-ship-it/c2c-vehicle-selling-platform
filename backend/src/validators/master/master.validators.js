@@ -13,8 +13,6 @@ const getMasterSchema = Joi.object({
   stateId: Joi.number()
     .integer()
     .when("master", { is: "city", then: Joi.required() }),
-  page: Joi.number().integer().min(1).default(1),
-  limit: Joi.number().integer().min(1).max(100).default(10),
   q: Joi.string().trim().max(100).optional(),
   sort: Joi.string().default("name"),
   fields: Joi.string().trim().max(200).optional(),

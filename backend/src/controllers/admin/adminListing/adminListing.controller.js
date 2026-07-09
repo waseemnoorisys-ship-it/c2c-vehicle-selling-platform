@@ -16,14 +16,26 @@ const listListings = async (req, res, next) => {
     const { error, value } = listListingsSchema.validate(req.body);
     if (error) throw new ApiError(400, error.details[0].message);
 
-    const { page, limit, status } = value;
+    const { page, limit, status, dateFrom, dateTo } = value;
     const skip = (page - 1) * limit;
 
     const filter = { deletedAt: null };
     if (status) filter.status = status;
-
+    if (dateFrom || dateTo) {
+      filter.createdAt = {};
+      if (dateFrom) {
+        const from = new Date(dateFrom);
+        from.setUTCHours(0, 0, 0, 0);
+        filter.createdAt.$gte = from;
+      }
+      if (dateTo) {
+        const to = new Date(dateTo);
+        to.setUTCHours(23, 59, 59, 999);
+        filter.createdAt.$lte = to;
+      }
+    }
     const [listings, total] = await Promise.all([
-      adminListingService.findAllListings(filter, skip, limit),
+      adminListingService.findAllListings(filter, skip, limit, dateFrom, dateTo),
       adminListingService.countListings(filter),
     ]);
 

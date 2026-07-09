@@ -14,46 +14,12 @@ function buildCountryMatch(countryId) {
   return { id: Number(countryId) };
 }
 
-function paginateStages(page, limit, projection) {
-  return [
-    {
-      $facet: {
-        data: [
-          { $skip: (page - 1) * limit },
-          { $limit: Number(limit) },
-          { $project: projection },
-        ],
-        totalCount: [{ $count: "count" }],
-      },
-    },
-    {
-      $project: {
-        data: 1,
-        total: {
-          $ifNull: [{ $arrayElemAt: ["$totalCount.count", 0] }, 0],
-        },
-      },
-    },
-  ];
-}
-
-function formatResult(result, page, limit) {
-  const total = result[0]?.total ?? 0;
-  return {
-    page:       Number(page),
-    limit:      Number(limit),
-    total,
-    totalPages: Math.ceil(total / limit) || 0,
-    data:       result[0]?.data ?? [],
-  };
-}
-
-async function aggregateCountries({ q, page, limit, sort, fields }) {
+async function aggregateCountries({ q, sort, fields }) {
   if (!COUNTRY_SORT_FIELDS.includes(sort)) {
     throw new ApiError(400, `Invalid sort field for country. Allowed: ${COUNTRY_SORT_FIELDS.join(", ")}`);
   }
 
-  const match = {isDeleted: false};
+  const match = {};
   if (q) {
     match.$or = [
       { name:  { $regex: q, $options: "i" } },
@@ -77,13 +43,14 @@ async function aggregateCountries({ q, page, limit, sort, fields }) {
   const pipeline = [
     { $match: match },
     { $sort: { [sort]: 1 } },
-    ...paginateStages(page, limit, projection),
+    { $project: projection },
   ];
 
-  return formatResult(await Master.aggregate(pipeline), page, limit);
+  const data = await Master.aggregate(pipeline);
+  return { data };
 }
 
-async function aggregateStates({ countryId, q, page, limit, sort }) {
+async function aggregateStates({ countryId, q, sort }) {
   if (!STATE_CITY_SORT_FIELDS.includes(sort)) {
     throw new ApiError(400, `Invalid sort field for state. Allowed: ${STATE_CITY_SORT_FIELDS.join(", ")}`);
   }
@@ -99,22 +66,25 @@ async function aggregateStates({ countryId, q, page, limit, sort }) {
 
   pipeline.push(
     { $sort: { [`states.${sort}`]: 1 } },
-    ...paginateStages(page, limit, {
-      id:          "$states.id",
-      name:        "$states.name",
-      iso2:        "$states.iso2",
-      iso3166_2:   "$states.iso3166_2",
-      type:        "$states.type",
-      countryId:   "$_id",
-      countryName: "$name",
-      countryIso2: "$iso2",
-    })
+    {
+      $project: {
+        id:          "$states.id",
+        name:        "$states.name",
+        iso2:        "$states.iso2",
+        iso3166_2:   "$states.iso3166_2",
+        type:        "$states.type",
+        countryId:   "$_id",
+        countryName: "$name",
+        countryIso2: "$iso2",
+      },
+    }
   );
 
-  return formatResult(await Master.aggregate(pipeline), page, limit);
+  const data = await Master.aggregate(pipeline);
+  return { data };
 }
 
-async function aggregateCities({ countryId, stateId, q, page, limit, sort }) {
+async function aggregateCities({ countryId, stateId, q, sort }) {
   if (!STATE_CITY_SORT_FIELDS.includes(sort)) {
     throw new ApiError(400, `Invalid sort field for city. Allowed: ${STATE_CITY_SORT_FIELDS.join(", ")}`);
   }
@@ -123,37 +93,38 @@ async function aggregateCities({ countryId, stateId, q, page, limit, sort }) {
     { $match: buildCountryMatch(countryId) },
     { $unwind: "$states" },
     { $match: { "states.id": Number(stateId) } },
-    { $unwind: "$cities" },
+    { $unwind: "$states.cities" },
   ];
 
   if (q) {
-    pipeline.push({ $match: { "cities.name": { $regex: q, $options: "i" } } });
+    pipeline.push({ $match: { "states.cities.name": { $regex: q, $options: "i" } } });
   }
 
   pipeline.push(
-    { $sort: { [`cities.${sort}`]: 1 } },
-    ...paginateStages(page, limit, {
-      id:          "$cities.id",
-      name:        "$cities.name",
-      latitude:    "$cities.latitude",
-      longitude:   "$cities.longitude",
-      timezone:    "$cities.timezone",
-      stateId:     "$states.id",
-      stateName:   "$states.name",
-      countryId:   "$_id",
-      countryName: "$name",
-    })
+    { $sort: { [`states.cities.${sort}`]: 1 } },
+    {
+      $project: {
+        id:          "$states.cities.id",
+        name:        "$states.cities.name",
+        latitude:    "$states.cities.latitude",
+        longitude:   "$states.cities.longitude",
+        timezone:    "$states.cities.timezone",
+        stateId:     "$states.id",
+        stateName:   "$states.name",
+        countryId:   "$_id",
+        countryName: "$name",
+      },
+    }
   );
 
-  return formatResult(await Master.aggregate(pipeline), page, limit);
+  const data = await Master.aggregate(pipeline);
+  return { data };
 }
 
 const getMasterData = async (query) => {
   const {
     master,
     q,
-    page = 1,
-    limit = 10,
     fields,
     sort = "name",
     countryId,
@@ -162,11 +133,11 @@ const getMasterData = async (query) => {
 
   switch (master) {
     case "country":
-      return aggregateCountries({ q, page, limit, sort, fields });
+      return aggregateCountries({ q, sort, fields });
     case "state":
-      return aggregateStates({ countryId, q, page, limit, sort });
+      return aggregateStates({ countryId, q, sort });
     case "city":
-      return aggregateCities({ countryId, stateId, q, page, limit, sort });
+      return aggregateCities({ countryId, stateId, q, sort });
     default:
       throw new ApiError(400, "Invalid master type");
   }

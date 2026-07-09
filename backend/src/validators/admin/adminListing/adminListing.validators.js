@@ -6,6 +6,13 @@ const listListingsSchema = Joi.object({
   status: Joi.string()
     .valid("draft", "pending", "approved", "rejected", "sold", "inactive")
     .optional(),
+
+    dateFrom:Joi.date().iso().optional(),
+    dateTo:Joi.date().iso().when('dateFrom', {
+      is: Joi.exist(),
+      then: Joi.date().min(Joi.ref('dateFrom'))
+    }),
+  
 });
 
 const listingIdSchema = Joi.object({
