@@ -89,7 +89,7 @@ async function generateInvoiceForTransaction(transaction) {
     invoiceNumber,
     url: uploadResult.secure_url,
     publicId: uploadResult.public_id,
-  });
+  });      
 }
 
 function getInvoiceDownloadUrl(url) {
