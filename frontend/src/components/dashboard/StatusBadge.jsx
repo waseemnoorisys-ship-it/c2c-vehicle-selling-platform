@@ -6,6 +6,7 @@ const STATUS_STYLES = {
   paid: "bg-success/15 text-success border-success/30",
   pending: "bg-warning/15 text-warning border-warning/30",
   rejected: "bg-danger/15 text-danger border-danger/30",
+  draft: "bg-text-muted/15 text-text-muted border-border",
   inactive: "bg-text-muted/15 text-text-muted border-border",
   sold: "bg-primary-400/15 text-text-accent border-primary-400/30",
 };

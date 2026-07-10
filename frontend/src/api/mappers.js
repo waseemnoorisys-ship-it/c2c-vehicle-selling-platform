@@ -80,9 +80,37 @@ export function listingTitle(listing) {
   return `${year} ${make} ${model}`.trim() || "Vehicle";
 }
 
+export function getListingImageUrl(listing) {
+  if (!listing) return null;
+  if (listing.coverPhoto) return listing.coverPhoto;
+  const photos = listing.photos || listing.images;
+  if (!Array.isArray(photos) || !photos.length) return null;
+  const first = photos[0];
+  return typeof first === "string" ? first : first?.url || null;
+}
+
+export function getListingCoordinates(listing) {
+  const coords = listing?.location?.coordinates;
+  const longitude = listing?.longitude ?? coords?.[0];
+  const latitude = listing?.latitude ?? coords?.[1];
+
+  const hasValidCoords =
+    latitude != null &&
+    longitude != null &&
+    Number.isFinite(Number(latitude)) &&
+    Number.isFinite(Number(longitude)) &&
+    !(Number(latitude) === 0 && Number(longitude) === 0);
+
+  return hasValidCoords
+    ? { latitude: Number(latitude), longitude: Number(longitude) }
+    : { latitude: null, longitude: null };
+}
+
 export function mapListingToVehicle(listing) {
   if (!listing) return null;
   const id = listing._id || listing.id;
+  const coverPhoto = getListingImageUrl(listing);
+  const { latitude, longitude } = getListingCoordinates(listing);
   return {
     id,
     _id: id,
@@ -101,7 +129,9 @@ export function mapListingToVehicle(listing) {
     transmission: toDisplayTransmission(listing.transmission),
     bodyType: listing.bodyType || "",
     location: listing.locationText || "",
-    locationText: listing.locationText,
+    locationText: listing.locationText || "",
+    latitude,
+    longitude,
     verified: Boolean(listing.isVerified),
     status: listing.status === "approved" ? "active" : listing.status,
     sellerId: listing.vendorId?._id || listing.vendorId,
@@ -111,7 +141,7 @@ export function mapListingToVehicle(listing) {
     description: listing.description || "",
     specs: listing.specs || {},
     images: listing.photos?.map((p) => p.url || p) || [],
-    coverPhoto: listing.coverPhoto,
+    coverPhoto,
     photos: listing.photos || [],
     views: listing.viewCount ?? 0,
     offers: listing.offerCount ?? 0,

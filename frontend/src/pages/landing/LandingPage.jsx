@@ -1,14 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import heroImage from "../../assets/hero.png";
 import LandingHeader from "../../components/landing/LandingHeader";
 import LandingFooter from "../../components/landing/LandingFooter";
 import SectionHeader from "../../components/landing/SectionHeader";
 import VehicleCard from "../../components/landing/VehicleCard";
+import VehicleImage from "../../components/vehicles/VehicleImage";
 import Button from "../../components/common/Button";
+import useAuthStore from "../../store/useAuthStore";
 import {
   STATS,
-  FEATURED_VEHICLES,
   ADVANTAGES,
   BUYER_STEPS,
   SELLER_STEPS,
@@ -16,6 +17,17 @@ import {
   TESTIMONIALS,
   FAQS,
 } from "../../data/landingData";
+import { fetchSearchFilterData, fetchFeaturedVehicles } from "../../api/vehicles.api";
+
+const EMPTY_SEARCH = { makeId: "", modelId: "", priceRange: "" };
+
+const DEFAULT_PRICE_RANGES = [
+  { label: "Any price", value: "", min: "", max: "" },
+  { label: "Under €15,000", value: "0-15000", min: 0, max: 15000 },
+  { label: "€15,000 – €30,000", value: "15000-30000", min: 15000, max: 30000 },
+  { label: "€30,000 – €50,000", value: "30000-50000", min: 30000, max: 50000 },
+  { label: "Over €50,000", value: "50000-", min: 50000, max: "" },
+];
 
 function StatIcon({ type }) {
   const icons = {
@@ -98,6 +110,83 @@ function FaqItem({ q, a }) {
 
 export default function LandingPage() {
   const navigate = useNavigate();
+  const { user, accessToken } = useAuthStore();
+  const [search, setSearch] = useState(EMPTY_SEARCH);
+  const [makes, setMakes] = useState([]);
+  const [modelsByMake, setModelsByMake] = useState({});
+  const [priceRanges, setPriceRanges] = useState([]);
+  const [filtersLoading, setFiltersLoading] = useState(true);
+  const [vehicles, setVehicles] = useState([]);
+  const [vehiclesLoading, setVehiclesLoading] = useState(true);
+  const [ctaImageIndex, setCtaImageIndex] = useState(0);
+
+  useEffect(() => {
+    fetchSearchFilterData()
+      .then((res) => {
+        const data = res.data.data;
+        setMakes(data.makes || []);
+        setModelsByMake(data.models || {});
+        setPriceRanges(data.priceRanges?.length ? data.priceRanges : DEFAULT_PRICE_RANGES);
+      })
+      .catch(() => {
+        setPriceRanges(DEFAULT_PRICE_RANGES);
+      })
+      .finally(() => setFiltersLoading(false));
+  }, []);
+
+  useEffect(() => {
+    fetchFeaturedVehicles(12)
+      .then((res) => setVehicles(res.data.data || []))
+      .catch(() => setVehicles([]))
+      .finally(() => setVehiclesLoading(false));
+  }, []);
+
+  useEffect(() => {
+    if (vehicles.length <= 1) return undefined;
+    const timer = setInterval(() => {
+      setCtaImageIndex((index) => (index + 1) % vehicles.length);
+    }, 10000);
+    return () => clearInterval(timer);
+  }, [vehicles.length]);
+
+  const featuredVehicles = vehicles.slice(0, 4);
+  const verifiedVehicles = vehicles.filter((v) => v.verified).slice(0, 4);
+  const latestVehicles = vehicles.slice(0, 4);
+
+  const models = search.makeId ? (modelsByMake[search.makeId] || []) : [];
+  const safeCtaIndex = vehicles.length ? ctaImageIndex % vehicles.length : 0;
+  const ctaVehicle = vehicles[safeCtaIndex];
+
+  function handlePostListing() {
+    if (accessToken && user?.role === "vendor") {
+      navigate("/vendor/listings/new");
+      return;
+    }
+    navigate("/register?role=vendor");
+  }
+
+  function handleMakeChange(e) {
+    const makeId = e.target.value;
+    setSearch({ makeId, modelId: "", priceRange: search.priceRange });
+  }
+
+  function handleSearch() {
+    const selectedMake = makes.find((m) => m.id === search.makeId);
+    const selectedRange = priceRanges.find((r) => r.value === search.priceRange);
+    const params = new URLSearchParams();
+
+    if (selectedMake?.name) params.set("make", selectedMake.name);
+    if (search.modelId) params.set("modelId", search.modelId);
+    if (selectedRange?.min !== "" && selectedRange?.min != null) {
+      params.set("minPrice", String(selectedRange.min));
+    }
+    if (selectedRange?.max !== "" && selectedRange?.max != null) {
+      params.set("maxPrice", String(selectedRange.max));
+    }
+
+    const query = params.toString();
+    navigate(query ? `/browse?${query}` : "/browse");
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -144,7 +233,7 @@ export default function LandingPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
               }
-              onClick={() => navigate("/register")}
+              onClick={handlePostListing}
             >
               Sell Your Vehicle
             </Button>
@@ -154,18 +243,46 @@ export default function LandingPage() {
         {/* Search bar */}
         <div className="relative z-10 max-w-5xl mx-auto w-full px-4 sm:px-6 pb-8 lg:pb-12">
           <div className="flex flex-col sm:flex-row gap-3 p-4 rounded-2xl bg-surface/90 backdrop-blur-md border border-border shadow-card">
-            {["Make", "Model", "Price Range"].map((label) => (
-              <select
-                key={label}
-                className="flex-1 px-4 py-3 rounded-lg bg-background border border-border text-sm text-text-muted outline-none focus:ring-2 focus:ring-primary-400"
-                defaultValue=""
-              >
-                <option value="" disabled>{label}</option>
-                <option>Any</option>
-              </select>
-            ))}
+            <select
+              value={search.makeId}
+              onChange={handleMakeChange}
+              disabled={filtersLoading}
+              className="flex-1 px-4 py-3 rounded-lg bg-background border border-border text-sm text-text-primary outline-none focus:ring-2 focus:ring-primary-400 disabled:opacity-60"
+            >
+              <option value="">{filtersLoading ? "Loading makes..." : "Make"}</option>
+              {makes.map((m) => (
+                <option key={m.id} value={m.id}>{m.name}</option>
+              ))}
+            </select>
+
+            <select
+              value={search.modelId}
+              onChange={(e) => setSearch((s) => ({ ...s, modelId: e.target.value }))}
+              disabled={!search.makeId || filtersLoading}
+              className="flex-1 px-4 py-3 rounded-lg bg-background border border-border text-sm text-text-primary outline-none focus:ring-2 focus:ring-primary-400 disabled:opacity-60"
+            >
+              <option value="">{search.makeId ? "Model" : "Select make first"}</option>
+              {models.map((m) => (
+                <option key={m.id} value={m.id}>{m.name}</option>
+              ))}
+            </select>
+
+            <select
+              value={search.priceRange}
+              onChange={(e) => setSearch((s) => ({ ...s, priceRange: e.target.value }))}
+              disabled={filtersLoading}
+              className="flex-1 px-4 py-3 rounded-lg bg-background border border-border text-sm text-text-primary outline-none focus:ring-2 focus:ring-primary-400 disabled:opacity-60"
+            >
+              {(filtersLoading ? DEFAULT_PRICE_RANGES : priceRanges).map((range) => (
+                <option key={range.value || "any"} value={range.value}>
+                  {range.value === "" ? "Price Range" : range.label}
+                </option>
+              ))}
+            </select>
+
             <button
               type="button"
+              onClick={handleSearch}
               className="flex items-center justify-center gap-2 px-6 py-3 btn-gradient text-white text-sm font-semibold rounded-lg uppercase tracking-wide shrink-0"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -203,9 +320,17 @@ export default function LandingPage() {
           linkTo="/browse"
         />
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {FEATURED_VEHICLES.map((v) => (
-            <VehicleCard key={v.id} vehicle={v} />
-          ))}
+          {vehiclesLoading ? (
+            <div className="col-span-full text-center py-12 text-text-muted">Loading vehicles...</div>
+          ) : featuredVehicles.length === 0 ? (
+            <div className="col-span-full text-center py-12 text-text-muted rounded-xl border border-border bg-surface">
+              No vehicles available yet. Check back soon!
+            </div>
+          ) : (
+            featuredVehicles.map((v) => (
+              <VehicleCard key={v.id} vehicle={v} />
+            ))
+          )}
         </div>
       </section>
 
@@ -278,9 +403,17 @@ export default function LandingPage() {
           linkTo="/browse"
         />
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {FEATURED_VEHICLES.map((v) => (
-            <VehicleCard key={`verified-${v.id}`} vehicle={v} />
-          ))}
+          {vehiclesLoading ? (
+            <div className="col-span-full text-center py-12 text-text-muted">Loading vehicles...</div>
+          ) : verifiedVehicles.length === 0 ? (
+            <div className="col-span-full text-center py-12 text-text-muted rounded-xl border border-border bg-surface">
+              No verified vehicles yet.
+            </div>
+          ) : (
+            verifiedVehicles.map((v) => (
+              <VehicleCard key={`verified-${v.id}`} vehicle={v} />
+            ))
+          )}
         </div>
       </section>
 
@@ -294,9 +427,17 @@ export default function LandingPage() {
             linkTo="/browse"
           />
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {FEATURED_VEHICLES.map((v) => (
-              <VehicleCard key={`latest-${v.id}`} vehicle={v} compact />
-            ))}
+            {vehiclesLoading ? (
+              <div className="col-span-full text-center py-12 text-text-muted">Loading vehicles...</div>
+            ) : latestVehicles.length === 0 ? (
+              <div className="col-span-full text-center py-12 text-text-muted rounded-xl border border-border bg-surface">
+                No recent listings yet.
+              </div>
+            ) : (
+              latestVehicles.map((v) => (
+                <VehicleCard key={`latest-${v.id}`} vehicle={v} compact />
+              ))
+            )}
           </div>
         </div>
       </section>
@@ -364,7 +505,7 @@ export default function LandingPage() {
                 List your vehicle today and reach thousands of verified buyers. Fast, secure, and hassle-free.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 mt-8">
-                <Button className="sm:w-auto w-full px-8" onClick={() => navigate("/register")}>
+                <Button className="sm:w-auto w-full px-8" onClick={handlePostListing}>
                   Post Your Listing
                 </Button>
                 <Button variant="outline" className="sm:w-auto w-full px-8 normal-case" onClick={() => navigate("/browse")}>
@@ -372,10 +513,47 @@ export default function LandingPage() {
                 </Button>
               </div>
             </div>
-            <div className="w-full lg:w-80 h-48 rounded-2xl bg-gradient-to-br from-surface to-background border border-border flex items-center justify-center">
-              <svg className="w-24 h-24 text-text-muted/20" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M5 11h14l-1.5 6H6.5L5 11zM7 8l1-3h8l1 3M9 14h6" />
-              </svg>
+            <div className="w-full lg:w-96 h-56 rounded-2xl overflow-hidden border border-border bg-gradient-to-br from-surface to-background relative">
+              {ctaVehicle ? (
+                <>
+                  <VehicleImage
+                    key={ctaVehicle.id}
+                    vehicle={ctaVehicle}
+                    alt={ctaVehicle.title}
+                    className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700"
+                    loading="eager"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent" />
+                  <div className="absolute bottom-0 left-0 right-0 p-4">
+                    <p className="text-sm font-semibold text-text-primary line-clamp-1">{ctaVehicle.title}</p>
+                    <p className="text-xs text-text-accent mt-1">
+                      €{Number(ctaVehicle.price || 0).toLocaleString()}
+                    </p>
+                  </div>
+                  {vehicles.length > 1 && (
+                    <div className="absolute top-3 right-3 flex gap-1.5">
+                      {vehicles.map((vehicle, index) => (
+                        <span
+                          key={vehicle.id}
+                          className={`h-1.5 rounded-full transition-all ${
+                            index === safeCtaIndex ? "w-5 bg-text-accent" : "w-1.5 bg-white/40"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  {vehiclesLoading ? (
+                    <p className="text-sm text-text-muted">Loading vehicles...</p>
+                  ) : (
+                    <svg className="w-24 h-24 text-text-muted/20" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M5 11h14l-1.5 6H6.5L5 11zM7 8l1-3h8l1 3M9 14h6" />
+                    </svg>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>

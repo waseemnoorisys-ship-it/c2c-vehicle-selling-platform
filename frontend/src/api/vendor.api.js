@@ -8,9 +8,11 @@ import {
   eurosToCents,
 } from "./mappers";
 
+const VENDOR_LISTINGS_PAGE_SIZE = 50;
+
 export async function fetchVendorDashboard() {
   const [listingsRes, offersRes, walletRes] = await Promise.all([
-    api.post("/listings/mine", { page: 1, limit: 100 }),
+    api.post("/listings/mine", { page: 1, limit: VENDOR_LISTINGS_PAGE_SIZE }),
     api.post("/offers/received", { page: 1, limit: 50 }),
     api.post("/wallet/get"),
   ]);
@@ -32,13 +34,13 @@ export async function fetchVendorDashboard() {
 }
 
 export async function fetchVendorListings() {
-  const { data } = await api.post("/listings/mine", { page: 1, limit: 100 });
+  const { data } = await api.post("/listings/mine", { page: 1, limit: VENDOR_LISTINGS_PAGE_SIZE });
   const listings = (data.data?.listings || []).map(mapListingToVehicle);
   return wrap(listings);
 }
 
 export async function fetchVendorListingById(id) {
-  const { data } = await api.post("/listings/mine", { page: 1, limit: 100 });
+  const { data } = await api.post("/listings/mine", { page: 1, limit: VENDOR_LISTINGS_PAGE_SIZE });
   const listing = (data.data?.listings || []).find((l) => l._id === id);
   if (!listing) throw new Error("Listing not found");
   return wrap(mapListingToVehicle(listing));

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import Input from "../../components/common/Input";
@@ -11,12 +11,14 @@ import { registerApi } from "../../api/auth.api";
 export default function RegisterPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const initialRole = searchParams.get("role") === "vendor" ? "vendor" : "buyer";
 
   const [form, setForm] = useState({
     firstName: "", lastName: "", email: "",
     mobile: "", countryCode: "+33",
     password: "", confirmPassword: "",
-    role: "buyer",
+    role: initialRole,
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);

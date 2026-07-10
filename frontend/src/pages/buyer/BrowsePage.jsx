@@ -1,19 +1,28 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import LandingHeader from "../../components/landing/LandingHeader";
 import LandingFooter from "../../components/landing/LandingFooter";
 import PageHeader from "../../components/dashboard/PageHeader";
 import BrowseVehicleCard from "../../components/vehicles/BrowseVehicleCard";
-import { fetchVehicles, fetchFilterOptions, warmVehicleMasterCache } from "../../api/vehicles.api";
+import { fetchVehicles, fetchFilterOptions } from "../../api/vehicles.api";
 import useAuthStore from "../../store/useAuthStore";
 
 export default function BrowsePage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuthStore();
   const isBuyer = user?.role === "buyer";
 
   const [vehicles, setVehicles] = useState([]);
-  const [filters, setFilters] = useState({ make: "", bodyType: "", fuel: "", minPrice: "", maxPrice: "", search: "" });
+  const [filters, setFilters] = useState(() => ({
+    make: searchParams.get("make") || "",
+    modelId: searchParams.get("modelId") || "",
+    bodyType: "",
+    fuel: "",
+    minPrice: searchParams.get("minPrice") || "",
+    maxPrice: searchParams.get("maxPrice") || "",
+    search: "",
+  }));
   const [options, setOptions] = useState({ makes: [], bodyTypes: [], fuelTypes: [] });
   const [loading, setLoading] = useState(true);
 
@@ -24,18 +33,25 @@ export default function BrowsePage() {
 
   const clearFilters = () => {
     setLoading(true);
-    setFilters({ make: "", bodyType: "", fuel: "", minPrice: "", maxPrice: "", search: "" });
+    setFilters({
+      make: "",
+      modelId: "",
+      bodyType: "",
+      fuel: "",
+      minPrice: "",
+      maxPrice: "",
+      search: "",
+    });
   };
 
   useEffect(() => {
-    warmVehicleMasterCache().finally(() => {
-      fetchFilterOptions().then((res) => setOptions(res.data.data));
-    });
+    fetchFilterOptions().then((res) => setOptions(res.data.data));
   }, []);
 
   useEffect(() => {
     const params = {};
     if (filters.make) params.make = filters.make;
+    if (filters.modelId) params.modelId = filters.modelId;
     if (filters.bodyType) params.bodyType = filters.bodyType;
     if (filters.fuel) params.fuel = filters.fuel;
     if (filters.minPrice) params.minPrice = Number(filters.minPrice);

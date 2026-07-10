@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import SidebarLayout from "../../components/dashboard/SidebarLayout";
@@ -6,24 +6,47 @@ import PageHeader from "../../components/dashboard/PageHeader";
 import Input from "../../components/common/Input";
 import Button from "../../components/common/Button";
 import { VENDOR_NAV } from "../../config/navigation";
-import { createVehicle, updateVehicle, warmVehicleMasterCache } from "../../api/vehicles.api";
+import {
+  createVehicleWithPhotos,
+  updateVehicle,
+  addListingPhotos,
+  deleteListingPhoto,
+  warmVehicleMasterCache,
+} from "../../api/vehicles.api";
 import { fetchVendorListingById } from "../../api/vendor.api";
 import { getVehicleMasters, getModelsForMakeId } from "../../api/vehicleMaster.cache";
 import { FILTER_OPTIONS } from "../../data/mockData";
 
 const STEPS = ["Basic Info", "Details", "Photos", "Preview"];
+const MAX_PHOTOS = 10;
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
 const EMPTY_FORM = {
   makeId: "", modelId: "", year: "", price: "", mileage: "",
   fuel: "", transmission: "", location: "", description: "",
 };
 
+function createPhotoItem(file) {
+  return {
+    key: `new-${file.name}-${file.lastModified}-${Math.random()}`,
+    file,
+    preview: URL.createObjectURL(file),
+    existing: false,
+  };
+}
+
 export default function AddEditVehiclePage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const isEdit = Boolean(id);
+  const fileInputRef = useRef(null);
+  const photoItemsRef = useRef([]);
   const [step, setStep] = useState(0);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [photoItems, setPhotoItems] = useState([]);
+  const [removedPublicIds, setRemovedPublicIds] = useState([]);
+  const [dragActive, setDragActive] = useState(false);
   const [loading, setLoading] = useState(false);
   const [makes, setMakes] = useState([]);
   const [models, setModels] = useState([]);
@@ -59,9 +82,29 @@ export default function AddEditVehiclePage() {
           location: v.location || "",
           description: v.description || "",
         });
+        const existing = (v.photos || []).map((photo, index) => ({
+          key: `existing-${photo.publicId || index}`,
+          preview: photo.url || photo,
+          url: photo.url || photo,
+          publicId: photo.publicId,
+          existing: true,
+        }));
+        setPhotoItems(existing);
       })
       .catch(() => toast.error("Could not load listing"));
   }, [id, isEdit]);
+
+  useEffect(() => {
+    photoItemsRef.current = photoItems;
+  }, [photoItems]);
+
+  useEffect(() => {
+    return () => {
+      photoItemsRef.current.forEach((item) => {
+        if (item.file && item.preview) URL.revokeObjectURL(item.preview);
+      });
+    };
+  }, []);
 
   function handleChange(e) {
     const { name, value } = e.target;
@@ -71,11 +114,81 @@ export default function AddEditVehiclePage() {
     });
   }
 
+  function addFiles(fileList) {
+    const incoming = Array.from(fileList || []);
+    if (!incoming.length) return;
+
+    const valid = [];
+    for (const file of incoming) {
+      if (!ALLOWED_TYPES.includes(file.type)) {
+        toast.error(`${file.name}: only JPG, PNG, or WebP allowed`);
+        continue;
+      }
+      if (file.size > MAX_FILE_SIZE) {
+        toast.error(`${file.name}: max size is 5 MB`);
+        continue;
+      }
+      valid.push(file);
+    }
+
+    if (!valid.length) return;
+
+    setPhotoItems((current) => {
+      const remaining = MAX_PHOTOS - current.length;
+      if (remaining <= 0) {
+        toast.error(`Maximum ${MAX_PHOTOS} photos allowed`);
+        return current;
+      }
+      const toAdd = valid.slice(0, remaining).map(createPhotoItem);
+      if (valid.length > remaining) {
+        toast.error(`Only ${remaining} more photo(s) can be added`);
+      }
+      return [...current, ...toAdd];
+    });
+  }
+
+  function handleFileInput(e) {
+    addFiles(e.target.files);
+    e.target.value = "";
+  }
+
+  function handleDrop(e) {
+    e.preventDefault();
+    setDragActive(false);
+    addFiles(e.dataTransfer.files);
+  }
+
+  function removePhoto(key) {
+    setPhotoItems((current) => {
+      const item = current.find((p) => p.key === key);
+      if (!item) return current;
+      if (item.publicId) {
+        setRemovedPublicIds((ids) => [...ids, item.publicId]);
+      }
+      if (item.file && item.preview) URL.revokeObjectURL(item.preview);
+      return current.filter((p) => p.key !== key);
+    });
+  }
+
+  function goToNextStep() {
+    if (step === 2 && photoItems.length === 0) {
+      toast.error("Add at least one vehicle photo");
+      return;
+    }
+    setStep((s) => s + 1);
+  }
+
   async function handleSubmit() {
     if (!form.makeId || !form.modelId) {
       toast.error("Select make and model. Admin must configure vehicle data first.");
       return;
     }
+    if (photoItems.length === 0) {
+      toast.error("Add at least one vehicle photo");
+      setStep(2);
+      return;
+    }
+
     setLoading(true);
     try {
       const payload = {
@@ -88,11 +201,19 @@ export default function AddEditVehiclePage() {
         transmission: form.transmission,
         location: form.location,
       };
+      const newFiles = photoItems.filter((p) => p.file).map((p) => p.file);
+
       if (isEdit) {
         await updateVehicle(id, payload);
+        for (const publicId of removedPublicIds) {
+          await deleteListingPhoto(id, publicId);
+        }
+        if (newFiles.length) {
+          await addListingPhotos(id, newFiles);
+        }
         toast.success("Vehicle updated!");
       } else {
-        await createVehicle(payload);
+        await createVehicleWithPhotos(payload, newFiles);
         toast.success("Vehicle submitted for approval!");
       }
       navigate("/vendor/listings");
@@ -187,21 +308,100 @@ export default function AddEditVehiclePage() {
         )}
 
         {step === 2 && (
-          <div className="p-6 rounded-xl border border-border bg-surface text-center">
-            <div className="border-2 border-dashed border-border rounded-xl p-12">
-              <p className="text-text-muted text-sm">Photo upload via API coming soon.</p>
-              <p className="text-xs text-text-muted mt-2">Use backend POST /listings/create-with-photos for now.</p>
+          <div className="p-6 rounded-xl border border-border bg-surface space-y-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h3 className="font-semibold text-text-primary text-sm">Vehicle photos</h3>
+                <p className="text-xs text-text-muted mt-1">
+                  Upload up to {MAX_PHOTOS} images (JPG, PNG, WebP · max 5 MB each)
+                </p>
+              </div>
+              <span className="text-xs text-text-muted shrink-0">
+                {photoItems.length}/{MAX_PHOTOS}
+              </span>
             </div>
+
+            <div
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => e.key === "Enter" && fileInputRef.current?.click()}
+              onDragEnter={(e) => { e.preventDefault(); setDragActive(true); }}
+              onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
+              onDragLeave={(e) => { e.preventDefault(); setDragActive(false); }}
+              onDrop={handleDrop}
+              onClick={() => fileInputRef.current?.click()}
+              className={`border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition ${
+                dragActive
+                  ? "border-primary-400 bg-primary-500/10"
+                  : "border-border hover:border-primary-400/50 hover:bg-background-secondary/40"
+              }`}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept={ALLOWED_TYPES.join(",")}
+                multiple
+                className="hidden"
+                onChange={handleFileInput}
+              />
+              <div className="mx-auto w-12 h-12 rounded-full bg-primary-500/15 flex items-center justify-center mb-3">
+                <svg className="w-6 h-6 text-text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <p className="text-sm text-text-primary font-medium">Click or drag photos here</p>
+              <p className="text-xs text-text-muted mt-1">First photo becomes the cover image</p>
+            </div>
+
+            {photoItems.length > 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {photoItems.map((item, index) => (
+                  <div key={item.key} className="relative group rounded-lg overflow-hidden border border-border aspect-[4/3] bg-background-secondary">
+                    <img
+                      src={item.preview}
+                      alt={`Vehicle photo ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                    {index === 0 && (
+                      <span className="absolute top-2 left-2 text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded bg-black/60 text-white">
+                        Cover
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); removePhoto(item.key); }}
+                      className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 text-white text-sm opacity-0 group-hover:opacity-100 transition"
+                      aria-label="Remove photo"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
         {step === 3 && (
           <div className="p-6 rounded-xl border border-border bg-surface space-y-3">
             <h3 className="font-semibold text-text-primary">Preview</h3>
+            {photoItems.length > 0 && (
+              <div className="grid grid-cols-3 gap-2">
+                {photoItems.slice(0, 3).map((item) => (
+                  <img
+                    key={item.key}
+                    src={item.preview}
+                    alt=""
+                    className="w-full h-20 object-cover rounded-lg border border-border"
+                  />
+                ))}
+              </div>
+            )}
             <p className="text-text-secondary">{form.year} {selectedMakeName} {selectedModelName}</p>
             <p className="text-text-accent font-bold">€{form.price}</p>
             <p className="text-sm text-text-muted">{form.mileage} km · {form.fuel} · {form.transmission}</p>
             <p className="text-sm text-text-muted">{form.location}</p>
+            <p className="text-xs text-text-muted">{photoItems.length} photo(s) attached</p>
           </div>
         )}
 
@@ -210,7 +410,7 @@ export default function AddEditVehiclePage() {
             <Button variant="outline" className="normal-case" onClick={() => setStep((s) => s - 1)}>Back</Button>
           )}
           {step < STEPS.length - 1 ? (
-            <Button onClick={() => setStep((s) => s + 1)}>Next</Button>
+            <Button onClick={goToNextStep}>Next</Button>
           ) : (
             <Button onClick={handleSubmit} loading={loading}>Submit Listing</Button>
           )}

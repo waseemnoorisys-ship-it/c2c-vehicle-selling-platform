@@ -8,6 +8,9 @@ import Input from "../../components/common/Input";
 import StatusBadge from "../../components/dashboard/StatusBadge";
 import { formatPrice } from "../../components/vehicles/BrowseVehicleCard";
 import { fetchVehicleById, createOffer } from "../../api/vehicles.api";
+import { getVehiclePlaceholderUrl } from "../../utils/vehicleImage.utils";
+import ListingLocationMap from "../../components/vehicles/ListingLocationMap";
+import VehicleImage from "../../components/vehicles/VehicleImage";
 import useAuthStore from "../../store/useAuthStore";
 
 export default function VehicleDetailsPage() {
@@ -19,6 +22,7 @@ export default function VehicleDetailsPage() {
   const [offerAmount, setOfferAmount] = useState("");
   const [showOfferModal, setShowOfferModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [activeImage, setActiveImage] = useState(0);
 
   useEffect(() => {
     fetchVehicleById(id)
@@ -61,6 +65,9 @@ export default function VehicleDetailsPage() {
     );
   }
 
+  const gallery = vehicle.images?.length ? vehicle.images : [];
+  const hasGallery = gallery.length > 0;
+
   const pageContent = (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
       <Link to="/browse" className="text-sm text-text-muted hover:text-text-accent mb-6 inline-block">
@@ -69,11 +76,41 @@ export default function VehicleDetailsPage() {
 
       <div className="grid lg:grid-cols-2 gap-8">
         <div className="rounded-xl border border-border bg-surface overflow-hidden">
-          <div className="h-72 lg:h-96 bg-gradient-to-br from-background-secondary to-surface-elevated flex items-center justify-center">
-            <svg className="w-32 h-32 text-text-muted/20" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M5 11h14l-1.5 6H6.5L5 11zM7 8l1-3h8l1 3" />
-            </svg>
+          <div className="relative h-72 lg:h-96 bg-gradient-to-br from-background-secondary to-surface-elevated overflow-hidden">
+            {hasGallery ? (
+              <img
+                src={gallery[activeImage]}
+                alt={vehicle.title}
+                className="absolute inset-0 w-full h-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = getVehiclePlaceholderUrl(vehicle);
+                }}
+              />
+            ) : (
+              <VehicleImage
+                vehicle={vehicle}
+                className="absolute inset-0 w-full h-full object-cover"
+                loading="eager"
+              />
+            )}
           </div>
+          {gallery.length > 1 && (
+            <div className="flex gap-2 p-3 overflow-x-auto border-t border-border">
+              {gallery.map((url, index) => (
+                <button
+                  key={url}
+                  type="button"
+                  onClick={() => setActiveImage(index)}
+                  className={`shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 ${
+                    activeImage === index ? "border-primary-400" : "border-border"
+                  }`}
+                >
+                  <img src={url} alt="" className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <div>
@@ -138,9 +175,12 @@ export default function VehicleDetailsPage() {
 
         <div className="p-6 rounded-xl border border-border bg-surface h-fit">
           <h2 className="font-semibold text-text-primary mb-3">Location</h2>
-          <div className="h-40 rounded-lg bg-background-secondary border border-border flex items-center justify-center text-text-muted text-sm">
-            📍 {vehicle.location}
-          </div>
+          <ListingLocationMap
+            locationText={vehicle.locationText || vehicle.location}
+            latitude={vehicle.latitude}
+            longitude={vehicle.longitude}
+            className="h-52"
+          />
         </div>
       </div>
 
