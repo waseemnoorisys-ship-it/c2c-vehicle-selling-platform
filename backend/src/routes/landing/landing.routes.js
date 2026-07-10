@@ -1,7 +1,8 @@
 const express = require("express");
 const router = express.Router();
-const { getLandingData } = require("../../controllers/landing/landing.controller");
+const { getLandingData, getSearchFilters } = require("../../controllers/landing/landing.controller");
 
 router.post("/data", getLandingData);
+router.post("/search-filters", getSearchFilters);
 
 module.exports = router;

@@ -200,7 +200,8 @@
       "listed": "CMS pages fetched"
     },
     "landing": {
-      "fetched": "Landing data fetched"
+      "fetched": "Landing data fetched",
+      "searchFilters": "Search filters fetched"
     },
     "admin": {
       "login": "Admin login successful",

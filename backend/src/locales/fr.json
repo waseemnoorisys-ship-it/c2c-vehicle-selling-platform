@@ -200,7 +200,8 @@
       "listed": "Pages CMS récupérées"
     },
     "landing": {
-      "fetched": "Données de la page d'accueil récupérées"
+      "fetched": "Données de la page d'accueil récupérées",
+      "searchFilters": "Filtres de recherche récupérés"
     },
     "admin": {
       "login": "Connexion administrateur réussie",

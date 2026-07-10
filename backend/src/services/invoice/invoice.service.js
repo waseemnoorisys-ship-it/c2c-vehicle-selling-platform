@@ -18,6 +18,9 @@ async function countInvoices() {
 }
 
 function formatUserName(user, fallback) {
+  //what is fallback?
+  //fallback is a default value that is used if the user is not found
+  //in this case, if the user is not found, the fallback value is used
   if (!user) return fallback;
   const name = `${user.firstName || ""} ${user.lastName || ""}`.trim();
   return name || user.email || fallback;
