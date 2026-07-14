@@ -32,6 +32,8 @@
         auth: { token }
       });
 
+      
+
       socket.on("connect", () => log("✅ Connected: " + socket.id));
       socket.on("disconnect", () => log("❌ Disconnected"));
       socket.on("error", (data) => log("🔴 Error: " + data.message));
