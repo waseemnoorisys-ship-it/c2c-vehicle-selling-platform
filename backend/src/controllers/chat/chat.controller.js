@@ -1,0 +1,224 @@
+const ApiError = require("../../utils/ApiError");
+const ApiResponse = require("../../utils/ApiResponse");
+const chatService = require("../../services/chat/chat.service");
+const listingService = require("../../services/listing/listing.service");
+const cloudinary = require("../../config/cloudinary");
+const {
+  createConversationSchema,
+  getConversationSchema,
+  listConversationsSchema,
+  listMessagesSchema,
+} = require("../../validators/chat/chat.validators");
+
+const createOrGetConversation = async (req, res, next) => {
+  try {
+    const { error, value } = createConversationSchema.validate(req.body);
+    if (error) throw new ApiError(400, error.details[0].message);
+
+    const { listingId } = value;
+    const buyerId = req.user._id;
+
+    if (req.user.role !== "buyer") {
+      throw new ApiError(403, "Only buyers can initiate conversations");
+    }
+
+    const listing = await listingService.findListingById(listingId);
+    if (!listing || listing.deletedAt) {
+      throw new ApiError(404, "Listing not found");
+    }
+
+    if (listing.status !== "approved") {
+      throw new ApiError(400, "Cannot message about an unapproved listing");
+    }
+
+    if (listing.vendorId.toString() === buyerId.toString()) {
+      throw new ApiError(400, "You cannot message yourself");
+    }
+
+    const vendorId = listing.vendorId;
+
+    const block = await chatService.findBlock(vendorId, buyerId);
+    if (block) {
+      throw new ApiError(403, "You cannot message this vendor");
+    }
+
+    let conversation = await chatService.findConversation(
+      buyerId,
+      vendorId,
+      listingId
+    );
+
+    if (!conversation) {
+      conversation = await chatService.createConversation({
+        buyerId,
+        vendorId,
+        listingId,
+      });
+    }
+
+    const populated = await chatService.findConversationById(conversation._id);
+
+    return res
+      .status(200)
+      .json(
+        new ApiResponse(200, { conversation: populated }, "Conversation ready")
+      );
+  } catch (err) {
+    next(err);
+  }
+};
+
+const getConversation = async (req, res, next) => {
+  try {
+    const { error, value } = getConversationSchema.validate(req.body);
+    if (error) throw new ApiError(400, error.details[0].message);
+
+    const userId = req.user._id;
+    const conversation = await chatService.findConversationById(
+      value.conversationId
+    );
+
+    if (!conversation) throw new ApiError(404, "Conversation not found");
+
+    const isBuyer =
+      conversation.buyerId._id.toString() === userId.toString();
+    const isVendor =
+      conversation.vendorId._id.toString() === userId.toString();
+
+    if (!isBuyer && !isVendor) {
+      throw new ApiError(403, "Access denied");
+    }
+
+    return res
+      .status(200)
+      .json(
+        new ApiResponse(200, { conversation }, "Conversation fetched")
+      );
+  } catch (err) {
+    next(err);
+  }
+};
+
+const myConversations = async (req, res, next) => {
+  try {
+    const { error, value } = listConversationsSchema.validate(req.body);
+    if (error) throw new ApiError(400, error.details[0].message);
+
+    const { page, limit } = value;
+    const userId = req.user._id;
+
+    const { conversations, total } =
+      await chatService.findConversationsByUserId(userId, page, limit);
+
+    return res.status(200).json(
+      new ApiResponse(
+        200,
+        { conversations, total, page, limit },
+        "Conversations fetched"
+      )
+    );
+  } catch (err) {
+    next(err);
+  }
+};
+
+const getMessages = async (req, res, next) => {
+  try {
+    const { error, value } = listMessagesSchema.validate(req.body);
+    if (error) throw new ApiError(400, error.details[0].message);
+
+    const { conversationId, page, limit } = value;
+    const userId = req.user._id;
+
+    const conversation = await chatService.findConversationById(conversationId);
+    if (!conversation) throw new ApiError(404, "Conversation not found");
+
+    const isBuyer =
+      conversation.buyerId._id.toString() === userId.toString();
+    const isVendor =
+      conversation.vendorId._id.toString() === userId.toString();
+
+    if (!isBuyer && !isVendor) {
+      throw new ApiError(403, "Access denied");
+    }
+
+    const { messages, total } =
+      await chatService.findMessagesByConversationId(
+        conversationId,
+        page,
+        limit
+      );
+
+    await chatService.markMessagesAsRead(conversationId, userId);
+
+    const unreadField = isBuyer ? "buyerUnread" : "vendorUnread";
+    await chatService.updateConversationById(conversationId, {
+      [unreadField]: 0,
+    });
+
+    return res.status(200).json(
+      new ApiResponse(
+        200,
+        { messages, total, page, limit },
+        "Messages fetched"
+      )
+    );
+  } catch (err) {
+    next(err);
+  }
+};
+
+const uploadChatImage = async (req, res, next) => {
+  try {
+    if (!req.file) throw new ApiError(400, "No image uploaded");
+
+    const userId = req.user._id;
+    const conversationId = req.body.conversationId;
+
+    if (!conversationId) {
+      throw new ApiError(400, "conversationId is required");
+    }
+
+    const conversation = await chatService.findConversationById(conversationId);
+    if (!conversation) throw new ApiError(404, "Conversation not found");
+
+    const isBuyer =
+      conversation.buyerId._id.toString() === userId.toString();
+    const isVendor =
+      conversation.vendorId._id.toString() === userId.toString();
+
+    if (!isBuyer && !isVendor) {
+      throw new ApiError(403, "Access denied");
+    }
+
+    const result = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        { folder: "chat_images" },
+        (error, result) => {
+          if (error) return reject(error);
+          resolve(result);
+        }
+      );
+      const streamifier = require("streamifier");
+      streamifier.createReadStream(req.file.buffer).pipe(stream);
+    });
+
+    return res.status(200).json(
+      new ApiResponse(
+        200,
+        { url: result.secure_url, publicId: result.public_id },
+        "Image uploaded"
+      )
+    );
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = {
+  createOrGetConversation,
+  getConversation,
+  myConversations,
+  getMessages,
+  uploadChatImage,
+};
