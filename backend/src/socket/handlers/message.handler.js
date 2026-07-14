@@ -164,4 +164,4 @@ function registerMessageHandlers(io, socket, onlineUsers) {
   });
 }
 
-module.exports = { registerMessageHandlers };   
+

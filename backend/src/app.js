@@ -30,6 +30,7 @@ const adminSettingsRoutes = require("./routes/admin/adminSettings/adminSettings.
 const adminAuditRoutes = require("./routes/admin/adminAudit/adminAudit.routes");
 const cmsRoutes = require("./routes/cms/cms.routes");
 const landingRoutes = require("./routes/landing/landing.routes");
+const chatRoutes = require("./routes/chat/chat.routes");
 const app = express();
 app.set("trust proxy", 1);
 //sprint 5 for strip webhook
@@ -97,6 +98,7 @@ app.use("/api/v1/admin/settings", adminSettingsRoutes);
 app.use("/api/v1/admin/audit", adminAuditRoutes);
 app.use("/api/v1/cms", cmsRoutes);
 app.use("/api/v1/landing", landingRoutes);
+app.use("/api/v1/chat", chatRoutes);
 // ── 404 handler
 app.use((req, res) => {
   res.status(404).json({ success: false, message: "Route not found" });

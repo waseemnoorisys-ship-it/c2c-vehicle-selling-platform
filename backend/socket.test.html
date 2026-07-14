@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Socket Test</title>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+<body>
+  <h2>Chat Socket Tester</h2>
+  <input id="token" placeholder="Paste JWT token here" style="width:500px"/>
+  <button onclick="connect()">Connect</button>
+  <br/><br/>
+  <input id="convId" placeholder="Conversation ID"/>
+  <button onclick="joinConv()">Join Conversation</button>
+  <br/><br/>
+  <input id="msg" placeholder="Type a message"/>
+  <button onclick="sendMsg()">Send</button>
+  <br/><br/>
+  <div id="log" style="border:1px solid #ccc;padding:10px;height:300px;overflow-y:auto;"></div>
+
+  <script>
+    let socket;
+
+    function log(text) {
+      const div = document.getElementById("log");
+      div.innerHTML += `<p>${new Date().toLocaleTimeString()} — ${text}</p>`;
+      div.scrollTop = div.scrollHeight;
+    }
+
+    function connect() {
+      const token = document.getElementById("token").value;
+      socket = io("http://localhost:5000", {
+        auth: { token }
+      });
+
+      socket.on("connect", () => log("✅ Connected: " + socket.id));
+      socket.on("disconnect", () => log("❌ Disconnected"));
+      socket.on("error", (data) => log("🔴 Error: " + data.message));
+      socket.on("new_message", (msg) => log("💬 New message: " + JSON.stringify(msg)));
+      socket.on("user_typing", (data) => log("✍️ Typing: " + data.userName));
+      socket.on("user_stop_typing", () => log("✍️ Stopped typing"));
+      socket.on("messages_read", (data) => log("✅ Read by: " + data.readBy));
+      socket.on("user_online", (data) => log("🟢 Online: " + data.userId));
+      socket.on("user_offline", (data) => log("⚫ Offline: " + data.userId));
+      socket.on("presence_data", (data) => log("👁 Presence: " + JSON.stringify(data)));
+    }
+
+    function joinConv() {
+      const id = document.getElementById("convId").value;
+      socket.emit("join_conversation", { conversationId: id });
+      log("Joined conversation: " + id);
+    }
+
+    function sendMsg() {
+      const id = document.getElementById("convId").value;
+      const content = document.getElementById("msg").value;
+      socket.emit("send_message", { conversationId: id, content, type: "text" });
+      log("Sent: " + content);
+    }
+  </script>
+</body>
+</html>
