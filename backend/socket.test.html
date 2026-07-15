@@ -1,62 +1,242 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Socket Test</title>
+  <title>Socket Chat Tester</title>
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      background: #0f1115;
+      color: #eee;
+      font-family: Arial, sans-serif;
+      padding: 16px;
+      max-width: 720px;
+      margin: 0 auto;
+    }
+    input {
+      padding: 8px 10px;
+      margin: 4px 0;
+      border-radius: 6px;
+      border: 1px solid #333;
+      background: #1a1d24;
+      color: #eee;
+    }
+    button {
+      padding: 8px 12px;
+      margin: 4px 0;
+      cursor: pointer;
+      border-radius: 6px;
+      border: none;
+      background: #2d8a4e;
+      color: #fff;
+      font-weight: 600;
+    }
+    button.secondary { background: #2a2f3a; }
+    .hint { color: #9aa3b2; font-size: 13px; margin: 8px 0 16px; }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    #status { font-size: 13px; color: #9aa3b2; margin: 8px 0; }
+
+    #chat {
+      border: 1px solid #2a2f3a;
+      border-radius: 10px;
+      padding: 12px;
+      height: 420px;
+      overflow-y: auto;
+      background: #151820;
+      margin-top: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .bubble {
+      max-width: 78%;
+      padding: 8px 12px;
+      border-radius: 12px;
+      line-height: 1.35;
+      word-break: break-word;
+    }
+    .bubble.me {
+      align-self: flex-end;
+      background: #1f6f45;
+      border-bottom-right-radius: 4px;
+    }
+    .bubble.them {
+      align-self: flex-start;
+      background: #2a2f3a;
+      border-bottom-left-radius: 4px;
+    }
+    .bubble .meta {
+      font-size: 11px;
+      opacity: 0.75;
+      margin-bottom: 3px;
+    }
+    .bubble .text { font-size: 14px; }
+    .system {
+      align-self: center;
+      color: #8b95a7;
+      font-size: 12px;
+      padding: 4px 0;
+    }
+  </style>
 </head>
 <body>
   <h2>Chat Socket Tester</h2>
-  <input id="token" placeholder="Paste JWT token here" style="width:500px"/>
-  <button onclick="connect()">Connect</button>
-  <br/><br/>
-  <input id="convId" placeholder="Conversation ID"/>
-  <button onclick="joinConv()">Join Conversation</button>
-  <br/><br/>
-  <input id="msg" placeholder="Type a message"/>
-  <button onclick="sendMsg()">Send</button>
-  <br/><br/>
-  <div id="log" style="border:1px solid #ccc;padding:10px;height:300px;overflow-y:auto;"></div>
+  <p class="hint">
+    Use <b>different JWTs</b> in each tab (buyer + vendor of the same conversation).<br/>
+    Flow: Connect → Join Conversation → Send
+  </p>
+
+  <div class="row">
+    <input id="token" placeholder="Paste JWT accessToken here" style="flex:1; min-width:280px"/>
+    <button onclick="connect()">Connect</button>
+  </div>
+
+  <div class="row">
+    <input id="convId" placeholder="Conversation ID" style="flex:1; min-width:220px"/>
+    <button class="secondary" onclick="joinConv()">Join Conversation</button>
+  </div>
+
+  <div class="row">
+    <input id="msg" placeholder="Type a message" style="flex:1; min-width:220px" onkeydown="if(event.key==='Enter') sendMsg()"/>
+    <button onclick="sendMsg()">Send</button>
+  </div>
+
+  <div id="status">Not connected</div>
+  <div id="chat"></div>
 
   <script>
     let socket;
+    let myUserId = null;
 
-    function log(text) {
-      const div = document.getElementById("log");
-      div.innerHTML += `<p>${new Date().toLocaleTimeString()} — ${text}</p>`;
-      div.scrollTop = div.scrollHeight;
+    function setStatus(text) {
+      document.getElementById("status").textContent = text;
+    }
+
+    function addSystem(text) {
+      const chat = document.getElementById("chat");
+      const div = document.createElement("div");
+      div.className = "system";
+      div.textContent = text;
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function formatTime(iso) {
+      try {
+        return new Date(iso || Date.now()).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+      } catch {
+        return "";
+      }
+    }
+
+    function addMessage(msg) {
+      const chat = document.getElementById("chat");
+      const senderId = msg?.senderId?._id || msg?.senderId || "";
+      const name = [msg?.senderId?.firstName, msg?.senderId?.lastName]
+        .filter(Boolean)
+        .join(" ") || msg?.senderRole || "User";
+      const isMe = myUserId && String(senderId) === String(myUserId);
+
+      const bubble = document.createElement("div");
+      bubble.className = "bubble " + (isMe ? "me" : "them");
+      bubble.innerHTML = `
+        <div class="meta">${isMe ? "You" : name} · ${formatTime(msg.createdAt)}</div>
+        <div class="text">${escapeHtml(msg.content || "")}</div>
+      `;
+      chat.appendChild(bubble);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function escapeHtml(text) {
+      return String(text)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function decodeUserIdFromToken(token) {
+      try {
+        const payload = JSON.parse(atob(token.split(".")[1]));
+        return payload.userId || payload.id || null;
+      } catch {
+        return null;
+      }
     }
 
     function connect() {
-      const token = document.getElementById("token").value;
+      const token = document.getElementById("token").value.trim();
+      if (!token) {
+        addSystem("Paste a JWT token first");
+        return;
+      }
+
+      myUserId = decodeUserIdFromToken(token);
+
+      if (socket) socket.disconnect();
+
       socket = io("http://localhost:5000", {
-        auth: { token }
+        auth: { token },
+        transports: ["websocket", "polling"],
       });
 
-      
-
-      socket.on("connect", () => log("✅ Connected: " + socket.id));
-      socket.on("disconnect", () => log("❌ Disconnected"));
-      socket.on("error", (data) => log("🔴 Error: " + data.message));
-      socket.on("new_message", (msg) => log("💬 New message: " + JSON.stringify(msg)));
-      socket.on("user_typing", (data) => log("✍️ Typing: " + data.userName));
-      socket.on("user_stop_typing", () => log("✍️ Stopped typing"));
-      socket.on("messages_read", (data) => log("✅ Read by: " + data.readBy));
-      socket.on("user_online", (data) => log("🟢 Online: " + data.userId));
-      socket.on("user_offline", (data) => log("⚫ Offline: " + data.userId));
-      socket.on("presence_data", (data) => log("👁 Presence: " + JSON.stringify(data)));
+      socket.on("connect", () => {
+        setStatus("Connected (" + socket.id + ")");
+        addSystem("Connected");
+      });
+      socket.on("connect_error", (err) => {
+        setStatus("Connect failed");
+        addSystem("Connect error: " + err.message);
+      });
+      socket.on("disconnect", () => {
+        setStatus("Disconnected");
+        addSystem("Disconnected");
+      });
+      socket.on("error", (data) => {
+        addSystem("Error: " + (data?.message || JSON.stringify(data)));
+      });
+      socket.on("joined_conversation", (data) => {
+        addSystem("Joined conversation");
+        setStatus("In room: " + data.conversationId);
+      });
+      socket.on("new_message", (msg) => addMessage(msg));
+      socket.on("user_typing", (data) => addSystem((data.userName || "Someone") + " is typing..."));
+      socket.on("user_stop_typing", () => {});
+      socket.on("messages_read", () => addSystem("Messages marked as read"));
+      socket.on("user_online", () => {});
+      socket.on("user_offline", () => {});
     }
 
     function joinConv() {
-      const id = document.getElementById("convId").value;
+      if (!socket || !socket.connected) {
+        addSystem("Connect first");
+        return;
+      }
+      const id = document.getElementById("convId").value.trim();
+      if (!id) {
+        addSystem("Enter conversation ID");
+        return;
+      }
       socket.emit("join_conversation", { conversationId: id });
-      log("Joined conversation: " + id);
     }
 
     function sendMsg() {
-      const id = document.getElementById("convId").value;
-      const content = document.getElementById("msg").value;
+      if (!socket || !socket.connected) {
+        addSystem("Connect first");
+        return;
+      }
+      const id = document.getElementById("convId").value.trim();
+      const content = document.getElementById("msg").value.trim();
+      if (!id || !content) {
+        addSystem("Conversation ID and message required");
+        return;
+      }
       socket.emit("send_message", { conversationId: id, content, type: "text" });
-      log("Sent: " + content);
+      document.getElementById("msg").value = "";
     }
   </script>
 </body>

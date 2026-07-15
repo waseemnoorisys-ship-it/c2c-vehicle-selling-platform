@@ -11,7 +11,8 @@ const onlineUsers = new Map();
 function initSocket(httpServer) {
   const io = new Server(httpServer, {
     cors: {
-      origin: process.env.FRONTEND_URL || "*",
+      // Allow frontend URL and local HTML tester (file:// / null origin)
+      origin: (origin, callback) => callback(null, true),
       methods: ["GET", "POST"],
       credentials: true,
     },
@@ -19,14 +20,13 @@ function initSocket(httpServer) {
     pingInterval: 25000,
   });
 
-  //its a middleware function that is used to authenticate the socket connection by checking the token in the socket handshake
-  //what is socket handshake?
-  //socket handshake is the process of verifying the authenticity of the socket connection by checking the token in the socket handshake
   io.use(async (socket, next) => {
     try {
-      const token =
+      const rawToken =
         socket.handshake.auth?.token ||
         socket.handshake.headers?.authorization?.split(" ")[1];
+
+      const token = typeof rawToken === "string" ? rawToken.trim() : rawToken;
 
       if (!token) {
         return next(new Error("Authentication token required"));
@@ -39,8 +39,14 @@ function initSocket(httpServer) {
         return next(new Error("Invalid or expired token"));
       }
 
+      // JWT payload uses `userId` (see auth.controller signAccessToken)
+      const userId = decoded.userId || decoded.id;
+      if (!userId) {
+        return next(new Error("Invalid token payload"));
+      }
+
       const user = await User.findOne({
-        _id: decoded.id,
+        _id: userId,
         isActive: true,
         deletedAt: null,
       }).select("firstName lastName role fcmToken language");
@@ -60,7 +66,7 @@ function initSocket(httpServer) {
   io.on("connection", (socket) => {
     const user = socket.data.user;
     logger.info(`Socket connected: ${user.firstName} (${user._id})`);
-    //Add/update the user in the Map(). It is a Map of user id and user object.
+
     onlineUsers.set(user._id.toString(), {
       socketId: socket.id,
       lastSeen: new Date(),

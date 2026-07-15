@@ -1,12 +1,13 @@
 const chatService = require("../../services/chat/chat.service");
 const { sendPushNotification } = require("../../services/push/push.service");
-const { t } = require("../../utils/i18n");
 const logger = require("../../config/logger");
 
 function registerMessageHandlers(io, socket, onlineUsers) {
   socket.on("send_message", async (data) => {
     try {
-      const { conversationId, content, type = "text" } = data;
+      const conversationId = String(data?.conversationId || "").trim();
+      const content = typeof data?.content === "string" ? data.content.trim() : "";
+      const type = data?.type || "text";
       const sender = socket.data.user;
 
       if (!conversationId || !content) {
@@ -62,11 +63,11 @@ function registerMessageHandlers(io, socket, onlineUsers) {
       });
 
       await chatService.updateConversationById(conversationId, {
-        lastMessage: type === "image" ? "📷 Image" : content,
-        lastMessageAt: new Date(),
-        ...(isBuyer
-          ? { $inc: { vendorUnread: 1 } }
-          : { $inc: { buyerUnread: 1 } }),
+        $set: {
+          lastMessage: type === "image" ? "📷 Image" : content,
+          lastMessageAt: new Date(),
+        },
+        $inc: isBuyer ? { vendorUnread: 1 } : { buyerUnread: 1 },
       });
 
       const populatedMessage = {
@@ -86,6 +87,8 @@ function registerMessageHandlers(io, socket, onlineUsers) {
         createdAt: message.createdAt,
       };
 
+      // Ensure sender is in the room, then broadcast to everyone in conversation
+      socket.join(conversationId);
       io.to(conversationId).emit("new_message", populatedMessage);
 
       const recipientId = isBuyer
@@ -102,7 +105,6 @@ function registerMessageHandlers(io, socket, onlineUsers) {
             ? conversation.vendorId
             : conversation.buyerId;
 
-          const lang = recipient.language || "en";
           const senderName = sender.firstName;
           const preview =
             type === "image"
@@ -126,17 +128,18 @@ function registerMessageHandlers(io, socket, onlineUsers) {
       }
     } catch (err) {
       logger.error("send_message handler error", err);
-      socket.emit("error", { message: "Failed to send message" });
+      socket.emit("error", { message: err.message || "Failed to send message" });
     }
   });
 
   socket.on("mark_read", async ({ conversationId }) => {
     try {
-      if (!conversationId) return;
+      const roomId = String(conversationId || "").trim();
+      if (!roomId) return;
 
       const userId = socket.data.user._id;
 
-      const conversation = await chatService.findConversationById(conversationId);
+      const conversation = await chatService.findConversationById(roomId);
       if (!conversation) return;
 
       const isBuyer =
@@ -146,15 +149,15 @@ function registerMessageHandlers(io, socket, onlineUsers) {
 
       if (!isBuyer && !isVendor) return;
 
-      await chatService.markMessagesAsRead(conversationId, userId);
+      await chatService.markMessagesAsRead(roomId, userId);
 
       const unreadField = isBuyer ? "buyerUnread" : "vendorUnread";
-      await chatService.updateConversationById(conversationId, {
-        [unreadField]: 0,
+      await chatService.updateConversationById(roomId, {
+        $set: { [unreadField]: 0 },
       });
 
-      socket.to(conversationId).emit("messages_read", {
-        conversationId,
+      socket.to(roomId).emit("messages_read", {
+        conversationId: roomId,
         readBy: userId,
         readAt: new Date(),
       });
@@ -164,4 +167,6 @@ function registerMessageHandlers(io, socket, onlineUsers) {
   });
 }
 
-
+module.exports = {
+  registerMessageHandlers,
+};
