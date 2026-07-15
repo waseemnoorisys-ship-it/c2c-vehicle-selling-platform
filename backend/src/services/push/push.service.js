@@ -13,6 +13,7 @@ async function sendPushNotification({ fcmToken, title, body, data }) {
 //         type:"listingApproved"
 //     }
 // })
+
   try {
     const message = {
       token: fcmToken,
