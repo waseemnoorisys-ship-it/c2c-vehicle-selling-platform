@@ -3,11 +3,16 @@ const ApiResponse = require("../../utils/ApiResponse");
 const chatService = require("../../services/chat/chat.service");
 const listingService = require("../../services/listing/listing.service");
 const cloudinary = require("../../config/cloudinary");
+const streamifier = require("streamifier");
 const {
   createConversationSchema,
   getConversationSchema,
   listConversationsSchema,
   listMessagesSchema,
+  editMessageSchema,
+  deleteMessageSchema,
+  blockUserSchema,
+  reportConversationSchema,
 } = require("../../validators/chat/chat.validators");
 
 const createOrGetConversation = async (req, res, next) => {
@@ -37,9 +42,9 @@ const createOrGetConversation = async (req, res, next) => {
 
     const vendorId = listing.vendorId;
 
-    const block = await chatService.findBlock(vendorId, buyerId);
+    const block = await chatService.findBlockEither(buyerId, vendorId);
     if (block) {
-      throw new ApiError(403, "You cannot message this vendor");
+      throw new ApiError(403, "Messaging is not available");
     }
 
     let conversation = await chatService.findConversation(
@@ -182,6 +187,10 @@ const uploadChatImage = async (req, res, next) => {
     const conversation = await chatService.findConversationById(conversationId);
     if (!conversation) throw new ApiError(404, "Conversation not found");
 
+    if (!conversation.isActive) {
+      throw new ApiError(400, "This conversation is closed");
+    }
+
     const isBuyer =
       conversation.buyerId._id.toString() === userId.toString();
     const isVendor =
@@ -199,7 +208,6 @@ const uploadChatImage = async (req, res, next) => {
           resolve(result);
         }
       );
-      const streamifier = require("streamifier");
       streamifier.createReadStream(req.file.buffer).pipe(stream);
     });
 
@@ -215,10 +223,172 @@ const uploadChatImage = async (req, res, next) => {
   }
 };
 
+const editMessage = async (req, res, next) => {
+  try {
+    const { error, value } = editMessageSchema.validate(req.body);
+    if (error) throw new ApiError(400, error.details[0].message);
+
+    const { messageId, newContent } = value;
+    const userId = req.user._id;
+
+    const message = await chatService.findMessageById(messageId);
+    if (!message) throw new ApiError(404, "Message not found");
+
+    if (message.senderId.toString() !== userId.toString()) {
+      throw new ApiError(403, "You can only edit your own messages");
+    }
+
+    if (message.type === "image") {
+      throw new ApiError(400, "Image messages cannot be edited");
+    }
+
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+    if (message.createdAt < fiveMinutesAgo) {
+      throw new ApiError(400, "Messages can only be edited within 5 minutes");
+    }
+
+    const updated = await chatService.updateMessageById(messageId, {
+      content: newContent,
+      isEdited: true,
+      editedAt: new Date(),
+    });
+
+    return res.status(200).json(
+      new ApiResponse(200, { message: updated }, "Message edited")
+    );
+  } catch (err) {
+    next(err);
+  }
+};
+
+const deleteMessage = async (req, res, next) => {
+  try {
+    const { error, value } = deleteMessageSchema.validate(req.body);
+    if (error) throw new ApiError(400, error.details[0].message);
+
+    const { messageId } = value;
+    const userId = req.user._id;
+
+    const message = await chatService.findMessageById(messageId);
+    if (!message) throw new ApiError(404, "Message not found");
+
+    if (message.senderId.toString() !== userId.toString()) {
+      throw new ApiError(403, "You can only delete your own messages");
+    }
+
+    await chatService.updateMessageById(messageId, {
+      isDeleted: true,
+      deletedAt: new Date(),
+      content: "This message was deleted",
+    });
+
+    return res
+      .status(200)
+      .json(new ApiResponse(200, {}, "Message deleted"));
+  } catch (err) {
+    next(err);
+  }
+};
+
+const blockUser = async (req, res, next) => {
+  try {
+    const { error, value } = blockUserSchema.validate(req.body);
+    if (error) throw new ApiError(400, error.details[0].message);
+
+    const blockerId = req.user._id;
+    const { blockedUserId } = value;
+
+    if (blockerId.toString() === blockedUserId) {
+      throw new ApiError(400, "You cannot block yourself");
+    }
+
+    const existing = await chatService.findBlock(blockerId, blockedUserId);
+    if (existing) throw new ApiError(409, "User is already blocked");
+
+    await chatService.createBlock(blockerId, blockedUserId);
+
+    return res
+      .status(200)
+      .json(new ApiResponse(200, {}, "User blocked successfully"));
+  } catch (err) {
+    next(err);
+  }
+};
+
+const unblockUser = async (req, res, next) => {
+  try {
+    const { error, value } = blockUserSchema.validate(req.body);
+    if (error) throw new ApiError(400, error.details[0].message);
+
+    const blockerId = req.user._id;
+    const { blockedUserId } = value;
+
+    const existing = await chatService.findBlock(blockerId, blockedUserId);
+    if (!existing) throw new ApiError(404, "Block not found");
+
+    await chatService.removeBlock(blockerId, blockedUserId);
+
+    return res
+      .status(200)
+      .json(new ApiResponse(200, {}, "User unblocked successfully"));
+  } catch (err) {
+    next(err);
+  }
+};
+
+const reportConversation = async (req, res, next) => {
+  try {
+    const { error, value } = reportConversationSchema.validate(req.body);
+    if (error) throw new ApiError(400, error.details[0].message);
+
+    const { conversationId, reason } = value;
+    const reporterId = req.user._id;
+
+    const conversation = await chatService.findConversationById(conversationId);
+    if (!conversation) throw new ApiError(404, "Conversation not found");
+
+    const isBuyer =
+      conversation.buyerId._id.toString() === reporterId.toString();
+    const isVendor =
+      conversation.vendorId._id.toString() === reporterId.toString();
+
+    if (!isBuyer && !isVendor) {
+      throw new ApiError(403, "You are not part of this conversation");
+    }
+
+    const existing = await chatService.findExistingReport(
+      conversationId,
+      reporterId
+    );
+    if (existing) {
+      throw new ApiError(409, "You have already reported this conversation");
+    }
+
+    const report = await chatService.createReport({
+      conversationId,
+      reporterId,
+      reason,
+    });
+
+    return res
+      .status(201)
+      .json(
+        new ApiResponse(201, { report }, "Conversation reported successfully")
+      );
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   createOrGetConversation,
   getConversation,
   myConversations,
   getMessages,
   uploadChatImage,
+  editMessage,
+  deleteMessage,
+  blockUser,
+  unblockUser,
+  reportConversation,
 };

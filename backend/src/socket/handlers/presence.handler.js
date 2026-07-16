@@ -27,4 +27,5 @@ function registerPresenceHandlers(io, socket, onlineUsers) {
   });
 }
 
+
 module.exports = { registerPresenceHandlers };

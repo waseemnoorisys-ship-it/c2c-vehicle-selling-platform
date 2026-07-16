@@ -7,6 +7,11 @@ const {
   myConversations,
   getMessages,
   uploadChatImage,
+  editMessage,
+  deleteMessage,
+  blockUser,
+  unblockUser,
+  reportConversation,
 } = require("../../controllers/chat/chat.controller");
 const { authenticate } = require("../../middleware/auth.middleware");
 
@@ -33,5 +38,10 @@ router.post(
   upload.single("image"),
   uploadChatImage
 );
+router.post("/messages/edit", authenticate, editMessage);
+router.post("/messages/delete", authenticate, deleteMessage);
+router.post("/block/create", authenticate, blockUser);
+router.post("/block/remove", authenticate, unblockUser);
+router.post("/report", authenticate, reportConversation);
 
 module.exports = router;

@@ -1,10 +1,14 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <title>Socket Chat Tester</title>
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   <style>
-    * { box-sizing: border-box; }
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       background: #0f1115;
       color: #eee;
@@ -13,7 +17,9 @@
       max-width: 780px;
       margin: 0 auto;
     }
-    input, button {
+
+    input,
+    button {
       padding: 8px 10px;
       margin: 4px 0;
       border-radius: 6px;
@@ -21,6 +27,7 @@
       background: #1a1d24;
       color: #eee;
     }
+
     button {
       border: none;
       background: #2d8a4e;
@@ -28,15 +35,37 @@
       font-weight: 600;
       cursor: pointer;
     }
-    button.secondary { background: #2a2f3a; }
-    button.warn { background: #8a6d2d; }
-    .hint { color: #9aa3b2; font-size: 13px; margin: 8px 0 14px; }
-    .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 4px; }
-    #status, #typingStatus, #presenceStatus {
+
+    button.secondary {
+      background: #2a2f3a;
+    }
+
+    button.warn {
+      background: #8a6d2d;
+    }
+
+    .hint {
+      color: #9aa3b2;
+      font-size: 13px;
+      margin: 8px 0 14px;
+    }
+
+    .row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+
+    #status,
+    #typingStatus,
+    #presenceStatus {
       font-size: 13px;
       color: #9aa3b2;
       margin: 4px 0;
     }
+
     #chat {
       border: 1px solid #2a2f3a;
       border-radius: 10px;
@@ -49,6 +78,7 @@
       flex-direction: column;
       gap: 8px;
     }
+
     .bubble {
       max-width: 78%;
       padding: 8px 12px;
@@ -56,76 +86,227 @@
       line-height: 1.35;
       word-break: break-word;
     }
+
     .bubble.me {
       align-self: flex-end;
       background: #1f6f45;
       border-bottom-right-radius: 4px;
     }
+
     .bubble.them {
       align-self: flex-start;
       background: #2a2f3a;
       border-bottom-left-radius: 4px;
     }
-    .bubble .meta { font-size: 11px; opacity: 0.75; margin-bottom: 3px; }
-    .bubble .text { font-size: 14px; }
-    .bubble .ticks { font-size: 11px; opacity: 0.8; margin-top: 4px; text-align: right; }
-    .bubble .ticks.seen { color: #7dd3fc; }
+
+    .bubble .meta {
+      font-size: 11px;
+      opacity: 0.75;
+      margin-bottom: 3px;
+    }
+
+    .bubble .text {
+      font-size: 14px;
+    }
+
+    .bubble .ticks {
+      font-size: 11px;
+      opacity: 0.8;
+      margin-top: 4px;
+      text-align: right;
+    }
+
+    .bubble .ticks.seen {
+      color: #7dd3fc;
+    }
+
     .bubble img {
       max-width: 220px;
       border-radius: 8px;
       display: block;
       margin-top: 4px;
     }
+
     .system {
       align-self: center;
       color: #8b95a7;
       font-size: 12px;
       padding: 4px 0;
     }
-    .actions { border-top: 1px solid #2a2f3a; margin-top: 10px; padding-top: 10px; }
+
+    .actions {
+      border-top: 1px solid #2a2f3a;
+      margin-top: 10px;
+      padding-top: 10px;
+    }
+
+    /* new style by gpt */
+    /* ---------------- Chat Header ---------------- */
+
+    #chatHeader {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 12px;
+      margin-bottom: 10px;
+      padding: 10px 14px;
+      background: #1a1d24;
+      border: 1px solid #2a2f3a;
+      border-radius: 10px;
+    }
+
+    #chatAvatar {
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid #3a3f4b;
+    }
+
+    .chatInfo {
+      display: flex;
+      flex-direction: column;
+    }
+
+    #chatName {
+      font-size: 15px;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    #presenceStatus {
+      font-size: 12px;
+      color: #9aa3b2;
+      margin-top: 2px;
+    }
+
+    /* ---------------- Typing Indicator ---------------- */
+
+    #typingIndicator {
+      display: none;
+      align-self: flex-start;
+      background: #2a2f3a;
+      padding: 10px 14px;
+      border-radius: 16px;
+      width: fit-content;
+      margin-top: 8px;
+      margin-bottom: 8px;
+    }
+
+    #typingIndicator span {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      margin: 0 2px;
+      border-radius: 50%;
+      background: #d0d0d0;
+      animation: typingBounce 1.3s infinite;
+    }
+
+    #typingIndicator span:nth-child(2) {
+      animation-delay: .2s;
+    }
+
+    #typingIndicator span:nth-child(3) {
+      animation-delay: .4s;
+    }
+
+    @keyframes typingBounce {
+
+      0%,
+      60%,
+      100% {
+        transform: translateY(0);
+        opacity: .4;
+      }
+
+      30% {
+        transform: translateY(-5px);
+        opacity: 1;
+      }
+    }
   </style>
 </head>
+
 <body>
   <h2>Chat Socket Tester</h2>
   <p class="hint">
-    Tab 1 = buyer JWT · Tab 2 = vendor JWT · same conversation ID<br/>
+    Tab 1 = buyer JWT · Tab 2 = vendor JWT · same conversation ID<br />
     Flow: Connect → Join → Send → Mark Read · Typing auto · Presence / Image below
   </p>
 
   <div class="row">
-    <input id="token" placeholder="Paste JWT accessToken" style="flex:1; min-width:260px"/>
+    <input id="token" placeholder="Paste JWT accessToken" style="flex:1; min-width:260px" />
     <button onclick="connect()">Connect</button>
   </div>
 
-  <div class="row">
+  <!-- <div class="row">
     <input id="convId" placeholder="Conversation ID" style="flex:1; min-width:220px"/>
     <button class="secondary" onclick="joinConv()">Join</button>
     <button class="warn" onclick="markRead()">Mark Read</button>
+  </div> -->
+  <div class="row">
+    <input id="convId" placeholder="Conversation ID" style="flex:1; min-width:220px" />
+
+    <button class="secondary" onclick="joinConv()">
+      Join
+    </button>
   </div>
 
   <div class="row">
-    <input id="msg" placeholder="Type a message" style="flex:1; min-width:220px"
-      oninput="onTyping()"
-      onkeydown="if(event.key==='Enter') sendMsg()"
-      onblur="stopTyping()"/>
+    <input id="msg" placeholder="Type a message" style="flex:1; min-width:220px" oninput="onTyping()"
+      onkeydown="if(event.key==='Enter') sendMsg()" onblur="stopTyping()" />
     <button onclick="sendMsg()">Send</button>
   </div>
 
   <div class="actions">
     <div class="row">
-      <input id="presenceUserId" placeholder="User ID for get_presence" style="flex:1; min-width:220px"/>
+      <input id="presenceUserId" placeholder="User ID for get_presence" style="flex:1; min-width:220px" />
       <button class="secondary" onclick="getPresence()">Get Presence</button>
     </div>
     <div class="row">
-      <input id="imageFile" type="file" accept="image/*"/>
+      <input id="imageFile" type="file" accept="image/*" />
       <button class="secondary" onclick="uploadAndSendImage()">Upload + Send Image</button>
     </div>
   </div>
 
-  <div id="status">Not connected</div>
+
+  <!-- second change using gpt -->
+  <!-- <div id="status">Not connected</div>
   <div id="typingStatus"></div>
   <div id="presenceStatus"></div>
-  <div id="chat"></div>
+  <div id="chat"></div> -->
+  <div id="status">Not connected</div>
+
+  <div id="chatHeader">
+
+    <img id="chatAvatar" src="https://ui-avatars.com/api/?name=User" />
+
+    <div class="chatInfo">
+
+      <div id="chatName">
+        Select Conversation
+      </div>
+
+      <div id="presenceStatus">
+        Offline
+      </div>
+
+    </div>
+
+  </div>
+
+  <div id="chat">
+
+  </div>
+
+  <div id="typingIndicator">
+
+    <span></span>
+    <span></span>
+    <span></span>
+
+  </div>
 
   <script>
     const API = "http://localhost:5000/api/v1";
@@ -139,10 +320,16 @@
       document.getElementById("status").textContent = text;
     }
 
-    function setTypingStatus(text) {
-      document.getElementById("typingStatus").textContent = text || "";
+    // function setTypingStatus(text) {
+    //   document.getElementById("typingStatus").textContent = text || "";
+    // }
+    function showTypingIndicator() {
+      document.getElementById("typingIndicator").style.display = "block";
     }
 
+    function hideTypingIndicator() {
+      document.getElementById("typingIndicator").style.display = "none";
+    }
     function setPresenceStatus(text) {
       document.getElementById("presenceStatus").textContent = text || "";
     }
@@ -239,6 +426,8 @@
         return;
       }
 
+
+
       tokenValue = token;
       myUserId = decodeUserIdFromToken(token);
 
@@ -274,6 +463,7 @@
       });
 
       socket.on("new_message", (msg) => {
+        hideTypingIndicator();
         addMessage(msg);
         // Auto mark read when receiving someone else's message
         const senderId = msg?.senderId?._id || msg?.senderId;
@@ -282,55 +472,175 @@
         }
       });
 
-      socket.on("user_typing", (data) => {
-        setTypingStatus((data.userName || "Someone") + " is typing...");
+      // socket.on("user_typing", (data) => {
+      //   setTypingStatus((data.userName || "Someone") + " is typing...");
+      // });
+
+      socket.on("user_typing", () => {
+        showTypingIndicator();
       });
 
-      socket.on("user_stop_typing", (data) => {
-        setTypingStatus("");
-        addSystem((data?.userId || "User") + " stopped typing");
+
+      // socket.on("user_stop_typing", (data) => {
+      //   setTypingStatus("");
+      //   addSystem((data?.userId || "User") + " stopped typing");
+      // });
+
+      socket.on("user_stop_typing", () => {
+        hideTypingIndicator();
       });
 
-      socket.on("messages_read", (data) => {
+
+
+      // socket.on("messages_read", (data) => {
+      //   markMyMessagesSeen();
+      //   addSystem("messages_read by " + data.readBy + " → ticks ✓✓");
+      // });
+
+
+      socket.on("messages_read", () => {
         markMyMessagesSeen();
-        addSystem("messages_read by " + data.readBy + " → ticks ✓✓");
       });
 
-      socket.on("user_online", (data) => {
-        addSystem("🟢 user_online: " + data.userId);
+
+      // socket.on("user_online", (data) => {
+      //   addSystem("🟢 user_online: " + data.userId);
+      // });
+
+      socket.on("user_online", () => {
+        setPresenceStatus("🟢 Online");
       });
+
+
+      // socket.on("user_offline", (data) => {
+      //   const seen = data.lastSeen ? new Date(data.lastSeen).toLocaleTimeString() : "—";
+      //   addSystem("⚫ user_offline: " + data.userId + " · lastSeen=" + seen);
+      // });
+
 
       socket.on("user_offline", (data) => {
-        const seen = data.lastSeen ? new Date(data.lastSeen).toLocaleTimeString() : "—";
-        addSystem("⚫ user_offline: " + data.userId + " · lastSeen=" + seen);
+
+        const seen = data.lastSeen
+          ? new Date(data.lastSeen).toLocaleString()
+          : "Unknown";
+
+        setPresenceStatus("Last seen " + seen);
+
       });
 
+
+
+      //   socket.on("presence_data", (data) => {
+      //     const seen = data.lastSeen ? new Date(data.lastSeen).toLocaleString() : "—";
+      //     setPresenceStatus(
+      //       "presence_data → userId=" + data.userId +
+      //       " · isOnline=" + data.isOnline +
+      //       " · lastSeen=" + seen
+      //     );
+      //     addSystem("👁 presence_data: isOnline=" + data.isOnline);
+      //   });
+      // }
+
+
       socket.on("presence_data", (data) => {
-        const seen = data.lastSeen ? new Date(data.lastSeen).toLocaleString() : "—";
-        setPresenceStatus(
-          "presence_data → userId=" + data.userId +
-          " · isOnline=" + data.isOnline +
-          " · lastSeen=" + seen
-        );
-        addSystem("👁 presence_data: isOnline=" + data.isOnline);
+
+        if (data.isOnline) {
+
+          setPresenceStatus("🟢 Online");
+
+        } else {
+
+          const seen = data.lastSeen
+            ? new Date(data.lastSeen).toLocaleString()
+            : "Unknown";
+
+          setPresenceStatus("Last seen " + seen);
+        }
+
+      })
+      function connect() {
+        const token = document.getElementById("token").value.trim();
+        if (!token) {
+          addSystem("Paste a JWT token first");
+          return;
+        }
+      }
+
+
+      tokenValue = token;
+      myUserId = decodeUserIdFromToken(token);
+
+      if (socket) socket.disconnect();
+
+      socket = io("http://localhost:5000", {
+        auth: { token },
+        transports: ["websocket", "polling"],
       });
+
+      socket.on("connect", () => {
+        setStatus("Connected (" + socket.id + ") · myUserId=" + myUserId);
+        addSystem("Connected");
+      });
+
+      socket.on("connect_error", (err) => {
+        setStatus("Connect failed");
+        addSystem("Connect error: " + err.message);
+      });
+
+      socket.on("disconnect", () => {
+        setStatus("Disconnected");
+        addSystem("Disconnected");
+      })
     }
+
+
+
+    // function joinConv() {
+    //   if (!requireSocket()) return;
+    //   const id = getConvId();
+    //   if (!id) return addSystem("Enter conversation ID");
+    //   socket.emit("join_conversation", { conversationId: id });
+    // }
 
     function joinConv() {
       if (!requireSocket()) return;
+
       const id = getConvId();
-      if (!id) return addSystem("Enter conversation ID");
-      socket.emit("join_conversation", { conversationId: id });
+      // console.log(id);
+
+      if (!id) {
+        addSystem("Enter conversation ID");
+        return;
+      }
+
+      socket.emit("join_conversation", {
+        conversationId: id,
+      });
+
+      // Automatically mark messages as read
+      socket.emit("mark_read", {
+        conversationId: id,
+      });
+      // console.log("Socket Connected:", socket?.connected);
+
+      socket.on("joined_conversation", (data) => {
+        console.log("Joined:", data);
+
+        addSystem("Joined conversation: " + data.conversationId);
+      });
     }
 
     function sendMsg() {
+      // console.log("Send button clicked");
       if (!requireSocket()) return;
       const id = getConvId();
+      // console.log(id)
       const content = document.getElementById("msg").value.trim();
       if (!id || !content) return addSystem("Conversation ID and message required");
       stopTyping();
       socket.emit("send_message", { conversationId: id, content, type: "text" });
       document.getElementById("msg").value = "";
+      // console.log("Socket connected:", socket?.connected);
     }
 
     function markRead() {
@@ -417,4 +727,5 @@
     }
   </script>
 </body>
+
 </html>

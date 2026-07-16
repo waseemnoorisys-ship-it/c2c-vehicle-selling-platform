@@ -31,6 +31,7 @@ const adminAuditRoutes = require("./routes/admin/adminAudit/adminAudit.routes");
 const cmsRoutes = require("./routes/cms/cms.routes");
 const landingRoutes = require("./routes/landing/landing.routes");
 const chatRoutes = require("./routes/chat/chat.routes");
+const adminChatRoutes = require("./routes/admin/adminChat/adminChat.routes");
 const app = express();
 app.set("trust proxy", 1);
 //sprint 5 for strip webhook
@@ -52,9 +53,20 @@ app.use((req, res, next) => {
 // ── Security headers
 app.use(helmet());
 // ── CORS
+// app.use(
+//   cors({
+//     origin: process.env.FRONTEND_URL || "http://localhost:3000",
+//     credentials: true,
+//   }),
+// );
+
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:3000",
+    origin: [
+      "http://localhost:3000",
+      "http://localhost:5500",
+      "http://127.0.0.1:5500",
+    ],
     credentials: true,
   }),
 );
@@ -99,6 +111,7 @@ app.use("/api/v1/admin/audit", adminAuditRoutes);
 app.use("/api/v1/cms", cmsRoutes);
 app.use("/api/v1/landing", landingRoutes);
 app.use("/api/v1/chat", chatRoutes);
+app.use("/api/v1/admin/chat", adminChatRoutes);
 // ── 404 handler
 app.use((req, res) => {
   res.status(404).json({ success: false, message: "Route not found" });

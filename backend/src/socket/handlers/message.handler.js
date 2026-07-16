@@ -5,13 +5,13 @@ const logger = require("../../config/logger");
 function registerMessageHandlers(io, socket, onlineUsers) {
   socket.on("send_message", async (data) => {
     try {
-      const conversationId = String(data?.conversationId || "").trim();
-      const content = typeof data?.content === "string" ? data.content.trim() : "";
-      const type = data?.type || "text";
+      const { conversationId, content, type = "text" } = data;
       const sender = socket.data.user;
 
       if (!conversationId || !content) {
-        socket.emit("error", { message: "conversationId and content required" });
+        socket.emit("error", {
+          message: "conversationId and content required",
+        });
         return;
       }
 
@@ -28,7 +28,8 @@ function registerMessageHandlers(io, socket, onlineUsers) {
 
       if (!conversation.isActive) {
         socket.emit("error", {
-          message: "This conversation is closed. The listing is no longer active.",
+          message:
+            "This conversation is closed. The listing is no longer active.",
         });
         return;
       }
@@ -43,9 +44,9 @@ function registerMessageHandlers(io, socket, onlineUsers) {
         return;
       }
 
-      const block = await chatService.findBlock(
-        conversation.vendorId._id,
-        conversation.buyerId._id
+      const block = await chatService.findBlockEither(
+        conversation.buyerId._id,
+        conversation.vendorId._id
       );
       if (block) {
         socket.emit("error", { message: "Messaging is not available" });
@@ -62,12 +63,15 @@ function registerMessageHandlers(io, socket, onlineUsers) {
         content,
       });
 
+      const lastMessagePreview =
+        type === "image" ? "📷 Image" : content;
+
       await chatService.updateConversationById(conversationId, {
-        $set: {
-          lastMessage: type === "image" ? "📷 Image" : content,
-          lastMessageAt: new Date(),
-        },
-        $inc: isBuyer ? { vendorUnread: 1 } : { buyerUnread: 1 },
+        lastMessage: lastMessagePreview,
+        lastMessageAt: new Date(),
+        ...(isBuyer
+          ? { $inc: { vendorUnread: 1 } }
+          : { $inc: { buyerUnread: 1 } }),
       });
 
       const populatedMessage = {
@@ -87,8 +91,6 @@ function registerMessageHandlers(io, socket, onlineUsers) {
         createdAt: message.createdAt,
       };
 
-      // Ensure sender is in the room, then broadcast to everyone in conversation
-      socket.join(conversationId);
       io.to(conversationId).emit("new_message", populatedMessage);
 
       const recipientId = isBuyer
@@ -105,7 +107,6 @@ function registerMessageHandlers(io, socket, onlineUsers) {
             ? conversation.vendorId
             : conversation.buyerId;
 
-          const senderName = sender.firstName;
           const preview =
             type === "image"
               ? "📷 Image"
@@ -115,7 +116,7 @@ function registerMessageHandlers(io, socket, onlineUsers) {
 
           await sendPushNotification({
             fcmToken: recipient.fcmToken,
-            title: `New message from ${senderName}`,
+            title: `New message from ${sender.firstName}`,
             body: preview,
             data: {
               conversationId,
@@ -128,18 +129,17 @@ function registerMessageHandlers(io, socket, onlineUsers) {
       }
     } catch (err) {
       logger.error("send_message handler error", err);
-      socket.emit("error", { message: err.message || "Failed to send message" });
+      socket.emit("error", { message: "Failed to send message" });
     }
   });
 
   socket.on("mark_read", async ({ conversationId }) => {
     try {
-      const roomId = String(conversationId || "").trim();
-      if (!roomId) return;
+      if (!conversationId) return;
 
       const userId = socket.data.user._id;
 
-      const conversation = await chatService.findConversationById(roomId);
+      const conversation = await chatService.findConversationById(conversationId);
       if (!conversation) return;
 
       const isBuyer =
@@ -149,15 +149,15 @@ function registerMessageHandlers(io, socket, onlineUsers) {
 
       if (!isBuyer && !isVendor) return;
 
-      await chatService.markMessagesAsRead(roomId, userId);
+      await chatService.markMessagesAsRead(conversationId, userId);
 
       const unreadField = isBuyer ? "buyerUnread" : "vendorUnread";
-      await chatService.updateConversationById(roomId, {
-        $set: { [unreadField]: 0 },
+      await chatService.updateConversationById(conversationId, {
+        [unreadField]: 0,
       });
 
-      socket.to(roomId).emit("messages_read", {
-        conversationId: roomId,
+      socket.to(conversationId).emit("messages_read", {
+        conversationId,
         readBy: userId,
         readAt: new Date(),
       });
@@ -165,8 +165,107 @@ function registerMessageHandlers(io, socket, onlineUsers) {
       logger.error("mark_read handler error", err);
     }
   });
+
+  socket.on("edit_message", async ({ messageId, newContent }) => {
+    try {
+      if (!messageId || !newContent) {
+        socket.emit("error", {
+          message: "messageId and newContent required",
+        });
+        return;
+      }
+
+      const userId = socket.data.user._id;
+
+      const message = await chatService.findMessageById(messageId);
+      if (!message) {
+        socket.emit("error", { message: "Message not found" });
+        return;
+      }
+
+      if (message.senderId.toString() !== userId.toString()) {
+        socket.emit("error", {
+          message: "You can only edit your own messages",
+        });
+        return;
+      }
+
+      if (message.type === "image") {
+        socket.emit("error", {
+          message: "Image messages cannot be edited",
+        });
+        return;
+      }
+
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+      if (message.createdAt < fiveMinutesAgo) {
+        socket.emit("error", {
+          message: "Messages can only be edited within 5 minutes",
+        });
+        return;
+      }
+
+      if (newContent.length > 2000) {
+        socket.emit("error", { message: "Message too long" });
+        return;
+      }
+
+      const editedAt = new Date();
+
+      await chatService.updateMessageById(messageId, {
+        content: newContent,
+        isEdited: true,
+        editedAt,
+      });
+
+      io.to(message.conversationId.toString()).emit("message_edited", {
+        messageId,
+        newContent,
+        editedAt,
+      });
+    } catch (err) {
+      logger.error("edit_message handler error", err);
+      socket.emit("error", { message: "Failed to edit message" });
+    }
+  });
+
+  socket.on("delete_message", async ({ messageId }) => {
+    try {
+      if (!messageId) {
+        socket.emit("error", { message: "messageId required" });
+        return;
+      }
+
+      const userId = socket.data.user._id;
+
+      const message = await chatService.findMessageById(messageId);
+      if (!message) {
+        socket.emit("error", { message: "Message not found" });
+        return;
+      }
+
+      if (message.senderId.toString() !== userId.toString()) {
+        socket.emit("error", {
+          message: "You can only delete your own messages",
+        });
+        return;
+      }
+
+      await chatService.updateMessageById(messageId, {
+        isDeleted: true,
+        deletedAt: new Date(),
+        content: "This message was deleted",
+      });
+
+      io.to(message.conversationId.toString()).emit("message_deleted", {
+        messageId,
+        conversationId: message.conversationId,
+      });
+    } catch (err) {
+      logger.error("delete_message handler error", err);
+      socket.emit("error", { message: "Failed to delete message" });
+    }
+  });
 }
 
-module.exports = {
-  registerMessageHandlers,
-};
+module.exports = { registerMessageHandlers };

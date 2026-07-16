@@ -9,6 +9,7 @@ const {
 } = require("../../../validators/admin/adminListing/adminListing.validators");
 const { t } = require("../../../utils/i18n");
 const { getLang } = require("../../../utils/getLang");
+const chatService = require("../../../services/chat/chat.service");
 
 const listListings = async (req, res, next) => {
   try {
@@ -117,6 +118,13 @@ const rejectListing = async (req, res, next) => {
       status: "rejected",
       rejectionReason,
     });
+
+    //new sprint10chat-B for if listings reject so also reject the conversation should be closed
+    try {
+      await chatService.closeConversationsByListingId(listingId);
+    } catch (err) {
+      logger.error("Auto-close conversations on reject failed", err);
+    }
 
     await notificationService.create({
       userId: listing.vendorId._id,

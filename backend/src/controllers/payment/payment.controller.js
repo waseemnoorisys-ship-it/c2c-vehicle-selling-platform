@@ -23,7 +23,7 @@ const { sendEmail } = require("../../services/email/email.service");
 const { t } = require("../../utils/i18n");
 const { getLang } = require("../../utils/getLang");
 const userService = require("../../services/user/user.service");
-
+const chatService = require("../../services/chat/chat.service");
 
 
 
@@ -271,6 +271,14 @@ const confirmDelivery = async (req, res, next) => {
       status: "released",
       releasedAt: new Date(),
     });
+
+    //update this block for chat is closed after sold or payment released
+    try {
+      await chatService.closeConversationsByListingId(transaction.listingId);
+      logger.info(`Conversations closed for listing ${transaction.listingId}`);
+    } catch (closeErr) {
+      logger.error("Auto-close conversations failed (non-blocking)", closeErr);
+    }
 
     await notificationService.create({
       userId: transaction.vendorId,

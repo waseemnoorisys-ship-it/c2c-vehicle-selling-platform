@@ -24,7 +24,7 @@ const httpServer = http.createServer(app);
 
 initSocket(httpServer);
 
-connectDB().then(() => {
+connectDB().then(() => {  
   httpServer.listen(PORT, () => {
     logger.info(`Server running on port ${PORT}`);
     logger.info(`Swagger docs at http://localhost:${PORT}/api-docs`);
