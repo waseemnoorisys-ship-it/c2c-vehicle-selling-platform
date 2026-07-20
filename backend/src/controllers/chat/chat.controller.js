@@ -50,7 +50,7 @@ const createOrGetConversation = async (req, res, next) => {
     let conversation = await chatService.findConversation(
       buyerId,
       vendorId,
-      listingId
+      listingId,
     );
 
     if (!conversation) {
@@ -66,7 +66,7 @@ const createOrGetConversation = async (req, res, next) => {
     return res
       .status(200)
       .json(
-        new ApiResponse(200, { conversation: populated }, "Conversation ready")
+        new ApiResponse(200, { conversation: populated }, "Conversation ready"),
       );
   } catch (err) {
     next(err);
@@ -79,16 +79,26 @@ const getConversation = async (req, res, next) => {
     if (error) throw new ApiError(400, error.details[0].message);
 
     const userId = req.user._id;
+    // console.log("userId " + userId);
     const conversation = await chatService.findConversationById(
-      value.conversationId
+      value.conversationId,
     );
 
     if (!conversation) throw new ApiError(404, "Conversation not found");
+    // Defensive checks
+    if (!conversation.buyerId) {
+      throw new ApiError(404, "Buyer not found");
+    }
 
-    const isBuyer =
-      conversation.buyerId._id.toString() === userId.toString();
-    const isVendor =
-      conversation.vendorId._id.toString() === userId.toString();
+    if (!conversation.vendorId) {
+      throw new ApiError(404, "Vendor not found");
+    }
+
+    if (!conversation.listingId) {
+      throw new ApiError(404, "Listing not found");
+    }
+    const isBuyer = conversation.buyerId._id.toString() === userId.toString();
+    const isVendor = conversation.vendorId._id.toString() === userId.toString();
 
     if (!isBuyer && !isVendor) {
       throw new ApiError(403, "Access denied");
@@ -96,10 +106,9 @@ const getConversation = async (req, res, next) => {
 
     return res
       .status(200)
-      .json(
-        new ApiResponse(200, { conversation }, "Conversation fetched")
-      );
+      .json(new ApiResponse(200, { conversation }, "Conversation fetched"));
   } catch (err) {
+    console.log(err);
     next(err);
   }
 };
@@ -115,13 +124,15 @@ const myConversations = async (req, res, next) => {
     const { conversations, total } =
       await chatService.findConversationsByUserId(userId, page, limit);
 
-    return res.status(200).json(
-      new ApiResponse(
-        200,
-        { conversations, total, page, limit },
-        "Conversations fetched"
-      )
-    );
+    return res
+      .status(200)
+      .json(
+        new ApiResponse(
+          200,
+          { conversations, total, page, limit },
+          "Conversations fetched",
+        ),
+      );
   } catch (err) {
     next(err);
   }
@@ -134,25 +145,37 @@ const getMessages = async (req, res, next) => {
 
     const { conversationId, page, limit } = value;
     const userId = req.user._id;
-
+    // console.log(userId)
     const conversation = await chatService.findConversationById(conversationId);
     if (!conversation) throw new ApiError(404, "Conversation not found");
-
-    const isBuyer =
-      conversation.buyerId._id.toString() === userId.toString();
-    const isVendor =
-      conversation.vendorId._id.toString() === userId.toString();
+    if (!conversation.buyerId) {
+      return res.status(404).json({
+        success: false,
+        message: "Buyer not found",
+      });
+    }
+    if (!conversation.vendorId) {
+      return res.status(404).json({
+        success: false,
+        message: "Vendor not found",
+      });
+    }
+    
+    const isBuyer = conversation.buyerId._id.toString() === userId.toString();
+    // console.log(isBuyer)
+    
+    const isVendor = conversation.vendorId._id.toString() === userId.toString();
+    // console.log(isVendor)
 
     if (!isBuyer && !isVendor) {
-      throw new ApiError(403, "Access denied");
+      throw new ApiError(403, "Access denied ");
     }
 
-    const { messages, total } =
-      await chatService.findMessagesByConversationId(
-        conversationId,
-        page,
-        limit
-      );
+    const { messages, total } = await chatService.findMessagesByConversationId(
+      conversationId,
+      page,
+      limit,
+    );
 
     await chatService.markMessagesAsRead(conversationId, userId);
 
@@ -161,15 +184,19 @@ const getMessages = async (req, res, next) => {
       [unreadField]: 0,
     });
 
-    return res.status(200).json(
-      new ApiResponse(
-        200,
-        { messages, total, page, limit },
-        "Messages fetched"
-      )
-    );
+    return res
+      .status(200)
+      .json(
+        new ApiResponse(
+          200,
+          { messages, total, page, limit },
+          "Messages fetched",
+        ),
+      );
   } catch (err) {
-    next(err);
+    // console.log(err.message)
+    // next(err + "chal budbag");
+    throw new ApiError(404,"conversation not found")
   }
 };
 
@@ -191,10 +218,8 @@ const uploadChatImage = async (req, res, next) => {
       throw new ApiError(400, "This conversation is closed");
     }
 
-    const isBuyer =
-      conversation.buyerId._id.toString() === userId.toString();
-    const isVendor =
-      conversation.vendorId._id.toString() === userId.toString();
+    const isBuyer = conversation.buyerId._id.toString() === userId.toString();
+    const isVendor = conversation.vendorId._id.toString() === userId.toString();
 
     if (!isBuyer && !isVendor) {
       throw new ApiError(403, "Access denied");
@@ -206,18 +231,20 @@ const uploadChatImage = async (req, res, next) => {
         (error, result) => {
           if (error) return reject(error);
           resolve(result);
-        }
+        },
       );
       streamifier.createReadStream(req.file.buffer).pipe(stream);
     });
 
-    return res.status(200).json(
-      new ApiResponse(
-        200,
-        { url: result.secure_url, publicId: result.public_id },
-        "Image uploaded"
-      )
-    );
+    return res
+      .status(200)
+      .json(
+        new ApiResponse(
+          200,
+          { url: result.secure_url, publicId: result.public_id },
+          "Image uploaded",
+        ),
+      );
   } catch (err) {
     next(err);
   }
@@ -253,9 +280,9 @@ const editMessage = async (req, res, next) => {
       editedAt: new Date(),
     });
 
-    return res.status(200).json(
-      new ApiResponse(200, { message: updated }, "Message edited")
-    );
+    return res
+      .status(200)
+      .json(new ApiResponse(200, { message: updated }, "Message edited"));
   } catch (err) {
     next(err);
   }
@@ -282,9 +309,7 @@ const deleteMessage = async (req, res, next) => {
       content: "This message was deleted",
     });
 
-    return res
-      .status(200)
-      .json(new ApiResponse(200, {}, "Message deleted"));
+    return res.status(200).json(new ApiResponse(200, {}, "Message deleted"));
   } catch (err) {
     next(err);
   }
@@ -358,7 +383,7 @@ const reportConversation = async (req, res, next) => {
 
     const existing = await chatService.findExistingReport(
       conversationId,
-      reporterId
+      reporterId,
     );
     if (existing) {
       throw new ApiError(409, "You have already reported this conversation");
@@ -373,7 +398,7 @@ const reportConversation = async (req, res, next) => {
     return res
       .status(201)
       .json(
-        new ApiResponse(201, { report }, "Conversation reported successfully")
+        new ApiResponse(201, { report }, "Conversation reported successfully"),
       );
   } catch (err) {
     next(err);

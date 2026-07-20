@@ -148,6 +148,14 @@ function registerMessageHandlers(io, socket, onlineUsers) {
         conversation.vendorId._id.toString() === userId.toString();
 
       if (!isBuyer && !isVendor) return;
+      const block = await chatService.findBlockEither(
+        conversation.buyerId._id,
+        conversation.vendorId._id
+      );
+      if (block) {
+        socket.emit("error", { message: "Messaging is not available . user was blocked" });
+        return;
+      }
 
       await chatService.markMessagesAsRead(conversationId, userId);
 

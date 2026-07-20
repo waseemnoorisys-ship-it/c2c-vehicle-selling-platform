@@ -4,7 +4,12 @@ const ChatBlock = require("../../models/chatBlock/chatBlock.model");
 const ConversationReport = require("../../models/conversationReport/conversationReport.model");
 
 async function findConversation(buyerId, vendorId, listingId) {
-  return Conversation.findOne({ buyerId, vendorId, listingId, deletedAt: null });
+  return Conversation.findOne({
+    buyerId,
+    vendorId,
+    listingId,
+    deletedAt: null,
+  });
 }
 
 async function createConversation(data) {
@@ -15,8 +20,12 @@ async function findConversationById(id) {
   return Conversation.findOne({ _id: id, deletedAt: null })
     .populate("buyerId", "firstName lastName profilePhoto fcmToken language")
     .populate("vendorId", "firstName lastName profilePhoto fcmToken language")
-    .populate("listingId", "registrationNumber year photos status");
+    .populate(
+      "listingId",
+      "registrationNumber year photos status askingPrice makeId modelId",
+    );
 }
+// console.log(Conversation.listingId)
 
 async function findConversationsByUserId(userId, page, limit) {
   const skip = (page - 1) * limit;
@@ -27,7 +36,24 @@ async function findConversationsByUserId(userId, page, limit) {
     })
       .populate("buyerId", "firstName lastName profilePhoto")
       .populate("vendorId", "firstName lastName profilePhoto")
-      .populate("listingId", "registrationNumber year photos status")
+      // old populate
+      // .populate("listingId", "registrationNumber year photos status askingPrice makeId modelId" )
+      // new erson according to specific details of vehicle on chat window
+      .populate({
+        path: "listingId",
+        select:
+          "registrationNumber year photos status askingPrice makeId modelId",
+        populate: [
+          {
+            path: "makeId",
+            select: "name",
+          },
+          {
+            path: "modelId",
+            select: "name",
+          },
+        ],
+      })
       .sort({ lastMessageAt: -1 })
       .skip(skip)
       .limit(limit),
@@ -46,7 +72,7 @@ async function updateConversationById(id, update) {
 async function closeConversationsByListingId(listingId) {
   return Conversation.updateMany(
     { listingId, isActive: true, deletedAt: null },
-    { isActive: false }
+    { isActive: false },
   );
 }
 
@@ -54,7 +80,7 @@ async function findAllConversations(filter, skip, limit) {
   return Conversation.find(filter)
     .populate("buyerId", "firstName lastName email")
     .populate("vendorId", "firstName lastName email")
-    .populate("listingId", "registrationNumber year status")
+    .populate("listingId", "registrationNumber year status ")
     .sort({ lastMessageAt: -1 })
     .skip(skip)
     .limit(limit);
@@ -99,7 +125,7 @@ async function markMessagesAsRead(conversationId, recipientId) {
     {
       isRead: true,
       readAt: new Date(),
-    }
+    },
   );
 }
 
@@ -121,7 +147,7 @@ async function createBlock(blockerId, blockedId) {
   return ChatBlock.findOneAndUpdate(
     { blockerId, blockedId },
     { blockerId, blockedId, deletedAt: null },
-    { new: true, upsert: true }
+    { new: true, upsert: true },
   );
 }
 
@@ -129,7 +155,7 @@ async function removeBlock(blockerId, blockedId) {
   return ChatBlock.findOneAndUpdate(
     { blockerId, blockedId },
     { deletedAt: new Date() },
-    { new: true }
+    { new: true },
   );
 }
 
