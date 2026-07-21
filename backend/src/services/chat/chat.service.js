@@ -63,7 +63,7 @@ async function findConversationsByUserId(userId, page, limit) {
     }),
   ]);
   return { conversations, total };
-}
+}    
 
 async function updateConversationById(id, update) {
   return Conversation.findByIdAndUpdate(id, update, { new: true });
