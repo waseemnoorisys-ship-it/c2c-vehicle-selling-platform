@@ -8,6 +8,9 @@ const storage = multer.memoryStorage();
 function imageFileFilter(req, file, cb) {
   const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
   if (allowedTypes.includes(file.mimetype)) {
+    //cb means callback
+    //[no error(null) , true]
+    //[error [full],false]
     cb(null, true);
   } else {
     cb(new ApiError(400, t("errors.common.invalidImageType", getLang(req))), false);

@@ -63,7 +63,7 @@ async function findConversationsByUserId(userId, page, limit) {
     }),
   ]);
   return { conversations, total };
-}    
+}
 
 async function updateConversationById(id, update) {
   return Conversation.findByIdAndUpdate(id, update, { new: true });
@@ -90,6 +90,13 @@ async function countAllConversations(filter) {
   return Conversation.countDocuments(filter);
 }
 
+//verify is any replay message exist or not ?
+async function findReplyMessage(messageId) {
+  return Message.findOne({
+    _id: messageId,
+    isDeleted: false,
+  }).select("_id content senderId senderRole createdAt");
+}
 async function createMessage(data) {
   return Message.create(data);
 }
@@ -99,6 +106,14 @@ async function findMessagesByConversationId(conversationId, page, limit) {
   const [messages, total] = await Promise.all([
     Message.find({ conversationId })
       .populate("senderId", "firstName lastName profilePhoto")
+      .populate({
+        path: "replyTo",
+        select: "content senderId senderRole createdAt",
+        populate: {
+          path: "senderId",
+          select: "firstName lastName profilePhoto",
+        },
+      })
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit),
@@ -108,11 +123,60 @@ async function findMessagesByConversationId(conversationId, page, limit) {
 }
 
 async function findMessageById(id) {
-  return Message.findOne({ _id: id, isDeleted: false });
+  //adding a replay message functionality
+  return Message.findOne({ _id: id, isDeleted: false })
+    .populate("senderId", "firstName lastName profilePhoto")
+    .populate({
+      path: "replyTo",
+      select: "content senderId senderRole createdAt",
+      populate: {
+        path: "senderId",
+        select: "firstName lastName profilePhoto",
+      },
+    });
+ 
 }
 
 async function updateMessageById(id, update) {
   return Message.findByIdAndUpdate(id, update, { new: true });
+}
+//reply message functionality
+async function reactToMessage(messageId, userId, emoji) {
+  const message = await Message.findOne({
+    _id: messageId,
+    isDeleted: false,
+  });
+
+  if (!message) {
+    return null;
+  }
+
+  const existingReactionIndex = message.reactions.findIndex(
+    (reaction) => reaction.userId.toString() === userId.toString(),
+  );
+
+  if (existingReactionIndex === -1) {
+    // First reaction
+    message.reactions.push({
+      userId,
+      emoji,
+    });
+  } else {
+    const existingReaction = message.reactions[existingReactionIndex];
+
+    if (existingReaction.emoji === emoji) {
+      // Same emoji clicked again -> remove reaction
+      message.reactions.splice(existingReactionIndex, 1);
+    } else {
+      // Change reaction
+      existingReaction.emoji = emoji;
+      existingReaction.reactedAt = new Date();
+    }
+  }
+
+  await message.save();
+
+  return message;
 }
 
 async function markMessagesAsRead(conversationId, recipientId) {
@@ -193,7 +257,6 @@ async function updateReportById(id, update) {
   return ConversationReport.findByIdAndUpdate(id, update, { new: true });
 }
 
-
 module.exports = {
   findConversation,
   createConversation,
@@ -218,4 +281,7 @@ module.exports = {
   countReports,
   findReportById,
   updateReportById,
+  //replay message
+  findReplyMessage,
+  reactToMessage,
 };

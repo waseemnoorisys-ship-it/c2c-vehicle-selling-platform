@@ -5,7 +5,7 @@ const logger = require("../../config/logger");
 function registerMessageHandlers(io, socket, onlineUsers) {
   socket.on("send_message", async (data) => {
     try {
-      const { conversationId, content, type = "text" } = data;
+      const { conversationId, content, type = "text", replyTo = null } = data;
       const sender = socket.data.user;
 
       if (!conversationId || !content) {
@@ -20,7 +20,8 @@ function registerMessageHandlers(io, socket, onlineUsers) {
         return;
       }
 
-      const conversation = await chatService.findConversationById(conversationId);
+      const conversation =
+        await chatService.findConversationById(conversationId);
       if (!conversation) {
         socket.emit("error", { message: "Conversation not found" });
         return;
@@ -46,7 +47,7 @@ function registerMessageHandlers(io, socket, onlineUsers) {
 
       const block = await chatService.findBlockEither(
         conversation.buyerId._id,
-        conversation.vendorId._id
+        conversation.vendorId._id,
       );
       if (block) {
         socket.emit("error", { message: "Messaging is not available" });
@@ -54,6 +55,26 @@ function registerMessageHandlers(io, socket, onlineUsers) {
       }
 
       const senderRole = isBuyer ? "buyer" : "vendor";
+      //reply message functionality
+      let replyMessage = null;
+
+      if (replyTo) {
+        replyMessage = await chatService.findMessageById(replyTo);
+
+        if (!replyMessage) {
+          socket.emit("error", {
+            message: "Reply message not found",
+          });
+          return;
+        }
+
+        if (replyMessage.conversationId.toString() !== conversationId) {
+          socket.emit("error", {
+            message: "Invalid reply message",
+          });
+          return;
+        }
+      }
 
       const message = await chatService.createMessage({
         conversationId,
@@ -61,10 +82,10 @@ function registerMessageHandlers(io, socket, onlineUsers) {
         senderRole,
         type,
         content,
+        replyTo,
       });
 
-      const lastMessagePreview =
-        type === "image" ? "📷 Image" : content;
+      const lastMessagePreview = type === "image" ? "📷 Image" : content;
 
       await chatService.updateConversationById(conversationId, {
         lastMessage: lastMessagePreview,
@@ -74,22 +95,24 @@ function registerMessageHandlers(io, socket, onlineUsers) {
           : { $inc: { buyerUnread: 1 } }),
       });
 
-      const populatedMessage = {
-        _id: message._id,
-        conversationId,
-        senderId: {
-          _id: sender._id,
-          firstName: sender.firstName,
-          lastName: sender.lastName,
-        },
-        senderRole,
-        type,
-        content,
-        isRead: false,
-        isEdited: false,
-        isDeleted: false,
-        createdAt: message.createdAt,
-      };
+      // const populatedMessage = {
+      //   _id: message._id,
+      //   conversationId,
+      //   senderId: {
+      //     _id: sender._id,
+      //     firstName: sender.firstName,
+      //     lastName: sender.lastName,
+      //   },
+      //   senderRole,
+      //   type,
+      //   content,
+      //   isRead: false,
+      //   isEdited: false,
+      //   isDeleted: false,
+      //   createdAt: message.createdAt,
+      // };
+      //reply message functionality
+      const populatedMessage = await chatService.findMessageById(message._id);
 
       io.to(conversationId).emit("new_message", populatedMessage);
 
@@ -111,8 +134,8 @@ function registerMessageHandlers(io, socket, onlineUsers) {
             type === "image"
               ? "📷 Image"
               : content.length > 50
-              ? `${content.substring(0, 50)}...`
-              : content;
+                ? `${content.substring(0, 50)}...`
+                : content;
 
           await sendPushNotification({
             fcmToken: recipient.fcmToken,
@@ -129,31 +152,180 @@ function registerMessageHandlers(io, socket, onlineUsers) {
       }
     } catch (err) {
       logger.error("send_message handler error", err);
-      socket.emit("error", { message: "Failed to send message" });
+      socket.emit("error", {
+        code: "REPLY_NOT_FOUND",
+        message: "Failed to send message",
+      });
     }
   });
 
+  //reply message functionality
+  // socket.on("react_message", async (data) => {
+  //   try {
+  //     const { messageId, emoji } = data;
+  //     const sender = socket.data.user;
+
+  //     if (!messageId || !emoji) {
+  //       socket.emit("error", {
+  //         message: "messageId and emoji are required",
+  //       });
+  //       return;
+  //     }
+  //     const ALLOWED_REACTIONS = [
+  //       "👍",
+  //       "❤️",
+  //       "😂",
+  //       "😮",
+  //       "😢",
+  //       "🙏",
+  //     ];
+  //     if (!ALLOWED_REACTIONS.includes(emoji)) {
+  //       socket.emit("error", {
+  //         message: "Invalid reaction",
+  //       });
+  //       return;
+  //     }
+
+  //     // Get message
+  //     const message = await chatService.findMessageById(messageId);
+
+  //     if (!message) {
+  //       socket.emit("error", {
+  //         message: "Message not found",
+  //       });
+  //       return;
+  //     }
+
+  //     // Get conversation
+  //     const conversation = await chatService.findConversationById(
+  //       message.conversationId
+  //     );
+
+  //     if (!conversation) {
+  //       socket.emit("error", {
+  //         message: "Conversation not found",
+  //       });
+  //       return;
+  //     }
+
+  //     // Authorization
+  //     const isBuyer =
+  //       conversation.buyerId._id.toString() === sender._id.toString();
+
+  //     const isVendor =
+  //       conversation.vendorId._id.toString() === sender._id.toString();
+
+  //     if (!isBuyer && !isVendor) {
+  //       socket.emit("error", {
+  //         message: "Access denied",
+  //       });
+  //       return;
+  //     }
+
+  //     // Update reaction
+  //     const updatedMessage = await chatService.reactToMessage(
+  //       messageId,
+  //       sender._id,
+  //       emoji
+  //     );
+
+  //     io.to(message.conversationId.toString()).emit(
+  //       "message_reaction_updated",
+  //       {
+  //         messageId,
+  //         reactions: updatedMessage.reactions,
+  //       }
+  //     );
+  //   } catch (err) {
+  //     logger.error("react_message handler error", err);
+
+  //     socket.emit("error", {
+  //       message: "Failed to react to message",
+  //     });
+  //   }
+  // });
+  socket.on("react_message", async (data) => {
+    try {
+      const { messageId, emoji } = data;
+      const user = socket.data.user;
+
+      if (!messageId || !emoji) {
+        socket.emit("error", {
+          message: "messageId and emoji are required",
+        });
+        return;
+      }
+
+      const message = await chatService.findMessageById(messageId);
+
+      if (!message) {
+        socket.emit("error", {
+          message: "Message not found",
+        });
+        return;
+      }
+
+      // Find existing reaction by this user
+      const existingReaction = message.reactions.find(
+        (r) => r.userId.toString() === user._id.toString(),
+      );
+
+      if (!existingReaction) {
+        // First reaction
+        message.reactions.push({
+          userId: user._id,
+          emoji,
+        });
+      } else if (existingReaction.emoji === emoji) {
+        // Same emoji clicked again → remove reaction
+        message.reactions = message.reactions.filter(
+          (r) => r.userId.toString() !== user._id.toString(),
+        );
+      } else {
+        // Change reaction
+        existingReaction.emoji = emoji;
+        existingReaction.reactedAt = new Date();
+      }
+
+      await message.save();
+
+      const populatedMessage = await chatService.findMessageById(messageId);
+
+      io.to(message.conversationId.toString()).emit(
+        "message_reaction_updated",
+        populatedMessage,
+      );
+    } catch (err) {
+      logger.error("react_message handler error", err);
+
+      socket.emit("error", {
+        message: "Failed to react to message",
+      });
+    }
+  });
   socket.on("mark_read", async ({ conversationId }) => {
     try {
       if (!conversationId) return;
 
       const userId = socket.data.user._id;
 
-      const conversation = await chatService.findConversationById(conversationId);
+      const conversation =
+        await chatService.findConversationById(conversationId);
       if (!conversation) return;
 
-      const isBuyer =
-        conversation.buyerId._id.toString() === userId.toString();
+      const isBuyer = conversation.buyerId._id.toString() === userId.toString();
       const isVendor =
         conversation.vendorId._id.toString() === userId.toString();
 
       if (!isBuyer && !isVendor) return;
       const block = await chatService.findBlockEither(
         conversation.buyerId._id,
-        conversation.vendorId._id
+        conversation.vendorId._id,
       );
       if (block) {
-        socket.emit("error", { message: "Messaging is not available . user was blocked" });
+        socket.emit("error", {
+          message: "Messaging is not available . user was blocked",
+        });
         return;
       }
 

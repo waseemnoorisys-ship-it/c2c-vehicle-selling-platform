@@ -679,7 +679,7 @@
 
     .msg-bubble {
       max-width: 65%;
-      min-width: 80px;
+      min-width: 170px;
       background: var(--bg-msg-in);
       border-radius: var(--radius-msg);
       padding: 6px 7px 8px 9px;
@@ -703,7 +703,7 @@
       content: '';
       position: absolute;
       top: 0;
-      right: -8px;
+      /* right: -8px; */
       border: 8px solid transparent;
       border-top-color: var(--bg-msg-out);
       border-right: none;
@@ -713,7 +713,7 @@
       content: '';
       position: absolute;
       top: 0;
-      left: -8px;
+      /* left: -8px; */
       border: 8px solid transparent;
       border-top-color: var(--bg-msg-in);
       border-left: none;
@@ -722,8 +722,8 @@
     .msg-content {
       font-size: 14.2px;
       color: var(--text-primary);
-      line-height: 1.45;
-      white-space: pre-wrap;
+      line-height: 0.45;
+      /* white-space: pre-wrap; */
     }
 
     .msg-content.deleted {
@@ -976,6 +976,119 @@
 
     .ctx-item.danger {
       color: var(--danger);
+    }
+
+    /*---reply message functionality css*/
+    .message-reactions {
+
+      display: flex;
+
+      gap: 4px;
+
+      margin-top: 6px;
+
+      flex-wrap: wrap;
+    }
+
+    .reaction {
+
+      background: #2a3942;
+
+      border-radius: 12px;
+
+      padding: 2px 8px;
+
+      font-size: 14px;
+
+      cursor: pointer;
+    }
+
+    .emoji-picker {
+
+      position: absolute;
+
+      display: none;
+
+      background: #202c33;
+
+      padding: 8px;
+
+      border-radius: 25px;
+
+      box-shadow: 0 5px 15px rgba(0, 0, 0, .3);
+
+      z-index: 99999;
+    }
+
+    .emoji-picker span {
+
+      font-size: 24px;
+
+      cursor: pointer;
+
+      margin: 0 5px;
+
+      transition: .2s;
+    }
+
+    .emoji-picker span:hover {
+
+      transform: scale(1.25);
+    }
+
+    .reply-message-box {
+      border-left: 4px solid #00bfa5;
+      background: rgba(255, 255, 255, .08);
+      border-radius: 6px;
+      padding: 6px 8px;
+      margin-bottom: 6px;
+    }
+
+    .reply-message-name {
+      color: #00bfa5;
+      font-weight: 600;
+      font-size: 13px;
+    }
+
+    .reply-message-text {
+      color: #ddd;
+      font-size: 13px;
+      margin-top: 2px;
+    }
+
+    #reply-bar {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      padding: 10px;
+      border-top: 1px solid #00bfa5;
+      background: #1f2c34;
+    }
+
+    .reply-label {
+      color: #00bfa5;
+      font-weight: bold;
+    }
+
+    .reply-user {
+      color: white;
+      font-weight: bold;
+    }
+
+    .reply-preview {
+      color: #aaa;
+      flex: 1;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .reply-cancel {
+      background: none;
+      border: none;
+      color: #aaa;
+      cursor: pointer;
+      font-size: 18px;
     }
 
     /* ============================================================
@@ -1401,6 +1514,26 @@
 
         <!-- Typing indicator -->
         <div id="typing-wrap"></div>
+        <!--reply message functionality-->
+        <div id="reply-bar" style="display:none;">
+
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="var(--accent)">
+            <path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z" />
+          </svg>
+
+          <span class="reply-label">
+            Replying to
+          </span>
+
+          <span class="reply-user" id="reply-user"></span>
+
+          <span class="reply-preview" id="reply-preview"></span>
+
+          <button class="reply-cancel" onclick="cancelReply()">
+            ✕
+          </button>
+
+        </div>
 
         <!-- Edit bar -->
         <div id="edit-bar">
@@ -1431,11 +1564,27 @@
                 d="M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5c0-1.38 1.12-2.5 2.5-2.5s2.5 1.12 2.5 2.5v10.5c0 .55-.45 1-1 1s-1-.45-1-1V6H10v9.5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V5c0-2.21-1.79-4-4-4S7 2.79 7 5v12.5c0 3.04 2.46 5.5 5.5 5.5s5.5-2.46 5.5-5.5V6h-1.5z" />
             </svg>
           </button>
+
           <input type="file" id="img-file" accept="image/*" style="display:none" onchange="onImageSelected()" />
           <div class="input-wrap">
+            <!--reply message functionality-->
+            <div id="reply-preview" class="reply-preview" style="display:none;">
+
+              <div class="reply-content">
+
+                <div id="reply-user"></div>
+
+                <div id="reply-text"></div>
+
+              </div>
+
+              <button id="cancel-reply-btn">✕</button>
+
+            </div>
             <textarea id="msg-input" rows="1" placeholder="Type a message" onkeydown="onInputKeydown(event)"
               oninput="onInputChange()"></textarea>
           </div>
+
           <button class="send-btn" onclick="sendMessage()" title="Send">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="white">
               <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
@@ -1449,7 +1598,27 @@
 
   <!-- Context menu -->
   <div id="ctx-menu">
+    <div class="ctx-item" id="ctx-reply" onclick="ctxReply()">
+
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z" />
+      </svg>
+
+      Reply
+
+    </div>
+    <div class="ctx-item" id="ctx-react" onclick="ctxReact()">
+
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+        <path
+          d="M12 2a10 10 0 100 20 10 10 0 000-20zm-3 8a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm6 0a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm-6 4c1.2 1.4 2.8 2 3 2s1.8-.6 3-2H9z" />
+      </svg>
+
+      React
+
+    </div>
     <div class="ctx-item" id="ctx-copy" onclick="ctxCopy()">
+
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
         <path
           d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z" />
@@ -1509,7 +1678,8 @@
     let ctxData = null;          // message data for context menu
     let onlineUsers = new Set();     // set of userId strings that are online
     let lastSeenMap = {};            // userId → lastSeen date
-
+    let selectedReplyMessage = null; //reply message
+    let reactionMessage = null; //reply message 
     /* ============================================================
        HELPERS
        ============================================================ */
@@ -1543,6 +1713,7 @@
       if (diff < 86400) return 'last seen today at ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       return 'last seen ' + d.toLocaleDateString([], { weekday: 'long' }) + ' at ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
+
 
     function fmtDate(dateStr) {
       const d = new Date(dateStr);
@@ -1940,6 +2111,7 @@
 
     function buildMsgEl(m) {
       const isOut = (m.senderId?._id || m.senderId) === me?._id;
+      // console.log("ReplyTo =>", m.replyTo);
       const wrap = document.createElement('div');
       wrap.className = 'msg-wrap ' + (isOut ? 'out' : 'in');
       wrap.dataset.msgId = m._id;
@@ -1949,21 +2121,84 @@
       bubble.className = 'msg-bubble';
 
       // Content
-      let contentHTML = '';
+      // Content
+      let contentHTML = "";
+
+      // Build reply preview (if this message is a reply)
+      let replyHTML = "";
+
+      if (m.replyTo) {
+
+        const replyName =
+          m.replyTo.senderId
+            ? `${m.replyTo.senderId.firstName}`
+            : "Unknown";
+
+        replyHTML = `
+    <div class="reply-message-box">
+
+      <div class="reply-message-name">
+        ${escHtml(replyName)}
+      </div>
+
+      <div class="reply-message-text">
+        ${escHtml(m.replyTo.content || "")}
+      </div>
+
+    </div>
+  `;
+      }
+
       if (m.isDeleted) {
-        contentHTML = `<div class="msg-content deleted">This message was deleted</div>`;
-      } else if (m.type === 'image') {
-        contentHTML = `<img class="msg-img" src="${escHtml(m.content)}" alt="image" onclick="openImgViewer('${escHtml(m.content)}')"/>`;
+
+        contentHTML =
+          `<div class="msg-content deleted">
+        This message was deleted
+     </div>`;
+
+      } else if (m.type === "image") {
+
+        contentHTML =
+          replyHTML +
+          `<img
+        class="msg-img"
+        src="${escHtml(m.content)}"
+        alt="image"
+        onclick="openImgViewer('${escHtml(m.content)}')"
+    />`;
+
       } else {
-        contentHTML = `<div class="msg-content">${escHtml(m.content)}</div>`;
+
+        contentHTML =
+          replyHTML +
+          `<div class="msg-content">
+          ${escHtml(m.content)}
+      </div>`;
       }
 
       // Meta (time + edited + ticks)
       const edited = m.isEdited && !m.isDeleted ? '<span class="msg-edited">edited</span>' : '';
       const ticks = isOut ? ticksHTML(m) : '';
+      let reactionsHTML = "";
+
+      if (m.reactions && m.reactions.length > 0) {
+
+        reactionsHTML = `
+        <div class="message-reactions">
+
+            ${m.reactions.map(r => `
+                <span class="reaction">${r.emoji}</span>
+            `).join("")}
+
+        </div>
+    `;
+      }
       const meta = `<div class="msg-meta">${edited}<span class="msg-time">${fmtTime(m.createdAt)}</span>${ticks}</div>`;
 
-      bubble.innerHTML = contentHTML + meta;
+      // bubble.innerHTML = contentHTML + meta;
+      bubble.innerHTML = contentHTML + reactionsHTML + meta;
+      // console.log("contentHTML =", contentHTML);
+
       bubble.addEventListener('contextmenu', e => { e.preventDefault(); showCtxMenu(e, wrap, m, isOut); });
       if (isOut) bubble.addEventListener('click', e => { if (e.detail === 2) showCtxMenu(e, wrap, m, isOut); });
 
@@ -2019,21 +2254,35 @@
       if (!txt) return;
 
       if (editingMsgId) {
-        // Edit mode
-        socket.emit('edit_message', { messageId: editingMsgId, newContent: txt });
+        socket.emit('edit_message', {
+          messageId: editingMsgId,
+          newContent: txt
+        });
+
         cancelEdit();
         $('msg-input').value = '';
         autoResize();
         return;
       }
 
-      socket.emit('send_message', { conversationId: activeConvId, content: txt, type: 'text' });
+      socket.emit("send_message", {
+        conversationId: activeConvId,
+        content: txt,
+        type: "text",
+        replyTo: selectedReplyMessage?._id || null
+      });
+
+      cancelReply();
+
       $('msg-input').value = '';
       autoResize();
 
       // Stop typing
       if (isTyping) {
-        socket.emit('stop_typing', { conversationId: activeConvId });
+        socket.emit('stop_typing', {
+          conversationId: activeConvId
+        });
+
         isTyping = false;
       }
     }
@@ -2110,6 +2359,30 @@
     /* ============================================================
        EDIT / DELETE (REST fallback + socket)
        ============================================================ */
+    /*--replay  message functionality*/
+    function showReplyPreview() {
+
+      if (!selectedReplyMessage) return;
+
+      const preview = document.getElementById("reply-preview");
+
+      preview.style.display = "flex";
+
+      document.getElementById("reply-user").textContent =
+        `${selectedReplyMessage.senderId.firstName} ${selectedReplyMessage.senderId.lastName}`;
+
+      document.getElementById("reply-text").textContent =
+        selectedReplyMessage.content;
+    }
+
+    // reply messsage functionlity cancel
+    document.getElementById("cancel-reply-btn").onclick = function () {
+
+      selectedReplyMessage = null;
+
+      document.getElementById("reply-preview").style.display = "none";
+
+    };
     function startEdit(msgId, content) {
       editingMsgId = msgId;
       $('msg-input').value = content;
@@ -2153,6 +2426,78 @@
       if (!$('ctx-menu').contains(e.target)) closeCtxMenu();
       if (!$('header-menu').contains(e.target) && !$('chat-header').contains(e.target)) closeHeaderMenu();
     });
+
+    //reply message  functionality
+    function ctxReact() {
+
+      reactionMessage = ctxData;
+
+      const picker = document.getElementById("emoji-picker");
+
+      picker.style.display = "block";
+
+      picker.style.left = event.pageX + "px";
+
+      picker.style.top = event.pageY + "px";
+
+      closeCtxMenu();
+    }
+    // function selectReaction(emoji) {
+
+    //   console.log(reactionMessage);
+
+    //   console.log(emoji);
+
+    //   document.getElementById("emoji-picker").style.display = "none";
+    // }
+
+    function selectReaction(emoji) {
+      // console.log("Clicked Emoji:", emoji);
+      // console.log("Reaction Message:", reactionMessage);
+      // console.log("Socket Connected:", socket.connected);
+
+      if (!reactionMessage) return;
+
+      socket.emit("react_message", {
+        messageId: reactionMessage._id,
+        emoji
+      });
+
+      document.getElementById("emoji-picker").style.display = "none";
+
+      reactionMessage = null;
+    }
+    function ctxReply() {
+
+      if (!ctxData) return;
+
+      startReply(ctxData);
+
+      closeCtxMenu();
+    }
+    function startReply(message) {
+
+      selectedReplyMessage = message;
+
+      document.getElementById("reply-bar").style.display = "flex";
+
+      document.getElementById("reply-user").textContent =
+        message.senderId.firstName;
+
+      document.getElementById("reply-preview").textContent =
+        message.content;
+    }
+    function cancelReply() {
+
+      selectedReplyMessage = null;
+
+      document.getElementById("reply-bar").style.display = "none";
+
+      document.getElementById("reply-user").textContent = "";
+
+      document.getElementById("reply-preview").textContent = "";
+    }
+
 
     function ctxCopy() {
       if (!ctxData) return;
@@ -2241,6 +2586,18 @@
           // Browser notification
           showBrowserNotif(msg);
         }
+
+        //emojis
+        socket.on("message_reaction_updated", (message) => {
+
+          const old = document.querySelector(
+            `[data-msg-id="${message._id}"]`
+          );
+
+          if (!old) return;
+
+          old.replaceWith(buildMsgEl(message));
+        });
 
         // Update conversation preview
         const conv = conversations.find(c => c._id === msg.conversationId);
@@ -2428,6 +2785,21 @@
         .replace(/"/g, '&quot;');
     }
   </script>
+  <div id="emoji-picker" class="emoji-picker">
+
+    <span onclick="selectReaction('👍')">👍</span>
+
+    <span onclick="selectReaction('❤️')">❤️</span>
+
+    <span onclick="selectReaction('😂')">😂</span>
+
+    <span onclick="selectReaction('😮')">😮</span>
+
+    <span onclick="selectReaction('😢')">😢</span>
+
+    <span onclick="selectReaction('🙏')">🙏</span>
+
+  </div>
 </body>
 
 </html>
