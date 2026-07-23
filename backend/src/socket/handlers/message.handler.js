@@ -424,12 +424,20 @@ function registerMessageHandlers(io, socket, onlineUsers) {
         return;
       }
 
-      if (message.senderId.toString() !== userId.toString()) {
+      const senderId = message.senderId._id || message.senderId;
+
+      if (senderId.toString() !== userId.toString()) {
         socket.emit("error", {
-          message: "You can only delete your own messages",
+          message: "You can only edit your own messages",
         });
         return;
       }
+      // if (message.senderId.toString() !== userId.toString()) {
+      //   socket.emit("error", {
+      //     message: "You can only delete your own messages",
+      //   });
+      //   return;
+      // }
 
       await chatService.updateMessageById(messageId, {
         isDeleted: true,

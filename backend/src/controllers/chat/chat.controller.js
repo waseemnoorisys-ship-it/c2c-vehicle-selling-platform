@@ -160,10 +160,10 @@ const getMessages = async (req, res, next) => {
         message: "Vendor not found",
       });
     }
-    
+
     const isBuyer = conversation.buyerId._id.toString() === userId.toString();
     // console.log(isBuyer)
-    
+
     const isVendor = conversation.vendorId._id.toString() === userId.toString();
     // console.log(isVendor)
 
@@ -196,11 +196,15 @@ const getMessages = async (req, res, next) => {
   } catch (err) {
     // console.log(err.message)
     // next(err + "chal budbag");
-    throw new ApiError(404,"conversation not found")
+    throw new ApiError(404, "conversation not found");
   }
 };
 
-const uploadChatImage = async (req, res, next) => {
+// const uploadChatImage = async (req, res, next) => {
+const uploadChatMedia = async (req, res, next) => {
+  // console.log("===== uploadChatMedia reached =====");
+  // console.log(req.file);
+  // console.log(req.body);
   try {
     if (!req.file) throw new ApiError(400, "No image uploaded");
 
@@ -225,17 +229,45 @@ const uploadChatImage = async (req, res, next) => {
       throw new ApiError(403, "Access denied");
     }
 
+    // const result = await new Promise((resolve, reject) => {
+    //   const stream = cloudinary.uploader.upload_stream(
+    //     { folder: "chat_images" },
+    //     (error, result) => {
+    //       if (error) return reject(error);
+    //       resolve(result);
+    //     },
+    //   );
+    //   streamifier.createReadStream(req.file.buffer).pipe(stream);
+    // });
+    //voice message
+    const folderMap = {
+      image: "chat_images",
+      video: "chat_videos",
+      raw: "chat_documents",
+    };
+
+    const resourceType = req.file.mimetype.startsWith("image/")
+      ? "image"
+      : req.file.mimetype.startsWith("video/")
+        ? "video"
+        : req.file.mimetype.startsWith("audio/")
+          ? "video" // Cloudinary stores audio as video
+          : "raw";
+
     const result = await new Promise((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
-        { folder: "chat_images" },
+        {
+          folder: folderMap[resourceType],
+          resource_type: resourceType,
+        },
         (error, result) => {
           if (error) return reject(error);
           resolve(result);
         },
       );
+
       streamifier.createReadStream(req.file.buffer).pipe(stream);
     });
-
     return res
       .status(200)
       .json(
@@ -288,6 +320,33 @@ const editMessage = async (req, res, next) => {
   }
 };
 
+// const deleteMessage = async (req, res, next) => {
+//   try {
+//     const { error, value } = deleteMessageSchema.validate(req.body);
+//     if (error) throw new ApiError(400, error.details[0].message);
+
+//     const { messageId } = value;
+//     const userId = req.user._id;
+
+//     const message = await chatService.findMessageById(messageId);
+//     if (!message) throw new ApiError(404, "Message not found");
+
+//     if (message.senderId.toString() !== userId.toString()) {
+//       throw new ApiError(403, "You can only delete your own messages");
+//     }
+
+//     await chatService.updateMessageById(messageId, {
+//       isDeleted: true,
+//       deletedAt: new Date(),
+//       content: "This message was deleted",
+//     });
+
+//     return res.status(200).json(new ApiResponse(200, {}, "Message deleted"));
+//   } catch (err) {
+//     next(err);
+//   }
+// };
+
 const deleteMessage = async (req, res, next) => {
   try {
     const { error, value } = deleteMessageSchema.validate(req.body);
@@ -299,7 +358,10 @@ const deleteMessage = async (req, res, next) => {
     const message = await chatService.findMessageById(messageId);
     if (!message) throw new ApiError(404, "Message not found");
 
-    if (message.senderId.toString() !== userId.toString()) {
+    // Works whether senderId is populated or not
+    const senderId = message.senderId._id || message.senderId;
+
+    if (senderId.toString() !== userId.toString()) {
       throw new ApiError(403, "You can only delete your own messages");
     }
 
@@ -405,14 +467,13 @@ const reportConversation = async (req, res, next) => {
   }
 };
 
-
-
 module.exports = {
   createOrGetConversation,
   getConversation,
   myConversations,
   getMessages,
-  uploadChatImage,
+  // uploadChatImage,
+  uploadChatMedia,
   editMessage,
   deleteMessage,
   blockUser,

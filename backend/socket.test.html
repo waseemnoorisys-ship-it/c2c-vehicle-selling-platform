@@ -655,6 +655,7 @@
       display: flex;
       padding: 2px 16px;
       animation: msgIn 0.15s ease;
+      /* margin-top: 13px; */
     }
 
     @keyframes msgIn {
@@ -722,13 +723,20 @@
     .msg-content {
       font-size: 14.2px;
       color: var(--text-primary);
-      line-height: 0.45;
+      line-height: 0.85;
       /* white-space: pre-wrap; */
     }
 
     .msg-content.deleted {
       color: var(--text-muted);
       font-style: italic;
+    }
+
+    /*styling for voice message*/
+    .msg-audio {
+      width: 220px;
+      max-width: 100%;
+      margin-top: 4px;
     }
 
     .msg-img {
@@ -1584,6 +1592,11 @@
             <textarea id="msg-input" rows="1" placeholder="Type a message" onkeydown="onInputKeydown(event)"
               oninput="onInputChange()"></textarea>
           </div>
+          <!--voice message input-->
+
+          <button id="record-btn" onclick="toggleRecording()" style="font-size: 20px; margin-bottom: 5px">
+            🎤
+          </button>
 
           <button class="send-btn" onclick="sendMessage()" title="Send">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="white">
@@ -1680,6 +1693,10 @@
     let lastSeenMap = {};            // userId → lastSeen date
     let selectedReplyMessage = null; //reply message
     let reactionMessage = null; //reply message 
+    let mediaRecorder = null; //voice message globle variable
+    let audioChunks = []; //voice message globle variable
+    let recordedAudioBlob = null; //voice message globle variable
+    let isRecording = false; //voice message globle variable
     /* ============================================================
        HELPERS
        ============================================================ */
@@ -1749,20 +1766,59 @@
       setTimeout(() => el.remove(), duration);
     }
 
-    async function api(path, method = 'POST', body = null, isForm = false) {
+    //old api function
+    // async function api(path, method = 'POST', body = null, isForm = false) {
+    //   const opts = {
+    //     method,
+    //     headers: { 'Authorization': 'Bearer ' + token }
+    //   };
+    //   if (body && !isForm) {
+    //     opts.headers['Content-Type'] = 'application/json';
+    //     opts.body = JSON.stringify(body);
+    //   } else if (body && isForm) {
+    //     opts.body = body;
+    //   }
+    //   const r = await fetch(API + path, opts);
+    //   const data = await r.json();
+    //   if (!r.ok) throw new Error(data.message || 'Request failed');
+    //   return data;
+    // }
+    //temporary api call
+    async function api(path, method = "POST", body = null, isForm = false) {
       const opts = {
         method,
-        headers: { 'Authorization': 'Bearer ' + token }
+        headers: {
+          Authorization: "Bearer " + token,
+        },
       };
+
       if (body && !isForm) {
-        opts.headers['Content-Type'] = 'application/json';
+        opts.headers["Content-Type"] = "application/json";
         opts.body = JSON.stringify(body);
       } else if (body && isForm) {
         opts.body = body;
       }
+
       const r = await fetch(API + path, opts);
-      const data = await r.json();
-      if (!r.ok) throw new Error(data.message || 'Request failed');
+
+      const text = await r.text();
+
+      // console.log("Status:", r.status);
+      // console.log("Response:", text);
+
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (err) {
+        throw new Error(
+          `Server returned invalid JSON.\nStatus: ${r.status}\nResponse:\n${text}`
+        );
+      }
+
+      if (!r.ok) {
+        throw new Error(data.message || "Request failed");
+      }
+
       return data;
     }
 
@@ -2148,32 +2204,56 @@
     </div>
   `;
       }
+      //old image as message 
+      //   if (m.isDeleted) {
 
+      //     contentHTML =
+      //       `<div class="msg-content deleted">
+      //     This message was deleted
+      //  </div>`;
+
+      //   } else if (m.type === "image") {
+
+      //     contentHTML =
+      //       replyHTML +
+      //       `<img
+      //     class="msg-img"
+      //     src="${escHtml(m.content)}"
+      //     alt="image"
+      //     onclick="openImgViewer('${escHtml(m.content)}')"
+      // />`;
+
+      //   } else {
+
+      //     contentHTML =
+      //       replyHTML +
+      //       `<div class="msg-content">
+      //       ${escHtml(m.content)}
+      //   </div>`;
+      //   }
+      //new message as voice message  + image message 
       if (m.isDeleted) {
 
-        contentHTML =
-          `<div class="msg-content deleted">
-        This message was deleted
-     </div>`;
+      }
+      else if (m.type === "image") {
 
-      } else if (m.type === "image") {
+      }
+      else if (m.type === "audio") {
 
-        contentHTML =
-          replyHTML +
-          `<img
-        class="msg-img"
-        src="${escHtml(m.content)}"
-        alt="image"
-        onclick="openImgViewer('${escHtml(m.content)}')"
-    />`;
+        contentHTML = `
+        <audio controls class="msg-audio">
+            <source src="${escHtml(m.content)}" type="audio/webm">
+        </audio>
+    `;
 
-      } else {
-
+      }
+      else {
         contentHTML =
           replyHTML +
           `<div class="msg-content">
-          ${escHtml(m.content)}
-      </div>`;
+             ${escHtml(m.content)}
+        </div>`;
+
       }
 
       // Meta (time + edited + ticks)
@@ -2238,6 +2318,73 @@
       if ($('messages-area').scrollTop < 80) loadMessages(false);
     });
 
+    /*---Voice message toggle function*/
+    function playRecordedAudio() {
+
+      if (!recordedAudioBlob) return;
+
+      const audioURL = URL.createObjectURL(recordedAudioBlob);
+
+      const audio = new Audio(audioURL);
+
+      audio.play();
+
+    }
+    async function toggleRecording() {
+      if (!isRecording) {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            audio: true,
+          });
+
+          mediaRecorder = new MediaRecorder(stream);
+
+          audioChunks = [];
+
+          mediaRecorder.ondataavailable = (event) => {
+            if (event.data.size > 0) {
+              audioChunks.push(event.data);
+            }
+          };
+
+          mediaRecorder.onstop = async () => {
+            recordedAudioBlob = new Blob(audioChunks, {
+              type: "audio/webm",
+            });
+
+            console.log("Recorded Blob:", recordedAudioBlob);
+
+            // Uncomment this if you want to hear your own recording
+            // playRecordedAudio();
+
+            // Upload to Cloudinary & send chat message
+            await sendAudioMessage();
+
+            // Stop microphone completely
+            stream.getTracks().forEach((track) => track.stop());
+          };
+
+          mediaRecorder.start();
+
+          isRecording = true;
+
+          document.getElementById("record-btn").innerText = "⏹";
+
+          console.log("Recording Started");
+        } catch (err) {
+          console.error(err);
+          toast("Microphone permission denied", "error");
+        }
+      } else {
+        mediaRecorder.stop();
+
+        isRecording = false;
+
+        document.getElementById("record-btn").innerText = "🎤";
+
+        console.log("Recording Stopped");
+      }
+    }
     /* ============================================================
        SEND MESSAGE
        ============================================================ */
@@ -2291,14 +2438,52 @@
       if (!pendingImg) return;
       try {
         const fd = new FormData();
-        fd.append('image', pendingImg.file);
+        fd.append('file', pendingImg.file);
         fd.append('conversationId', activeConvId);
-        const res = await api('/chat/messages/upload-image', 'POST', fd, true);
+        const res = await api('/chat/messages/upload-media', 'POST', fd, true);
         const url = res.data.url;
         socket.emit('send_message', { conversationId: activeConvId, content: url, type: 'image' });
         clearImagePreview();
       } catch (e) {
         toast('Image upload failed: ' + e.message, 'error');
+      }
+    }
+
+    //voice message
+    async function sendAudioMessage() {
+      if (!recordedAudioBlob) return;
+
+      try {
+        const fd = new FormData();
+        //what is mean by fd ?
+        //fd is a form data object that is used to send data to the server
+        fd.append("file", recordedAudioBlob, "voice.webm");
+        fd.append("conversationId", activeConvId);
+
+        const res = await api(
+          "/chat/messages/upload-media",
+          "POST",
+          fd,
+          true
+        );
+        console.log("upload Response : ", res)
+
+        const url = res.data.url;
+
+        socket.emit("send_message", {
+          conversationId: activeConvId,
+          content: url,
+          type: "audio",
+        });
+
+        // Clear after successful send
+        recordedAudioBlob = null;
+        audioChunks = [];
+
+        console.log("Voice message sent");
+
+      } catch (e) {
+        toast("Voice upload failed: " + e.message, "error");
       }
     }
 
@@ -2687,6 +2872,7 @@
       // Error
       socket.on('error', ({ message }) => toast(message, 'error'));
     }
+
 
     function setConnStatus(state) {
       const el = $('conn-status');
