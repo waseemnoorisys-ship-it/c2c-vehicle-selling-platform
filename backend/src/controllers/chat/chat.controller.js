@@ -268,15 +268,20 @@ const uploadChatMedia = async (req, res, next) => {
 
       streamifier.createReadStream(req.file.buffer).pipe(stream);
     });
-    return res
-      .status(200)
-      .json(
-        new ApiResponse(
-          200,
-          { url: result.secure_url, publicId: result.public_id },
-          "Image uploaded",
-        ),
-      );
+    return res.status(200).json(
+      new ApiResponse(
+        200,
+        {
+          url: result.secure_url,
+          publicId: result.public_id,
+
+          fileName: req.file.originalname,
+          fileSize: req.file.size,
+          mimeType: req.file.mimetype,
+        },
+        "Media uploaded",
+      ),
+    );
   } catch (err) {
     next(err);
   }

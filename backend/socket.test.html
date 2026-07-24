@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>C2C Vehicles — Chat</title>
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.3.0/css/all.min.css" integrity="sha512-ApSLB1Pd3/bZN8fWB/RG9YhN/7bd9Hkf3AGaE2mPfebjrxagjuBtx2GcgdqIlJkUzwylBo61r9Xa9NmgBI0swA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <style>
     /* ============================================================
    DESIGN TOKENS
@@ -888,6 +889,17 @@
       flex-shrink: 0;
       transition: background 0.15s, transform 0.1s;
     }
+    /*this is download btn*/
+    .doc-download{
+      margin-top: 10px;
+      color:white;
+      font-size: 15px;
+      font-weight: bold;
+      border:3px solid red;
+      border-radius: 10%;
+      padding: 3px 5px;
+      background-color: red;
+    }
 
     .send-btn:hover {
       background: var(--accent-hover);
@@ -1572,8 +1584,8 @@
                 d="M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5c0-1.38 1.12-2.5 2.5-2.5s2.5 1.12 2.5 2.5v10.5c0 .55-.45 1-1 1s-1-.45-1-1V6H10v9.5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V5c0-2.21-1.79-4-4-4S7 2.79 7 5v12.5c0 3.04 2.46 5.5 5.5 5.5s5.5-2.46 5.5-5.5V6h-1.5z" />
             </svg>
           </button>
-
-          <input type="file" id="img-file" accept="image/*" style="display:none" onchange="onImageSelected()" />
+          <input id="img-file" type="file" accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar"
+            onchange="onMediaSelected()" />
           <div class="input-wrap">
             <!--reply message functionality-->
             <div id="reply-preview" class="reply-preview" style="display:none;">
@@ -1595,7 +1607,7 @@
           <!--voice message input-->
 
           <button id="record-btn" onclick="toggleRecording()" style="font-size: 20px; margin-bottom: 5px">
-            🎤
+            🎙️
           </button>
 
           <button class="send-btn" onclick="sendMessage()" title="Send">
@@ -1697,6 +1709,22 @@
     let audioChunks = []; //voice message globle variable
     let recordedAudioBlob = null; //voice message globle variable
     let isRecording = false; //voice message globle variable
+
+    let pendingMedia = null;          // { file, url } for media upload
+    // const DOCUMENT_TYPES = new Set([
+    //   "application/pdf",
+    //   "application/msword",
+    //   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    //   "application/vnd.ms-excel",
+    //   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    //   "application/vnd.ms-powerpoint",
+    //   "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    //   "application/zip",
+    //   "application/x-rar-compressed"
+    // ]);
+    // if (DOCUMENT_TYPES.has(file.type)) {
+    //   type = "document";
+    // }
     /* ============================================================
        HELPERS
        ============================================================ */
@@ -2108,7 +2136,7 @@
         const area = $('messages-area');
         const prevHeight = area.scrollHeight;
         const prevScroll = area.scrollTop;
-        $('msgs-loading').classList.remove('hidden');
+        $('msg-loading').classList.add('hidden')
         try {
           const res = await api('/chat/messages/list', 'POST', { conversationId: activeConvId, page: msgPage, limit: 50 });
           const msgs = res.data.messages || [];
@@ -2165,6 +2193,108 @@
       return div;
     }
 
+    // helper function for sending files 
+    function buildMediaContent(m, replyHTML) {
+
+      switch (m.type) {
+
+        case "image":
+          return `
+        ${replyHTML}
+        <img
+          class="msg-img"
+          src="${escHtml(m.content)}"
+          alt="${escHtml(m.fileName || "image")}"
+          onclick="openImgViewer('${escHtml(m.content)}')"
+        />
+      `;
+
+        case "audio":
+          return `
+        ${replyHTML}
+        <audio controls class="msg-audio">
+          <source
+            src="${escHtml(m.content)}"
+            type="${escHtml(m.mimeType || "audio/webm")}"
+          >
+        </audio>
+      `;
+
+        case "video":
+          return `
+        ${replyHTML}
+        <video
+          controls
+          class="msg-video"
+        >
+          <source
+            src="${escHtml(m.content)}"
+            type="${escHtml(m.mimeType || "video/mp4")}"
+          >
+        </video>
+      `;
+
+        case "document":
+
+          return `
+        ${replyHTML}
+
+        <div class="msg-document">
+
+          <div class="doc-icon">📄</div>
+
+          <div class="doc-info">
+
+            <div class="doc-name">
+              ${escHtml(m.fileName || "Document")}
+            </div>
+
+            <div class="doc-size">
+              ${formatFileSize(m.fileSize)}
+            </div>
+
+          </div>
+          <br>
+
+          <a
+            href="${escHtml(m.content)}"
+            target="_blank"
+            class="doc-download"
+          >
+            ⬇ 
+          </a>
+
+        </div>
+      `;
+
+        default:
+
+          return `
+        ${replyHTML}
+
+        <div class="msg-content">
+          ${escHtml(m.content)}
+        </div>
+      `;
+      }
+    }
+    function formatFileSize(bytes) {
+
+      if (!bytes) return "";
+
+      const units = ["B", "KB", "MB", "GB"];
+
+      let size = bytes;
+      let unit = 0;
+
+      while (size >= 1024 && unit < units.length - 1) {
+        size /= 1024;
+        unit++;
+      }
+
+      return `${size.toFixed(1)} ${units[unit]}`;
+    }
+
     function buildMsgEl(m) {
       const isOut = (m.senderId?._id || m.senderId) === me?._id;
       // console.log("ReplyTo =>", m.replyTo);
@@ -2204,55 +2334,18 @@
     </div>
   `;
       }
-      //old image as message 
-      //   if (m.isDeleted) {
 
-      //     contentHTML =
-      //       `<div class="msg-content deleted">
-      //     This message was deleted
-      //  </div>`;
-
-      //   } else if (m.type === "image") {
-
-      //     contentHTML =
-      //       replyHTML +
-      //       `<img
-      //     class="msg-img"
-      //     src="${escHtml(m.content)}"
-      //     alt="image"
-      //     onclick="openImgViewer('${escHtml(m.content)}')"
-      // />`;
-
-      //   } else {
-
-      //     contentHTML =
-      //       replyHTML +
-      //       `<div class="msg-content">
-      //       ${escHtml(m.content)}
-      //   </div>`;
-      //   }
-      //new message as voice message  + image message 
       if (m.isDeleted) {
 
-      }
-      else if (m.type === "image") {
-
-      }
-      else if (m.type === "audio") {
-
         contentHTML = `
-        <audio controls class="msg-audio">
-            <source src="${escHtml(m.content)}" type="audio/webm">
-        </audio>
-    `;
+    <div class="msg-content deleted">
+      This message was deleted
+    </div>
+  `;
 
-      }
-      else {
-        contentHTML =
-          replyHTML +
-          `<div class="msg-content">
-             ${escHtml(m.content)}
-        </div>`;
+      } else {
+
+        contentHTML = buildMediaContent(m, replyHTML);
 
       }
 
@@ -2380,7 +2473,7 @@
 
         isRecording = false;
 
-        document.getElementById("record-btn").innerText = "🎤";
+        document.getElementById("record-btn").innerText = "🎙️";
 
         console.log("Recording Stopped");
       }
@@ -2388,64 +2481,137 @@
     /* ============================================================
        SEND MESSAGE
        ============================================================ */
+    //all media/file supported
     async function sendMessage() {
       if (!activeConvId || !socket) return;
 
-      // If image pending, upload first
-      if (pendingImg) {
-        await sendImageMessage();
+      // Upload any pending media first
+      if (pendingMedia) {
+        await sendMediaMessage();
         return;
       }
 
-      const txt = $('msg-input').value.trim();
+      const txt = $("msg-input").value.trim();
+
       if (!txt) return;
 
+      // Edit message
       if (editingMsgId) {
-        socket.emit('edit_message', {
+        socket.emit("edit_message", {
           messageId: editingMsgId,
-          newContent: txt
+          newContent: txt,
         });
 
         cancelEdit();
-        $('msg-input').value = '';
+        $("msg-input").value = "";
         autoResize();
         return;
       }
 
+      // Send text message
       socket.emit("send_message", {
         conversationId: activeConvId,
         content: txt,
         type: "text",
-        replyTo: selectedReplyMessage?._id || null
+        replyTo: selectedReplyMessage?._id || null,
       });
 
       cancelReply();
 
-      $('msg-input').value = '';
+      $("msg-input").value = "";
       autoResize();
 
-      // Stop typing
       if (isTyping) {
-        socket.emit('stop_typing', {
-          conversationId: activeConvId
+        socket.emit("stop_typing", {
+          conversationId: activeConvId,
         });
 
         isTyping = false;
       }
     }
+    async function sendMediaMessage() {
+      if (!pendingMedia) return;
 
-    async function sendImageMessage() {
-      if (!pendingImg) return;
       try {
         const fd = new FormData();
-        fd.append('file', pendingImg.file);
-        fd.append('conversationId', activeConvId);
-        const res = await api('/chat/messages/upload-media', 'POST', fd, true);
-        const url = res.data.url;
-        socket.emit('send_message', { conversationId: activeConvId, content: url, type: 'image' });
-        clearImagePreview();
+
+        const fileName =
+          pendingMedia.fileName ||
+          pendingMedia.file.name ||
+          "voice.webm";
+
+        fd.append("file", pendingMedia.file, fileName);
+        fd.append("conversationId", activeConvId);
+
+        const res = await api(
+          "/chat/messages/upload-media",
+          "POST",
+          fd,
+          true
+        );
+
+        socket.emit("send_message", {
+          conversationId: activeConvId,
+
+          type: pendingMedia.type,
+          content: res.data.url,
+
+          publicId: res.data.publicId,
+          fileName: res.data.fileName,
+          fileSize: res.data.fileSize,
+          mimeType: res.data.mimeType,
+
+          replyTo: selectedReplyMessage?._id || null,
+        });
+
+        pendingMedia = null;
+
+        clearImagePreview?.();      
+        cancelReply();
+
+        console.log(`${res.data.mimeType} sent successfully`);
+
       } catch (e) {
-        toast('Image upload failed: ' + e.message, 'error');
+        toast("Media upload failed: " + e.message, "error");
+      }
+    }
+    async function sendImageMessage() {
+      if (!pendingImg) return;
+
+      try {
+        const fd = new FormData();
+        fd.append("file", pendingImg.file);
+        fd.append("conversationId", activeConvId);
+
+        const res = await api(
+          "/chat/messages/upload-media",
+          "POST",
+          fd,
+          true
+        );
+
+        console.log("Upload Response:", res);
+
+        socket.emit("send_message", {
+          conversationId: activeConvId,
+
+          // Message
+          type: "image",
+          content: res.data.url,
+
+          // File Metadata
+          publicId: res.data.publicId,
+          fileName: res.data.fileName,
+          fileSize: res.data.fileSize,
+          mimeType: res.data.mimeType,
+        });
+
+        clearImagePreview();
+
+        console.log("Image message sent");
+
+      } catch (e) {
+        toast("Image upload failed: " + e.message, "error");
       }
     }
 
@@ -2455,8 +2621,7 @@
 
       try {
         const fd = new FormData();
-        //what is mean by fd ?
-        //fd is a form data object that is used to send data to the server
+
         fd.append("file", recordedAudioBlob, "voice.webm");
         fd.append("conversationId", activeConvId);
 
@@ -2466,14 +2631,21 @@
           fd,
           true
         );
-        console.log("upload Response : ", res)
 
-        const url = res.data.url;
+        console.log("Upload Response:", res);
 
         socket.emit("send_message", {
           conversationId: activeConvId,
-          content: url,
+
+          // Message
           type: "audio",
+          content: res.data.url,
+
+          // File Metadata
+          publicId: res.data.publicId,
+          fileName: res.data.fileName,
+          fileSize: res.data.fileSize,
+          mimeType: res.data.mimeType,
         });
 
         // Clear after successful send
@@ -2486,6 +2658,8 @@
         toast("Voice upload failed: " + e.message, "error");
       }
     }
+
+
 
     function onInputKeydown(e) {
       if (e.key === 'Enter' && !e.shiftKey) {
@@ -2518,13 +2692,61 @@
     /* ============================================================
        IMAGE HANDLING
        ============================================================ */
-    function onImageSelected() {
-      const file = $('img-file').files[0];
+    function onMediaSelected() {
+
+      const file = $("img-file").files[0];
+
       if (!file) return;
-      pendingImg = { file, url: URL.createObjectURL(file) };
-      $('img-preview-thumb').src = pendingImg.url;
-      $('img-preview-name').textContent = file.name;
-      $('img-preview-wrap').classList.add('visible');
+
+      let type = "document";
+
+      if (file.type.startsWith("image/")) {
+        type = "image";
+      }
+      else if (file.type.startsWith("video/")) {
+        type = "video";
+      }
+      else if (
+        file.type === "application/pdf" ||
+        file.type.includes("word") ||
+        file.type.includes("excel") ||
+        file.type.includes("powerpoint") ||
+        file.type.includes("zip") ||
+        file.type.includes("rar")
+      ) {
+        type = "document";
+      }
+
+      pendingMedia = {
+        file,
+        type,
+        url: URL.createObjectURL(file)
+      };
+
+      // ---------- Preview ----------
+
+      if (type === "image") {
+
+        $("img-preview-thumb").src = pendingMedia.url;
+        $("img-preview-thumb").style.display = "block";
+
+      }
+      else if (type === "video") {
+
+        $("img-preview-thumb").src = "";
+        $("img-preview-thumb").style.display = "none";
+
+      }
+      else {
+
+        $("img-preview-thumb").src = "";
+        $("img-preview-thumb").style.display = "none";
+
+      }
+
+      $("img-preview-name").textContent = file.name;
+
+      $("img-preview-wrap").classList.add("visible");
     }
 
     function clearImagePreview() {

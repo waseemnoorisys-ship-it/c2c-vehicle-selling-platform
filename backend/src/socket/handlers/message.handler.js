@@ -5,7 +5,18 @@ const logger = require("../../config/logger");
 function registerMessageHandlers(io, socket, onlineUsers) {
   socket.on("send_message", async (data) => {
     try {
-      const { conversationId, content, type = "text", replyTo = null } = data;
+      const {
+        conversationId,
+        content,
+        type = "text",
+
+        publicId,
+        fileName,
+        fileSize,
+        mimeType,
+
+        replyTo,
+      } = data;
       const sender = socket.data.user;
 
       if (!conversationId || !content) {
@@ -78,10 +89,23 @@ function registerMessageHandlers(io, socket, onlineUsers) {
 
       const message = await chatService.createMessage({
         conversationId,
+
         senderId: sender._id,
+
         senderRole,
+
         type,
+
         content,
+
+        publicId,
+
+        fileName,
+
+        fileSize,
+
+        mimeType,
+
         replyTo,
       });
 
@@ -295,6 +319,16 @@ function registerMessageHandlers(io, socket, onlineUsers) {
         "message_reaction_updated",
         populatedMessage,
       );
+
+      // const populatedMessage = await chatService.findMessageById(messageId);
+
+      // console.log("===== Updated Message =====");
+      // console.log(JSON.stringify(populatedMessage, null, 2));
+
+      // io.to(message.conversationId.toString()).emit(
+      //   "message_reaction_updated",
+      //   populatedMessage,
+      // );
     } catch (err) {
       logger.error("react_message handler error", err);
 

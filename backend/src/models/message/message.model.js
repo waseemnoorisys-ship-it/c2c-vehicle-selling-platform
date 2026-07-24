@@ -19,18 +19,33 @@ const messageSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ["text", "image" ,"audio", "video","file"],
+      enum: ["text", "image", "audio", "video", "file","document"],
       default: "text",
     },
     content: {
       type: String,
       required: true,
     },
-    content: {
+    publicId: {
       type: String,
-      required: true,
+      default: null,
     },
-    
+
+    fileName: {
+      type: String,
+      default: null,
+    },
+
+    fileSize: {
+      type: Number,
+      default: null,
+    },
+
+    mimeType: {
+      type: String,
+      default: null,
+    },
+
     replyTo: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Message",
@@ -38,7 +53,7 @@ const messageSchema = new mongoose.Schema(
     },
     reactions: [
       {
-        userId: {       
+        userId: {
           type: mongoose.Schema.Types.ObjectId,
           ref: "User",
         },
@@ -50,8 +65,6 @@ const messageSchema = new mongoose.Schema(
       },
     ],
 
-
-    
     isRead: {
       type: Boolean,
       default: false,
@@ -77,7 +90,7 @@ const messageSchema = new mongoose.Schema(
       default: null,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 messageSchema.index({ conversationId: 1, createdAt: -1 });
