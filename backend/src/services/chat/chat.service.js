@@ -189,6 +189,7 @@ async function markMessagesAsRead(conversationId, recipientId) {
     {
       isRead: true,
       readAt: new Date(),
+      isDelivered: true,
     },
   );
 }

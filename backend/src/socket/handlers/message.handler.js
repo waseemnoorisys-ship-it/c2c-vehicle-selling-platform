@@ -87,26 +87,26 @@ function registerMessageHandlers(io, socket, onlineUsers) {
         }
       }
 
+      const recipientId = isBuyer
+        ? conversation.vendorId._id.toString()
+        : conversation.buyerId._id.toString();
+
+      const recipientPresence = onlineUsers.get(recipientId);
+      const isRecipientOnline = Boolean(recipientPresence && recipientPresence.isOnline);
+
       const message = await chatService.createMessage({
         conversationId,
-
         senderId: sender._id,
-
         senderRole,
-
         type,
-
         content,
-
         publicId,
-
         fileName,
-
         fileSize,
-
         mimeType,
-
         replyTo,
+        isDelivered: isRecipientOnline,
+        deliveredAt: isRecipientOnline ? new Date() : null,
       });
 
       const lastMessagePreview = type === "image" ? "📷 Image" : content;
@@ -140,11 +140,6 @@ function registerMessageHandlers(io, socket, onlineUsers) {
 
       io.to(conversationId).emit("new_message", populatedMessage);
 
-      const recipientId = isBuyer
-        ? conversation.vendorId._id.toString()
-        : conversation.buyerId._id.toString();
-
-      const recipientPresence = onlineUsers.get(recipientId);
       const isRecipientOffline =
         !recipientPresence || !recipientPresence.isOnline;
 
@@ -343,6 +338,12 @@ function registerMessageHandlers(io, socket, onlineUsers) {
 
       const userId = socket.data.user._id;
 
+      // Verify user is online before marking read
+      const userPresence = onlineUsers.get(userId.toString());
+      if (!userPresence || !userPresence.isOnline) {
+        return;
+      }
+
       const conversation =
         await chatService.findConversationById(conversationId);
       if (!conversation) return;
@@ -370,13 +371,40 @@ function registerMessageHandlers(io, socket, onlineUsers) {
         [unreadField]: 0,
       });
 
-      socket.to(conversationId).emit("messages_read", {
+      io.to(conversationId).emit("messages_read", {
         conversationId,
         readBy: userId,
         readAt: new Date(),
       });
     } catch (err) {
       logger.error("mark_read handler error", err);
+    }
+  });
+  //message message_deliverd
+  socket.on("message_delivered", async ({ messageId }) => {
+    try {
+      if (!messageId) return;
+
+      const message = await chatService.findMessageById(messageId);
+
+      if (!message) return;
+
+      // Don't update again if already delivered
+      if (message.isDelivered) return;
+
+      await chatService.updateMessageById(messageId, {
+        isDelivered: true,
+        deliveredAt: new Date(),
+      });
+
+      const updatedMessage = await chatService.findMessageById(messageId);
+
+      io.to(message.conversationId.toString()).emit(
+        "message_delivered",
+        updatedMessage,
+      );
+    } catch (err) {
+      logger.error("message_delivered handler error", err);
     }
   });
 

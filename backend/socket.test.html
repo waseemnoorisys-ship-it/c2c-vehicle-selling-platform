@@ -6,7 +6,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>C2C Vehicles — Chat</title>
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.3.0/css/all.min.css" integrity="sha512-ApSLB1Pd3/bZN8fWB/RG9YhN/7bd9Hkf3AGaE2mPfebjrxagjuBtx2GcgdqIlJkUzwylBo61r9Xa9NmgBI0swA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.3.0/css/all.min.css"
+    integrity="sha512-ApSLB1Pd3/bZN8fWB/RG9YhN/7bd9Hkf3AGaE2mPfebjrxagjuBtx2GcgdqIlJkUzwylBo61r9Xa9NmgBI0swA=="
+    crossorigin="anonymous" referrerpolicy="no-referrer" />
   <style>
     /* ============================================================
    DESIGN TOKENS
@@ -889,13 +891,14 @@
       flex-shrink: 0;
       transition: background 0.15s, transform 0.1s;
     }
+
     /*this is download btn*/
-    .doc-download{
+    .doc-download {
       margin-top: 10px;
-      color:white;
+      color: white;
       font-size: 15px;
       font-weight: bold;
-      border:3px solid red;
+      border: 3px solid red;
       border-radius: 10%;
       padding: 3px 5px;
       background-color: red;
@@ -1363,6 +1366,19 @@
       background-color: var(--accent);
       border-radius: 5px;
     }
+
+    /*blue tick message -deliverd styling ticksHTML(m)*/
+    .ticks.sent {
+      color: #9ca3af;
+    }
+
+    .ticks.delivered {
+      color: #9ca3af;
+    }
+
+    .ticks.read {
+      color: #38bdf8;
+    }
   </style>
 </head>
 
@@ -1676,6 +1692,11 @@
   <div id="toast-container"></div>
 
   <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      console.log('socket.test.html loaded');
+    });
+
+    /*
     /* ============================================================
        CONFIG — change BASE_URL to your backend address
        ============================================================ */
@@ -1951,15 +1972,31 @@
     /* ============================================================
        CONVERSATIONS
        ============================================================ */
-    async function loadConversations() {
-      try {
-        const res = await api('/chat/conversations/mine', 'POST', { page: 1, limit: 50 });
-        conversations = res.data.conversations || [];
-        renderConvList();
-      } catch (e) {
-        toast('Failed to load conversations', 'error');
-      }
+   async function loadConversations() {
+  try {
+    const res = await api(
+      "/chat/conversations/mine",
+      "POST",
+      { page: 1, limit: 50 }
+    );
+
+    conversations = res.data.conversations || [];
+
+    // Join every conversation room
+    if (socket && socket.connected) {
+      conversations.forEach((conv) => {
+        socket.emit("join_conversation", {
+          conversationId: conv._id,
+        });
+      });
     }
+
+    renderConvList();
+
+  } catch (e) {
+    toast("Failed to load conversations", "error");
+  }
+}
 
     function renderConvList(filter = '') {
       const list = $('conv-list');
@@ -2380,10 +2417,31 @@
     }
 
     function ticksHTML(m) {
+
+      // Read
       if (m.isRead) {
-        return `<svg class="msg-ticks" width="16" height="11" viewBox="0 0 16 11" fill="${'var(--tick-blue)'}"><path d="M11.071.653a.75.75 0 0 1 1.06 1.06l-6.364 6.364a.75.75 0 0 1-1.06 0L2.293 5.653A.75.75 0 0 1 3.354 4.59l1.883 1.884L11.07.653z"/><path d="M15.293.653a.75.75 0 0 1 1.06 1.06l-6.364 6.364a.75.75 0 0 1-.424.213l.424-.213L15.293.653z" transform="translate(-4,0)"/></svg>`;
+        return `
+      <span class="ticks read">
+        ✓✓
+      </span>
+    `;
       }
-      return `<svg class="msg-ticks" width="16" height="11" viewBox="0 0 16 11" fill="${'var(--tick-grey)'}"><path d="M11.071.653a.75.75 0 0 1 1.06 1.06l-6.364 6.364a.75.75 0 0 1-1.06 0L2.293 5.653A.75.75 0 0 1 3.354 4.59l1.883 1.884L11.07.653z"/><path d="M15.293.653a.75.75 0 0 1 1.06 1.06l-6.364 6.364a.75.75 0 0 1-.424.213l.424-.213L15.293.653z" transform="translate(-4,0)"/></svg>`;
+
+      // Delivered
+      if (m.isDelivered) {
+        return `
+      <span class="ticks delivered">
+        ✓✓
+      </span>
+    `;
+      }
+
+      // Sent
+      return `
+    <span class="ticks sent">
+      ✓
+    </span>
+  `;
     }
 
     function appendMessage(m) {
@@ -2566,7 +2624,7 @@
 
         pendingMedia = null;
 
-        clearImagePreview?.();      
+        clearImagePreview?.();
         cancelReply();
 
         console.log(`${res.data.mimeType} sent successfully`);
@@ -2971,128 +3029,158 @@
       socket.on('connect_error', () => setConnStatus('reconnecting'));
 
       // New message
-      socket.on('new_message', msg => {
+      socket.on("new_message", (msg) => {
+
+        const isMyMessage = (msg.senderId?._id || msg.senderId) === me._id;
+
+        // Don't send delivery receipt for our own messages
+        if (!isMyMessage) {
+          socket.emit("message_delivered", {
+            messageId: msg._id,
+          });
+        }
+
         if (msg.conversationId === activeConvId) {
           appendMessage(msg);
-          // Auto mark read
-          socket.emit('mark_read', { conversationId: activeConvId });
+
+          // Only mark as read if message is from the other user
+          if (!isMyMessage) {
+            socket.emit("mark_read", {
+              conversationId: activeConvId,
+            });
+          }
         } else {
-          // Increment unread badge
+
           const conv = conversations.find(c => c._id === msg.conversationId);
+
           if (conv) {
-            if (me?.role === 'buyer') conv.buyerUnread = (conv.buyerUnread || 0) + 1;
-            else conv.vendorUnread = (conv.vendorUnread || 0) + 1;
+
+            if (me?.role === "buyer")
+              conv.buyerUnread = (conv.buyerUnread || 0) + 1;
+            else
+              conv.vendorUnread = (conv.vendorUnread || 0) + 1;
+
             conv.lastMessage = msg.content;
             conv.lastMessageAt = msg.createdAt;
-            // Move to top
-            conversations = [conv, ...conversations.filter(c => c._id !== conv._id)];
-            renderConvList($('search-input').value.trim());
+
+            conversations = [
+              conv,
+              ...conversations.filter(c => c._id !== conv._id),
+            ];
+
+            renderConvList($("search-input").value.trim());
           }
-          // Browser notification
+
           showBrowserNotif(msg);
         }
+      });
+      socket.on("message_delivered", (message) => {
 
-        //emojis
-        socket.on("message_reaction_updated", (message) => {
+        const old = document.querySelector(
+          `[data-msg-id="${message._id}"]`
+        );
 
-          const old = document.querySelector(
-            `[data-msg-id="${message._id}"]`
-          );
+        if (!old) return;
 
-          if (!old) return;
+        old.replaceWith(buildMsgEl(message));
 
-          old.replaceWith(buildMsgEl(message));
-        });
-
-        // Update conversation preview
-        const conv = conversations.find(c => c._id === msg.conversationId);
-        if (conv) {
-          conv.lastMessage = msg.type === 'image' ? '📷 Image' : msg.content;
-          conv.lastMessageAt = msg.createdAt;
-          conversations = [conv, ...conversations.filter(c => c._id !== conv._id)];
-          renderConvList($('search-input').value.trim());
-        }
       });
 
-      // Read receipts
-      socket.on('messages_read', ({ conversationId, readBy }) => {
-        if (conversationId !== activeConvId) return;
-        // Update all out ticks to blue
+      //emojis
+      socket.on("message_reaction_updated", (message) => {
+
+        const old = document.querySelector(
+          `[data-msg-id="${message._id}"]`
+        );
+
+        if (!old) return;
+
+        old.replaceWith(buildMsgEl(message));
+      });
+
+    // Read receipts
+    socket.on('messages_read', ({ conversationId, readBy }) => {
+      if (conversationId !== activeConvId) return;
+      // Only turn outgoing ticks blue if the OTHER person read our messages
+      const myId = me?._id?.toString() || me?._id;
+      const readerId = readBy?.toString() || readBy;
+      if (readerId !== myId) {
         document.querySelectorAll('.msg-wrap.out').forEach(el => {
-          const tickEl = el.querySelector('.msg-ticks');
+          const tickEl = el.querySelector('.ticks');
           if (tickEl) tickEl.outerHTML = ticksHTML({ isRead: true });
         });
-      });
+      }
+    });
 
-      // Typing
-      socket.on('user_typing', ({ conversationId }) => {
-        if (conversationId !== activeConvId) return;
-        $('typing-wrap').innerHTML = `
+    // Typing
+    socket.on('user_typing', ({ conversationId }) => {
+      if (conversationId !== activeConvId) return;
+      $('typing-wrap').innerHTML = `
       <div class="typing-bubble">
         <div class="typing-dot"></div>
         <div class="typing-dot"></div>
         <div class="typing-dot"></div>
       </div>`;
-      });
-      socket.on('user_stop_typing', ({ conversationId }) => {
-        if (conversationId !== activeConvId) return;
-        $('typing-wrap').innerHTML = '';
-      });
+    });
+    socket.on('user_stop_typing', ({ conversationId }) => {
+      if (conversationId !== activeConvId) return;
+      $('typing-wrap').innerHTML = '';
+    });
 
-      // Edit message
-      socket.on('message_edited', ({ messageId, newContent, editedAt }) => {
-        const el = document.querySelector(`[data-msg-id="${messageId}"]`);
-        if (!el) return;
-        const m = JSON.parse(el.dataset.msg || '{}');
-        m.content = newContent; m.isEdited = true; m.editedAt = editedAt;
-        el.dataset.msg = JSON.stringify(m);
-        const contentEl = el.querySelector('.msg-content');
-        if (contentEl) contentEl.textContent = newContent;
-        // Add edited label if not there
-        let metaEl = el.querySelector('.msg-meta');
-        if (metaEl && !el.querySelector('.msg-edited')) {
-          const edited = document.createElement('span');
-          edited.className = 'msg-edited';
-          edited.textContent = 'edited';
-          metaEl.prepend(edited);
-        }
-      });
+    // Edit message
+    socket.on('message_edited', ({ messageId, newContent, editedAt }) => {
+      const el = document.querySelector(`[data-msg-id="${messageId}"]`);
+      if (!el) return;
+      const m = JSON.parse(el.dataset.msg || '{}');
+      m.content = newContent; m.isEdited = true; m.editedAt = editedAt;
+      el.dataset.msg = JSON.stringify(m);
+      const contentEl = el.querySelector('.msg-content');
+      if (contentEl) contentEl.textContent = newContent;
+      // Add edited label if not there
+      let metaEl = el.querySelector('.msg-meta');
+      if (metaEl && !el.querySelector('.msg-edited')) {
+        const edited = document.createElement('span');
+        edited.className = 'msg-edited';
+        edited.textContent = 'edited';
+        metaEl.prepend(edited);
+      }
+    });
 
-      // Delete message
-      socket.on('message_deleted', ({ messageId }) => {
-        const el = document.querySelector(`[data-msg-id="${messageId}"]`);
-        if (!el) return;
-        const m = JSON.parse(el.dataset.msg || '{}');
-        m.isDeleted = true;
-        el.dataset.msg = JSON.stringify(m);
-        const bubble = el.querySelector('.msg-bubble');
-        if (bubble) {
-          const content = bubble.querySelector('.msg-content, img');
-          if (content) { content.className = 'msg-content deleted'; content.textContent = 'This message was deleted'; }
-          // Remove edit/delete from context
-        }
-      });
+    // Delete message
+    socket.on('message_deleted', ({ messageId }) => {
+      const el = document.querySelector(`[data-msg-id="${messageId}"]`);
+      if (!el) return;
+      const m = JSON.parse(el.dataset.msg || '{}');
+      m.isDeleted = true;
+      el.dataset.msg = JSON.stringify(m);
+      const bubble = el.querySelector('.msg-bubble');
+      if (bubble) {
+        const content = bubble.querySelector('.msg-content, img');
+        if (content) { content.className = 'msg-content deleted'; content.textContent = 'This message was deleted'; }
+        // Remove edit/delete from context
+      }
+    });
 
-      // Presence
-      socket.on('user_online', ({ userId }) => {
-        onlineUsers.add(userId);
-        updatePresenceUI(userId, true);
-      });
-      socket.on('user_offline', ({ userId, lastSeen }) => {
-        onlineUsers.delete(userId);
-        lastSeenMap[userId] = lastSeen;
-        updatePresenceUI(userId, false, lastSeen);
-      });
-      socket.on('presence_data', ({ userId, isOnline, lastSeen }) => {
-        if (isOnline) onlineUsers.add(userId);
-        else { onlineUsers.delete(userId); lastSeenMap[userId] = lastSeen; }
-        updatePresenceUI(userId, isOnline, lastSeen);
-      });
+    // Presence
+    socket.on('user_online', ({ userId }) => {
+      onlineUsers.add(userId);
+      updatePresenceUI(userId, true);
+    });
+    socket.on('user_offline', ({ userId, lastSeen }) => {
+      onlineUsers.delete(userId);
+      lastSeenMap[userId] = lastSeen;
+      updatePresenceUI(userId, false, lastSeen);
+    });
+    socket.on('presence_data', ({ userId, isOnline, lastSeen }) => {
+      if (isOnline) onlineUsers.add(userId);
+      else { onlineUsers.delete(userId); lastSeenMap[userId] = lastSeen; }
+      updatePresenceUI(userId, isOnline, lastSeen);
+    });
 
-      // Error
-      socket.on('error', ({ message }) => toast(message, 'error'));
-    }
+    // Error
+    socket.on('error', ({ message }) => toast(message, 'error'));
 
+  }
 
     function setConnStatus(state) {
       const el = $('conn-status');

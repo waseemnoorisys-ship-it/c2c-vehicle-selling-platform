@@ -19,7 +19,7 @@ const messageSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ["text", "image", "audio", "video", "file","document"],
+      enum: ["text", "image", "audio", "video", "file", "document"],
       default: "text",
     },
     content: {
@@ -70,6 +70,15 @@ const messageSchema = new mongoose.Schema(
       default: false,
     },
     readAt: {
+      type: Date,
+      default: null,
+    },
+    isDelivered: {
+      type: Boolean,
+      default: false,
+    },
+
+    deliveredAt: {
       type: Date,
       default: null,
     },
