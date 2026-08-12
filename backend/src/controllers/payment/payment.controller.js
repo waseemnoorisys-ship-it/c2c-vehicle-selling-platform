@@ -81,23 +81,9 @@ const createPaymentIntent = async (req, res, next) => {
 
     const vendorAmount = Math.round(listing.askingPrice);
     const commission = amountInCents - vendorAmount;
+    const baseUrl = process.env.APP_URL || "http://localhost:5000";
 
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: amountInCents,
-      currency: "usd",
-      //metadata means the data that is sent to the stripe payment intent and stors the record in bank stripe
-      automatic_payment_methods:{
-        enabled:true,
-        allow_redirects:"never",
-      },
-      metadata: {
-        offerId: offerId.toString(),
-        buyerId: buyerId.toString(),
-        listingId: listing._id.toString(),
-        vendorId: listing.vendorId.toString(),
-      },
-    });
-
+    const tempTransactionId = `checkout-${offerId}-${Date.now()}`;
     const transaction = await paymentService.createTransaction({
       buyerId,
       vendorId: listing.vendorId,
@@ -109,19 +95,54 @@ const createPaymentIntent = async (req, res, next) => {
       commissionPercent: listing.commissionPercent,
       currency: "usd",
       status: "pending",
-      stripePaymentIntentId: paymentIntent.id,
-      stripePaymentStatus: paymentIntent.status,
+      stripePaymentIntentId: tempTransactionId,
+      stripePaymentStatus: "pending",
     });
 
-    return res
-      .status(200)
-      .json(
-        new ApiResponse(
-          200,
-          { clientSecret: paymentIntent.client_secret, transactionId: transaction._id },
-          t("success.payment.intentCreated", lang)
-        )
-      );
+    const session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      payment_method_types: ["card"],
+      line_items: [
+        {
+          price_data: {
+            currency: "usd",
+            unit_amount: amountInCents,
+            product_data: {
+              name: listing.title || "Vehicle purchase",
+            },
+          },
+          quantity: 1,
+        },
+      ],
+      metadata: {
+        offerId: offerId.toString(),
+        buyerId: buyerId.toString(),
+        listingId: listing._id.toString(),
+        vendorId: listing.vendorId.toString(),
+        transactionId: transaction._id.toString(),
+      },
+      success_url: `${baseUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${baseUrl}/payment/cancel`,
+      customer_email: req.user?.email || undefined,
+    });
+
+    await paymentService.updateTransactionById(transaction._id, {
+      stripePaymentIntentId: session.id,
+      stripePaymentStatus: session.payment_status || "pending",
+    });
+
+    return res.status(200).json(
+      new ApiResponse(
+        200,
+        {
+          checkoutUrl: session.url,
+          sessionId: session.id,
+          transactionId: transaction._id,
+          clientSecret: null,
+        },
+        t("success.payment.intentCreated", lang)
+      )
+    );
   } catch (err) {
     next(err);
   }
@@ -149,6 +170,73 @@ const handleWebhook = async (req, res, next) => {
   }
 
   try {
+    if (event.type === "checkout.session.completed") {
+      const session = event.data.object;
+      const { offerId, listingId, vendorId, transactionId } = session.metadata || {};
+
+      let transaction = null;
+      if (transactionId) {
+        transaction = await paymentService.findTransactionById(transactionId);
+      }
+      if (!transaction) {
+        transaction = await paymentService.findTransactionByIntentId(session.id);
+      }
+
+      if (!transaction) {
+        logger.error("Webhook: transaction not found for checkout session", session.id);
+        return res.status(200).json({ received: true });
+      }
+
+      if (transaction.status === "escrowed") {
+        return res.status(200).json({ received: true });
+      }
+
+      await paymentService.updateTransactionById(transaction._id, {
+        status: "escrowed",
+        stripePaymentStatus: session.payment_status || "paid",
+        escrowedAt: new Date(),
+      });
+
+      if (listingId) {
+        await listingService.updateListingById(listingId, { status: "sold" });
+      }
+
+      if (vendorId) {
+        await notificationService.create({
+          userId: vendorId,
+          type: "payment_escrowed",
+          title: "Payment received",
+          body: "A buyer has paid for your vehicle. Please arrange delivery to release your funds.",
+          data: {
+            transactionId: transaction._id,
+            listingId,
+            offerId,
+          },
+        });
+        try {
+          const vendorUser = await userService.findById(vendorId);
+          const lang = vendorUser?.language || "en";
+
+          await sendPushNotification({
+            fcmToken: vendorUser?.fcmToken,
+            title: t("payment.escrowed.title", lang),
+            body: t("payment.escrowed.body", lang),
+            data: { transactionId: transaction._id.toString() },
+          });
+
+          await sendEmail({
+            to: vendorUser.email,
+            templateName: "paymentEscrowed",
+            data: { firstName: vendorUser.firstName, lang },
+          });
+        } catch (err) {
+          logger.error("Payment escrowed notification failed", err);
+        }
+      }
+
+      logger.info(`Transaction ${transaction._id} moved to escrowed`);
+    }
+
     if (event.type === "payment_intent.succeeded") {
       const intent = event.data.object;
       const { offerId, listingId, vendorId } = intent.metadata;
@@ -185,14 +273,14 @@ const handleWebhook = async (req, res, next) => {
       try {
         const vendorUser = await userService.findById(vendorId);
         const lang = vendorUser?.language || "en";
-      
+
         await sendPushNotification({
           fcmToken: vendorUser?.fcmToken,
           title: t("payment.escrowed.title", lang),
           body: t("payment.escrowed.body", lang),
           data: { transactionId: transaction._id.toString() },
         });
-      
+
         await sendEmail({
           to: vendorUser.email,
           templateName: "paymentEscrowed",
@@ -203,6 +291,17 @@ const handleWebhook = async (req, res, next) => {
       }
 
       logger.info(`Transaction ${transaction._id} moved to escrowed`);
+    }
+
+    if (event.type === "checkout.session.expired" || event.type === "checkout.session.async_payment_failed") {
+      const session = event.data.object;
+      const transaction = await paymentService.findTransactionByIntentId(session.id);
+      if (transaction) {
+        await paymentService.updateTransactionById(transaction._id, {
+          status: "failed",
+          stripePaymentStatus: session.payment_status || "expired",
+        });
+      }
     }
 
     if (event.type === "payment_intent.payment_failed") {

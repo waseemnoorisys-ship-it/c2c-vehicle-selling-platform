@@ -1,4 +1,5 @@
 const express = require("express");
+const path = require("path");
 const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
@@ -66,6 +67,7 @@ app.use(
       "http://localhost:3000",
       "http://localhost:5500",
       "http://127.0.0.1:5501",
+      "https://c2c-vehicle-selling-platform.vercel.app/",
     ],
     credentials: true,
   }),
@@ -112,6 +114,14 @@ app.use("/api/v1/cms", cmsRoutes);
 app.use("/api/v1/landing", landingRoutes);
 app.use("/api/v1/chat", chatRoutes);
 app.use("/api/v1/admin/chat", adminChatRoutes);
+app.get("/payment/success", (req, res) => {
+  res.sendFile(path.join(__dirname, "..", "payment-success.html"));
+});
+
+app.get("/payment/cancel", (req, res) => {
+  res.sendFile(path.join(__dirname, "..", "payment-cancel.html"));
+});
+
 // ── 404 handler
 app.use((req, res) => {
   res.status(404).json({ success: false, message: "Route not found" });

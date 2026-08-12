@@ -1379,6 +1379,59 @@
     .ticks.read {
       color: #38bdf8;
     }
+
+    .payment-card {
+      margin: 12px 12px 0;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--bg-panel);
+    }
+
+    .payment-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+
+    .pay-input {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 10px;
+      background: var(--bg-input);
+      margin-bottom: 8px;
+    }
+
+    .pay-btn {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: var(--accent);
+      color: white;
+      font-weight: 600;
+    }
+
+    .pay-btn:disabled {
+      opacity: 0.6;
+      cursor: wait;
+    }
+
+    .pay-status {
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      min-height: 16px;
+    }
+
+    .pay-status.success {
+      color: #7ee787;
+    }
+
+    .pay-status.error {
+      color: #ff7b72;
+    }
   </style>
 </head>
 
@@ -1451,6 +1504,13 @@
           </svg>
           <input id="search-input" placeholder="Search or start new chat" oninput="filterConvs()" />
         </div>
+      </div>
+
+      <div class="payment-card">
+        <div class="payment-title">Test Stripe payment</div>
+        <input class="pay-input" id="pay-offer-id" placeholder="Accepted offer ID" />
+        <button class="pay-btn" id="pay-btn" onclick="startStripePay()">Pay</button>
+        <div class="pay-status" id="pay-status"></div>
       </div>
 
       <div class="conn-status hidden" id="conn-status">Connecting…</div>
@@ -1967,6 +2027,47 @@
       $('login-password').value = '';
       $('login-token').value = '';
       $('conv-list').innerHTML = '<div class="conv-empty" id="conv-empty">No conversations yet</div>';
+      showPayStatus('');
+    }
+
+    function showPayStatus(message, type = '') {
+      const el = $('pay-status');
+      el.textContent = message;
+      el.className = 'pay-status' + (type ? ` ${type}` : '');
+    }
+
+    async function startStripePay() {
+      const offerId = $('pay-offer-id').value.trim();
+      if (!offerId) {
+        showPayStatus('Please enter an accepted offer ID.', 'error');
+        return;
+      }
+      if (!token) {
+        showPayStatus('Please sign in first.', 'error');
+        return;
+      }
+
+      const btn = $('pay-btn');
+      btn.disabled = true;
+      btn.textContent = 'Creating checkout…';
+      showPayStatus('Creating Stripe checkout session…');
+
+      try {
+        const res = await api('/payments/create-intent', 'POST', { offerId });
+        const checkoutUrl = res?.data?.checkoutUrl || res?.data?.url;
+
+        if (!checkoutUrl) {
+          throw new Error(res?.message || 'No checkout URL returned by backend');
+        }
+
+        showPayStatus('Redirecting to Stripe…', 'success');
+        window.location.href = checkoutUrl;
+      } catch (e) {
+        showPayStatus(e.message || 'Payment could not be started.', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Pay';
+      }
     }
 
     /* ============================================================

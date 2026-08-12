@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Payment Cancelled</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #0f172a;
+      color: #f8fafc;
+      display: grid;
+      place-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .card {
+      padding: 24px;
+      border-radius: 12px;
+      background: #111827;
+      box-shadow: 0 10px 30px rgba(0,0,0,.25);
+      text-align: center;
+      max-width: 420px;
+    }
+    .warn { color: #fbbf24; font-size: 48px; margin-bottom: 10px; }
+    button { margin-top: 16px; padding: 10px 14px; border: none; border-radius: 8px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="warn">✕</div>
+    <h1>Payment cancelled</h1>
+    <p>The checkout was cancelled. You can try again from the test page.</p>
+    <button onclick="window.location.href='http://localhost:5500/backend/socket.test.html'">Back to test page</button>
+  </div>
+</body>
+</html>
