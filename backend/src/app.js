@@ -33,6 +33,7 @@ const cmsRoutes = require("./routes/cms/cms.routes");
 const landingRoutes = require("./routes/landing/landing.routes");
 const chatRoutes = require("./routes/chat/chat.routes");
 const adminChatRoutes = require("./routes/admin/adminChat/adminChat.routes");
+const ucpRoutes = require("./routes/ucp/ucp.routes");
 const app = express();
 app.set("trust proxy", 1);
 //sprint 5 for strip webhook
@@ -115,6 +116,7 @@ app.use("/api/v1/cms", cmsRoutes);
 app.use("/api/v1/landing", landingRoutes);
 app.use("/api/v1/chat", chatRoutes);
 app.use("/api/v1/admin/chat", adminChatRoutes);
+app.use(ucpRoutes);
 app.get("/payment/success", (req, res) => {
   res.sendFile(path.join(__dirname, "..", "payment-success.html"));
 });
