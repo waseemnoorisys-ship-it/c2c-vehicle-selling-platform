@@ -1,6 +1,7 @@
 // const stripe = require("../../config/stripe");
 // isme hum ek function banayenge jiske through stripe api call karenge and yeh function hum use karke hum ek payment intent create karenge
 require("dotenv").config();
+const mongoose = require("mongoose");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const ApiError = require("../../utils/ApiError");
 const ApiResponse = require("../../utils/ApiResponse");
@@ -45,110 +46,30 @@ const chatService = require("../../services/chat/chat.service");
 //7. payment_intent.payment_method_expired
 //8. payment_intent.payment_method_failed
 //9. payment_intent.payment_method_garbage_collected
-// const createPaymentIntent = async (req, res, next) => {
-//   try {
-//     const lang = getLang(req);
-//     const { error, value } = createIntentSchema.validate(req.body);
-//     if (error) throw new ApiError(400, error.details[0].message);
+function resolveBaseUrl(req) {
+  if (process.env.APP_URL) {
+    return process.env.APP_URL.replace(/\/+$/, "");
+  }
+  if (process.env.LIVE_BACKEND_URL) {
+    return process.env.LIVE_BACKEND_URL.replace(/\/+$/, "");
+  }
+  if (req) {
+    const host = req.get("x-forwarded-host") || req.get("host");
+    const proto = req.get("x-forwarded-proto") || req.protocol || "http";
+    return `${proto}://${host}`.replace(/\/+$/, "");
+  }
+  return "https://c2c-vehicle-selling-platform.onrender.com";
+}
 
-//     const { offerId } = value;
-//     const buyerId = req.user._id;
-
-//     const offer = await offerService.findOfferById(offerId);
-//     if (!offer || offer.deletedAt) throw new ApiError(404, t("errors.payment.offerNotFound", lang));
-
-//     if (offer.buyerId.toString() !== buyerId.toString()) {
-//       throw new ApiError(403, t("errors.payment.notOwner", lang));
-//     }
-
-//     if (offer.status !== "accepted") {
-//       throw new ApiError(400, t("errors.payment.onlyAccepted", lang));
-//     }
-
-//     const listing = await listingService.findListingById(offer.listingId);
-//     if (!listing || listing.deletedAt) {
-//       throw new ApiError(404, t("errors.payment.listingNotFound", lang));
-//     }
-
-//     const existing = await paymentService.findTransactionByOfferId(offerId);
-//     if (existing) {
-//       throw new ApiError(409, t("errors.payment.transactionExists", lang));
-//     }
-
-//     const amountInCents = Math.round(listing.displayPrice);
-//     if (!Number.isInteger(amountInCents) || amountInCents < 50) {
-//       throw new ApiError(400, t("errors.payment.invalidPrice", lang));
-//     }
-
-//     const vendorAmount = Math.round(listing.askingPrice);
-//     const commission = amountInCents - vendorAmount;
-//     const baseUrl = process.env.APP_URL || "http://localhost:5000";
-
-//     const tempTransactionId = `checkout-${offerId}-${Date.now()}`;
-//     const transaction = await paymentService.createTransaction({
-//       buyerId,
-//       vendorId: listing.vendorId,
-//       listingId: listing._id,
-//       offerId,
-//       amount: amountInCents,
-//       vendorAmount,
-//       commission,
-//       commissionPercent: listing.commissionPercent,
-//       currency: "usd",
-//       status: "pending",
-//       stripePaymentIntentId: tempTransactionId,
-//       stripePaymentStatus: "pending",
-//     });
-
-//     const session = await stripe.checkout.sessions.create({
-//       mode: "payment",
-//       payment_method_types: ["card"],
-//       line_items: [
-//         {
-//           price_data: {
-//             currency: "usd",
-//             unit_amount: amountInCents,
-//             product_data: {
-//               name: listing.title || "Vehicle purchase",
-//             },
-//           },
-//           quantity: 1,
-//         },
-//       ],
-//       metadata: {
-//         offerId: offerId.toString(),
-//         buyerId: buyerId.toString(),
-//         listingId: listing._id.toString(),
-//         vendorId: listing.vendorId.toString(),
-//         transactionId: transaction._id.toString(),
-//       },
-//       success_url: `${baseUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
-//       cancel_url: `${baseUrl}/payment/cancel`,
-//       customer_email: req.user?.email || undefined,
-//     });
-
-//     await paymentService.updateTransactionById(transaction._id, {
-//       stripePaymentIntentId: session.id,
-//       stripePaymentStatus: session.payment_status || "pending",
-//     });
-
-//     return res.status(200).json(
-//       new ApiResponse(
-//         200,
-//         {
-//           checkoutUrl: session.url,
-//           sessionId: session.id,
-//           transactionId: transaction._id,
-//           clientSecret: null,
-//         },
-//         t("success.payment.intentCreated", lang)
-//       )
-//     );
-//   } catch (err) {
-//     next(err);
-//   }
-// };
-
+function resolveFrontendUrl() {
+  if (process.env.FRONTEND_URL) {
+    return process.env.FRONTEND_URL.replace(/\/+$/, "");
+  }
+  if (process.env.CLIENT_URL) {
+    return process.env.CLIENT_URL.replace(/\/+$/, "");
+  }
+  return "https://c2c-vehicle-selling-platform.vercel.app";
+}
 
 const createPaymentIntent = async (req, res, next) => {
   try {
@@ -165,128 +86,157 @@ const createPaymentIntent = async (req, res, next) => {
     const offer = await offerService.findOfferById(offerId);
 
     if (!offer || offer.deletedAt) {
-      throw new ApiError(
-        404,
-        t("errors.payment.offerNotFound", lang)
-      );
+      throw new ApiError(404, t("errors.payment.offerNotFound", lang));
     }
 
     if (offer.buyerId.toString() !== buyerId.toString()) {
-      throw new ApiError(
-        403,
-        t("errors.payment.notOwner", lang)
-      );
+      throw new ApiError(403, t("errors.payment.notOwner", lang));
     }
 
     if (offer.status !== "accepted") {
-      throw new ApiError(
-        400,
-        t("errors.payment.onlyAccepted", lang)
-      );
+      throw new ApiError(400, t("errors.payment.onlyAccepted", lang));
     }
 
     const listing = await listingService.findListingById(offer.listingId);
 
     if (!listing || listing.deletedAt) {
-      throw new ApiError(
-        404,
-        t("errors.payment.listingNotFound", lang)
-      );
+      throw new ApiError(404, t("errors.payment.listingNotFound", lang));
     }
+
+    // Purchase price in minor units (paise/cents) is the accepted offer amount
+    const amountInMinorUnits = Math.round(Number(offer.amount));
+
+    if (!Number.isInteger(amountInMinorUnits) || amountInMinorUnits < 50) {
+      throw new ApiError(400, t("errors.payment.invalidPrice", lang));
+    }
+
+    const commissionPercent =
+      listing.commissionPercent != null ? listing.commissionPercent : 5;
+    const commission = Math.round((amountInMinorUnits * commissionPercent) / 100);
+    const vendorAmount = amountInMinorUnits - commission;
+    const currency = (process.env.STRIPE_CURRENCY || "inr").toLowerCase();
+
+    const baseUrl = resolveBaseUrl(req);
+    const frontendUrl = resolveFrontendUrl();
 
     const existing = await paymentService.findTransactionByOfferId(offerId);
 
-    if (existing) {
+    // If transaction is already completed (escrowed or released), prevent duplicate payments
+    if (
+      existing &&
+      (existing.status === "escrowed" || existing.status === "released")
+    ) {
       throw new ApiError(
         409,
-        t("errors.payment.transactionExists", lang)
+        t("errors.payment.transactionExists", lang) ||
+          "Payment has already been completed for this offer."
       );
     }
 
-    const amountInCents = Math.round(listing.displayPrice);
+    let transaction = existing;
+    let session = null;
 
-    if (!Number.isInteger(amountInCents) || amountInCents < 50) {
-      throw new ApiError(
-        400,
-        t("errors.payment.invalidPrice", lang)
-      );
-    }
-
-    const vendorAmount = Math.round(listing.askingPrice);
-    const commission = amountInCents - vendorAmount;
-
-    const baseUrl =
-      process.env.APP_URL;
-
-    // Temporary value before Stripe session is created
-    const tempTransactionId = `checkout-${offerId}-${Date.now()}`;
-
-    // 1. Create transaction in your database
-    const transaction = await paymentService.createTransaction({
-      buyerId,
-      vendorId: listing.vendorId,
-      listingId: listing._id,
-      offerId,
-      amount: amountInCents,
-      vendorAmount,
-      commission,
-      commissionPercent: listing.commissionPercent,
-      currency: "usd",
-      status: "pending",
-      stripePaymentIntentId: tempTransactionId,
-      stripePaymentStatus: "pending",
-    });
-
-    // 2. Create Stripe Checkout Session
-    const session = await stripe.checkout.sessions.create({
-      mode: "payment",
-      payment_method_types: ["card"],
-
-      line_items: [
-        {
-          price_data: {
-            currency: "usd",
-            unit_amount: amountInCents,
-            product_data: {
-              name: listing.title || "Vehicle purchase",
-            },
-          },
-          quantity: 1,
-        },
-      ],
-
-      metadata: {
-        offerId: offerId.toString(),
-        buyerId: buyerId.toString(),
-        listingId: listing._id.toString(),
-        vendorId: listing.vendorId.toString(),
-        transactionId: transaction._id.toString(),
-      },
-
-      success_url: `${baseUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${baseUrl}/payment/cancel`,
-
-      customer_email: req.user?.email || undefined,
-    });
-    console.log("APP_URL:", baseUrl);
-    console.log("SUCCESS URL:", `${baseUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}`);
-    console.log("CANCEL URL:", `${baseUrl}/payment/cancel`);
-
-    // 3. Save Stripe Checkout Session ID
-    await paymentService.updateTransactionById(
-      transaction._id,
-      {
-        stripePaymentIntentId: session.id,
-        stripePaymentStatus:
-          session.payment_status || "pending",
+    // If a pending transaction already exists, check if its Stripe session is still active
+    if (
+      existing &&
+      existing.status === "pending" &&
+      existing.stripePaymentIntentId &&
+      existing.stripePaymentIntentId.startsWith("cs_")
+    ) {
+      try {
+        const existingSession = await stripe.checkout.sessions.retrieve(
+          existing.stripePaymentIntentId
+        );
+        if (
+          existingSession &&
+          existingSession.status === "open" &&
+          existingSession.payment_status === "unpaid"
+        ) {
+          session = existingSession;
+          logger.info(
+            `Reusing active Stripe checkout session ${session.id} for offer ${offerId}`
+          );
+        }
+      } catch (retrieveErr) {
+        logger.warn(
+          `Could not retrieve existing Stripe session ${existing.stripePaymentIntentId}: ${retrieveErr.message}`
+        );
       }
-    );
+    }
 
-    // 4. IMPORTANT:
-    // Do NOT return session.url directly.
-    // Return your own backend checkout URL.
-    const checkoutUrl =
-      `${baseUrl}/api/v1/payments/checkout/${transaction._id}`;
+    // If no active session exists, create a new Stripe Checkout session
+    if (!session) {
+      const tempTransactionId = existing
+        ? existing._id.toString()
+        : new mongoose.Types.ObjectId().toString();
+
+      session = await stripe.checkout.sessions.create({
+        mode: "payment",
+        payment_method_types: ["card"],
+        line_items: [
+          {
+            price_data: {
+              currency,
+              unit_amount: amountInMinorUnits,
+              product_data: {
+                name: listing.title || "Vehicle Purchase",
+                description: `${listing.year || ""} ${listing.title || "Vehicle"}`.trim(),
+              },
+            },
+            quantity: 1,
+          },
+        ],
+        metadata: {
+          offerId: offerId.toString(),
+          buyerId: buyerId.toString(),
+          listingId: listing._id.toString(),
+          vendorId: listing.vendorId.toString(),
+          transactionId: tempTransactionId,
+        },
+        success_url: `${frontendUrl}/buyer/purchases?session_id={CHECKOUT_SESSION_ID}&success=true`,
+        cancel_url: `${frontendUrl}/buyer/offers?canceled=true`,
+        customer_email: req.user?.email || undefined,
+      });
+
+      logger.info(
+        `Created new Stripe checkout session ${session.id} for offer ${offerId}`
+      );
+
+      if (existing) {
+        transaction = await paymentService.updateTransactionById(
+          existing._id,
+          {
+            amount: amountInMinorUnits,
+            vendorAmount,
+            commission,
+            commissionPercent,
+            currency,
+            status: "pending",
+            stripePaymentIntentId: session.id,
+            stripePaymentStatus: session.payment_status || "pending",
+          }
+        );
+      } else {
+        transaction = await paymentService.createTransaction({
+          _id: tempTransactionId,
+          buyerId,
+          vendorId: listing.vendorId,
+          listingId: listing._id,
+          offerId,
+          amount: amountInMinorUnits,
+          vendorAmount,
+          commission,
+          commissionPercent,
+          currency,
+          status: "pending",
+          stripePaymentIntentId: session.id,
+          stripePaymentStatus: session.payment_status || "pending",
+        });
+      }
+    }
+
+    // Construct backend redirect URL
+    const checkoutUrl = `${baseUrl}/api/v1/payments/checkout/${transaction._id}`;
 
     return res.status(200).json(
       new ApiResponse(
@@ -301,15 +251,19 @@ const createPaymentIntent = async (req, res, next) => {
       )
     );
   } catch (err) {
+    logger.error("createPaymentIntent failed", {
+      message: err.message,
+      stack: err.stack,
+    });
+    if (err.type && err.type.startsWith("Stripe")) {
+      return next(new ApiError(400, `Stripe Error: ${err.message}`));
+    }
     next(err);
   }
 };
 
-
-
-
 // ============================================================
-// Stripe Checkout Redirect (for MCP) -- change for mcp
+// Stripe Checkout Redirect (for MCP & Web Checkout)
 // ============================================================
 const redirectToStripeCheckout = async (req, res, next) => {
   try {
@@ -321,20 +275,95 @@ const redirectToStripeCheckout = async (req, res, next) => {
       throw new ApiError(404, "Transaction not found");
     }
 
-    // The transaction stores the Stripe Checkout Session ID
-    const session = await stripe.checkout.sessions.retrieve(
-      transaction.stripePaymentIntentId
-    );
+    const frontendUrl = resolveFrontendUrl();
 
-    if (!session || !session.url) {
-      throw new ApiError(404, "Stripe checkout session not found");
+    // If transaction is already completed, redirect to purchases page
+    if (
+      transaction.status === "escrowed" ||
+      transaction.status === "released"
+    ) {
+      return res.redirect(
+        302,
+        `${frontendUrl}/buyer/purchases?already_paid=true`
+      );
     }
 
-    // IMPORTANT:
-    // Do not modify session.url.
-    // Redirect directly to the URL returned by Stripe.
+    let session = null;
+    if (
+      transaction.stripePaymentIntentId &&
+      transaction.stripePaymentIntentId.startsWith("cs_")
+    ) {
+      try {
+        session = await stripe.checkout.sessions.retrieve(
+          transaction.stripePaymentIntentId
+        );
+      } catch (err) {
+        logger.warn(
+          `Failed to retrieve session ${transaction.stripePaymentIntentId}: ${err.message}`
+        );
+      }
+    }
+
+    // If session is expired, missing, or closed, self-heal by generating a fresh session
+    if (!session || session.status !== "open" || !session.url) {
+      const listing = await listingService.findListingById(
+        transaction.listingId
+      );
+      const buyer = await userService.findById(transaction.buyerId);
+      const currency = (
+        transaction.currency ||
+        process.env.STRIPE_CURRENCY ||
+        "inr"
+      ).toLowerCase();
+
+      session = await stripe.checkout.sessions.create({
+        mode: "payment",
+        payment_method_types: ["card"],
+        line_items: [
+          {
+            price_data: {
+              currency,
+              unit_amount: transaction.amount,
+              product_data: {
+                name: listing?.title || "Vehicle Purchase",
+                description: `${listing?.year || ""} ${listing?.title || "Vehicle"}`.trim(),
+              },
+            },
+            quantity: 1,
+          },
+        ],
+        metadata: {
+          offerId: transaction.offerId.toString(),
+          buyerId: transaction.buyerId.toString(),
+          listingId: transaction.listingId.toString(),
+          vendorId: transaction.vendorId.toString(),
+          transactionId: transaction._id.toString(),
+        },
+        success_url: `${frontendUrl}/buyer/purchases?session_id={CHECKOUT_SESSION_ID}&success=true`,
+        cancel_url: `${frontendUrl}/buyer/offers?canceled=true`,
+        customer_email: buyer?.email || undefined,
+      });
+
+      await paymentService.updateTransactionById(transaction._id, {
+        stripePaymentIntentId: session.id,
+        stripePaymentStatus: session.payment_status || "pending",
+      });
+    }
+
+    if (!session.url) {
+      throw new ApiError(500, "Stripe checkout session URL is unavailable.");
+    }
+
+    // Redirect directly to Stripe Checkout
     return res.redirect(302, session.url);
   } catch (err) {
+    logger.error("redirectToStripeCheckout failed", {
+      message: err.message,
+      transactionId: req.params?.transactionId,
+    });
+    if (err.type && err.type.startsWith("Stripe")) {
+      return next(new ApiError(400, `Stripe Error: ${err.message}`));
+    }
     next(err);
   }
 };
