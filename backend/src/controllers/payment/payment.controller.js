@@ -745,7 +745,7 @@ const getTransaction = async (req, res, next) => {
     const { transactionId } = value;
     const userId = req.user._id;
 
-    const transaction = await paymentService.findTransactionById(transactionId);
+    let transaction = await paymentService.findTransactionById(transactionId);
     if (!transaction || transaction.deletedAt) {
       throw new ApiError(404, t("errors.payment.transactionNotFound", lang));
     }
@@ -756,6 +756,44 @@ const getTransaction = async (req, res, next) => {
 
     if (!isBuyer && !isVendor && !isAdmin) {
       throw new ApiError(403, t("errors.commonExtra.accessDenied", lang));
+    }
+
+    // Auto-reconciliation: if transaction is still pending, verify in real-time with Stripe
+    if (
+      transaction.status === "pending" &&
+      transaction.stripePaymentIntentId &&
+      transaction.stripePaymentIntentId.startsWith("cs_")
+    ) {
+      try {
+        const session = await stripe.checkout.sessions.retrieve(
+          transaction.stripePaymentIntentId
+        );
+        if (
+          session &&
+          (session.payment_status === "paid" || session.status === "complete")
+        ) {
+          logger.info(
+            `Reconciling pending transaction ${transaction._id} to escrowed from Stripe session ${session.id}`
+          );
+          transaction = await paymentService.updateTransactionById(
+            transaction._id,
+            {
+              status: "escrowed",
+              stripePaymentStatus: "paid",
+              escrowedAt: transaction.escrowedAt || new Date(),
+            }
+          );
+          if (transaction.listingId) {
+            await listingService.updateListingById(transaction.listingId, {
+              status: "sold",
+            });
+          }
+        }
+      } catch (stripeCheckErr) {
+        logger.warn(
+          `Could not reconcile transaction with Stripe: ${stripeCheckErr.message}`
+        );
+      }
     }
 
     return res

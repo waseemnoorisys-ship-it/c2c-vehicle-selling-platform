@@ -103,7 +103,33 @@ app.use("/api/v1/landing", landingRoutes);
 app.use("/api/v1/chat", chatRoutes);
 app.use("/api/v1/admin/chat", adminChatRoutes);
 app.use(ucpRoutes);
-app.get("/payment/success", (req, res) => {
+app.get("/payment/success", async (req, res) => {
+  const { session_id, transaction_id } = req.query;
+  if (session_id && session_id.startsWith("cs_")) {
+    try {
+      const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+      const paymentService = require("./services/payment/payment.service");
+      const listingService = require("./services/listing/listing.service");
+      const session = await stripe.checkout.sessions.retrieve(session_id);
+      if (session && (session.payment_status === "paid" || session.status === "complete")) {
+        const transId = session.metadata?.transactionId || transaction_id;
+        let trans = transId ? await paymentService.findTransactionById(transId) : null;
+        if (!trans) trans = await paymentService.findTransactionByIntentId(session.id);
+        if (trans && trans.status !== "escrowed" && trans.status !== "released") {
+          await paymentService.updateTransactionById(trans._id, {
+            status: "escrowed",
+            stripePaymentStatus: "paid",
+            escrowedAt: new Date(),
+          });
+          if (trans.listingId) {
+            await listingService.updateListingById(trans.listingId, { status: "sold" });
+          }
+        }
+      }
+    } catch (e) {
+      // Non-blocking fallback
+    }
+  }
   res.sendFile(path.join(__dirname, "..", "payment-success.html"));
 });
 
