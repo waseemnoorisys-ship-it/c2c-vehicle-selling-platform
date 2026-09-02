@@ -1,9 +1,13 @@
 import "dotenv/config";
 import { SignJWT, jwtVerify } from "jose";
 
-const C2C_API_BASE_URL =
+const C2C_API_BASE_URL = (
   process.env.C2C_API_BASE_URL ||
-  "https://c2c-vehicle-selling-platform.onrender.com";
+  "https://c2c-vehicle-selling-platform.onrender.com"
+)
+  .replace(/[\r\n\t]/g, "")
+  .trim()
+  .replace(/\/+$/, "");
 
 /**
  * Generate a short-lived C2C backend access token signed with JWT_ACCESS_SECRET

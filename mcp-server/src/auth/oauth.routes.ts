@@ -142,7 +142,10 @@ router.get("/authorize", async (req, res) => {
     });
 
     const publicBaseUrl =
-      process.env.MCP_PUBLIC_URL || "https://myth-ceremony-avenging.ngrok-free.dev";
+      process.env.MCP_PUBLIC_URL ||
+      (process.env.RENDER_EXTERNAL_HOSTNAME
+        ? `https://${process.env.RENDER_EXTERNAL_HOSTNAME}`
+        : "http://localhost:3001");
     const callbackUrl = `${publicBaseUrl}/oauth/authorize/callback`;
 
     // If explicit frontend redirect requested (e.g. for local frontend dev)
@@ -182,9 +185,12 @@ router.get("/login", async (req, res) => {
   }
 
   const frontendUrl =
-    process.env.FRONTEND_URL || "http://localhost:3000";
+    process.env.FRONTEND_URL || "https://c2c-vehicle-selling-platform.vercel.app";
   const publicBaseUrl =
-    process.env.MCP_PUBLIC_URL || "https://myth-ceremony-avenging.ngrok-free.dev";
+    process.env.MCP_PUBLIC_URL ||
+    (process.env.RENDER_EXTERNAL_HOSTNAME
+      ? `https://${process.env.RENDER_EXTERNAL_HOSTNAME}`
+      : "http://localhost:3001");
   const webLoginUrl = `${frontendUrl}/login?mcp_session=${encodeURIComponent(
     session.sessionId,
   )}&mcp_callback=${encodeURIComponent(`${publicBaseUrl}/oauth/authorize/callback`)}`;

@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "tsx src/server.ts"
+    "dev": "tsx src/server.ts",
+    "build": "echo 'No build required for tsx'",
+    "start": "tsx src/server.ts"
   },
   "keywords": [],
   "author": "",

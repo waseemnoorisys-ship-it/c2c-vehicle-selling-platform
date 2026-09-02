@@ -14,6 +14,7 @@ import { registerVehicleResources } from "./resources/vehicle.resources.js";
 import { registerVehiclePrompts } from "./prompts/vehicle.prompts.js";
 import oauthRoutes from "./auth/oauth.routes.js";
 import { tokenVerifier } from "./auth/oauth.token.service.js";
+import { registerPaymentTools } from "./tools/payment.tools.js";
 
 // ============================================================
 // Initialize MongoDB Connection for MCP Persistence
@@ -33,31 +34,43 @@ const handler = createMcpHandler(() => {
   registerVehicleTools(server);
   registerVehicleResources(server);
   registerVehiclePrompts(server);
-
+  registerPaymentTools(server);
   return server;
 });
 
 const node = toNodeHandler(handler);
 
-// ============================================================
-// Setup Express App
-// ============================================================
+// Resolve public URL for OAuth metadata discovery
+const publicBaseUrl =
+  process.env.MCP_PUBLIC_URL ||
+  (process.env.RENDER_EXTERNAL_HOSTNAME
+    ? `https://${process.env.RENDER_EXTERNAL_HOSTNAME}`
+    : "http://localhost:3001");
+
+let publicHost: string | undefined;
+try {
+  publicHost = new URL(publicBaseUrl).hostname;
+} catch {
+  publicHost = undefined;
+}
+
+const renderHost = process.env.RENDER_EXTERNAL_HOSTNAME;
+
+const allowedHosts = [
+  "localhost",
+  "127.0.0.1",
+  "myth-ceremony-avenging.ngrok-free.dev",
+  ...(publicHost ? [publicHost] : []),
+  ...(renderHost ? [renderHost] : []),
+];
+
 const app = createMcpExpressApp({
   host: "0.0.0.0",
-  allowedHosts: [
-    "localhost",
-    "127.0.0.1",
-    "myth-ceremony-avenging.ngrok-free.dev",
-  ],
+  allowedHosts,
 });
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-// Resolve public URL for OAuth metadata discovery
-const publicBaseUrl =
-  process.env.MCP_PUBLIC_URL ||
-  "https://myth-ceremony-avenging.ngrok-free.dev";
 
 // ============================================================
 // Mount OAuth 2.1 Routes
