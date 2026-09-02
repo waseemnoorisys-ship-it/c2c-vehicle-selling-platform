@@ -36,31 +36,9 @@ const adminChatRoutes = require("./routes/admin/adminChat/adminChat.routes");
 const ucpRoutes = require("./routes/ucp/ucp.routes");
 const app = express();
 app.set("trust proxy", 1);
-//sprint 5 for strip webhook
-app.use((req, res, next) => {
-  if (req.originalUrl === "/api/v1/payments/webhook") {
-    let data = "";
-    req.setEncoding("utf8");
-    req.on("data", (chunk) => {
-      data += chunk;
-    });
-    req.on("end", () => {
-      req.rawBody = data;
-      next();
-    });
-  } else {
-    next();
-  }
-});
+
 // ── Security headers
 app.use(helmet());
-// ── CORS
-// app.use(
-//   cors({
-//     origin: process.env.FRONTEND_URL || "http://localhost:3000",
-//     credentials: true,
-//   }),
-// );
 
 app.use(
   cors({
@@ -74,8 +52,16 @@ app.use(
     credentials: true,
   }),
 );
-// ── Body parsers
-app.use(express.json({ limit: "10mb" }));
+
+// ── Body parsers (Preserve rawBuffer on req.rawBody for Stripe signature verification)
+app.use(
+  express.json({
+    limit: "10mb",
+    verify: (req, res, buf) => {
+      req.rawBody = buf;
+    },
+  })
+);
 app.use(express.urlencoded({ extended: true }));
 // ── HTTP request logger
 app.use(

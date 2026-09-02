@@ -395,16 +395,21 @@ const redirectToStripeCheckout = async (req, res, next) => {
 const handleWebhook = async (req, res, next) => {
   const sig = req.headers["stripe-signature"];
   let event;
+  const payload = req.rawBody || req.body;
 
   try {
     event = stripe.webhooks.constructEvent(
-      req.rawBody,
+      payload,
       sig,
       process.env.STRIPE_WEBHOOK_SECRET
     );
   } catch (err) {
-    logger.error("Webhook signature verification failed", err.message);
-    return res.status(400).json({ error: "Webhook signature invalid" });
+    logger.error("Webhook signature verification failed:", {
+      message: err.message,
+      hasSig: !!sig,
+      hasPayload: !!payload,
+    });
+    return res.status(400).json({ error: `Webhook signature invalid: ${err.message}` });
   }
 
   try {
@@ -412,47 +417,65 @@ const handleWebhook = async (req, res, next) => {
       const session = event.data.object;
       const { offerId, listingId, vendorId, transactionId } = session.metadata || {};
 
+      logger.info(`Received checkout.session.completed webhook for session ${session.id}`, {
+        transactionId,
+        offerId,
+        paymentStatus: session.payment_status,
+      });
+
       let transaction = null;
       if (transactionId) {
         transaction = await paymentService.findTransactionById(transactionId);
+      }
+      if (!transaction && offerId) {
+        transaction = await paymentService.findTransactionByOfferId(offerId);
       }
       if (!transaction) {
         transaction = await paymentService.findTransactionByIntentId(session.id);
       }
 
       if (!transaction) {
-        logger.error("Webhook: transaction not found for checkout session", session.id);
+        logger.error("Webhook: transaction not found for checkout session", {
+          sessionId: session.id,
+          metadata: session.metadata,
+        });
         return res.status(200).json({ received: true });
       }
 
-      if (transaction.status === "escrowed") {
+      // Idempotency: avoid double processing if already escrowed or released
+      if (transaction.status === "escrowed" || transaction.status === "released") {
+        logger.info(`Transaction ${transaction._id} already ${transaction.status}. Skipping duplicate update.`);
         return res.status(200).json({ received: true });
       }
+
+      const targetListingId = listingId || transaction.listingId;
+      const targetVendorId = vendorId || transaction.vendorId;
 
       await paymentService.updateTransactionById(transaction._id, {
         status: "escrowed",
+        stripePaymentIntentId: session.id,
         stripePaymentStatus: session.payment_status || "paid",
         escrowedAt: new Date(),
       });
 
-      if (listingId) {
-        await listingService.updateListingById(listingId, { status: "sold" });
+      if (targetListingId) {
+        await listingService.updateListingById(targetListingId, { status: "sold" });
       }
 
-      if (vendorId) {
+      if (targetVendorId) {
         await notificationService.create({
-          userId: vendorId,
+          userId: targetVendorId,
           type: "payment_escrowed",
           title: "Payment received",
           body: "A buyer has paid for your vehicle. Please arrange delivery to release your funds.",
           data: {
             transactionId: transaction._id,
-            listingId,
-            offerId,
+            listingId: targetListingId,
+            offerId: offerId || transaction.offerId,
           },
         });
         try {
-          const vendorUser = await userService.findById(vendorId);
+          const vendorUser = await userService.findById(targetVendorId);
           const lang = vendorUser?.language || "en";
 
           await sendPushNotification({
@@ -463,16 +486,17 @@ const handleWebhook = async (req, res, next) => {
           });
 
           await sendEmail({
-            to: vendorUser.email,
+            to: vendorUser?.email,
             templateName: "paymentEscrowed",
-            data: { firstName: vendorUser.firstName, lang },
+            data: { firstName: vendorUser?.firstName, lang },
           });
         } catch (err) {
           logger.error("Payment escrowed notification failed", err);
         }
       }
 
-      logger.info(`Transaction ${transaction._id} moved to escrowed`);
+      logger.info(`Transaction ${transaction._id} successfully updated to escrowed and paid`);
+      return res.status(200).json({ received: true });
     }
 
     if (event.type === "payment_intent.succeeded") {
@@ -728,8 +752,9 @@ const getTransaction = async (req, res, next) => {
 
     const isBuyer = transaction.buyerId.toString() === userId.toString();
     const isVendor = transaction.vendorId.toString() === userId.toString();
+    const isAdmin = req.user?.role === "admin";
 
-    if (!isBuyer && !isVendor) {
+    if (!isBuyer && !isVendor && !isAdmin) {
       throw new ApiError(403, t("errors.commonExtra.accessDenied", lang));
     }
 
