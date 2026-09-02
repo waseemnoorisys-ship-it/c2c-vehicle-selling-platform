@@ -46,27 +46,41 @@ const chatService = require("../../services/chat/chat.service");
 //7. payment_intent.payment_method_expired
 //8. payment_intent.payment_method_failed
 //9. payment_intent.payment_method_garbage_collected
+function cleanUrl(url) {
+  if (!url || typeof url !== "string") return "";
+  return url
+    .replace(/[\r\n\t]/g, "")
+    .trim()
+    .replace(/\/+$/, "");
+}
+
 function resolveBaseUrl(req) {
-  if (process.env.APP_URL) {
-    return process.env.APP_URL.replace(/\/+$/, "");
+  const envAppUrl = cleanUrl(process.env.APP_URL);
+  if (envAppUrl) {
+    return envAppUrl;
   }
-  if (process.env.LIVE_BACKEND_URL) {
-    return process.env.LIVE_BACKEND_URL.replace(/\/+$/, "");
+  const envLiveBackendUrl = cleanUrl(process.env.LIVE_BACKEND_URL);
+  if (envLiveBackendUrl) {
+    return envLiveBackendUrl;
   }
   if (req) {
-    const host = req.get("x-forwarded-host") || req.get("host");
-    const proto = req.get("x-forwarded-proto") || req.protocol || "http";
-    return `${proto}://${host}`.replace(/\/+$/, "");
+    const host = cleanUrl(req.get("x-forwarded-host") || req.get("host"));
+    const proto = cleanUrl(req.get("x-forwarded-proto") || req.protocol || "http");
+    if (host) {
+      return `${proto}://${host}`.replace(/[\r\n\t]/g, "").trim().replace(/\/+$/, "");
+    }
   }
   return "https://c2c-vehicle-selling-platform.onrender.com";
 }
 
 function resolveFrontendUrl() {
-  if (process.env.FRONTEND_URL) {
-    return process.env.FRONTEND_URL.replace(/\/+$/, "");
+  const envFrontendUrl = cleanUrl(process.env.FRONTEND_URL);
+  if (envFrontendUrl) {
+    return envFrontendUrl;
   }
-  if (process.env.CLIENT_URL) {
-    return process.env.CLIENT_URL.replace(/\/+$/, "");
+  const envClientUrl = cleanUrl(process.env.CLIENT_URL);
+  if (envClientUrl) {
+    return envClientUrl;
   }
   return "https://c2c-vehicle-selling-platform.vercel.app";
 }
@@ -193,8 +207,8 @@ const createPaymentIntent = async (req, res, next) => {
           vendorId: listing.vendorId.toString(),
           transactionId: tempTransactionId,
         },
-        success_url: `${frontendUrl}/buyer/purchases?session_id={CHECKOUT_SESSION_ID}&success=true`,
-        cancel_url: `${frontendUrl}/buyer/offers?canceled=true`,
+        success_url: `${baseUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${baseUrl}/payment/cancel`,
         customer_email: req.user?.email || undefined,
       });
 
@@ -236,7 +250,9 @@ const createPaymentIntent = async (req, res, next) => {
     }
 
     // Construct backend redirect URL
-    const checkoutUrl = `${baseUrl}/api/v1/payments/checkout/${transaction._id}`;
+    const cleanBaseUrl = resolveBaseUrl(req);
+    const cleanTransactionId = String(transaction._id).replace(/[\r\n\t\s]/g, "");
+    const checkoutUrl = `${cleanBaseUrl}/api/v1/payments/checkout/${cleanTransactionId}`;
 
     return res.status(200).json(
       new ApiResponse(
@@ -275,16 +291,16 @@ const redirectToStripeCheckout = async (req, res, next) => {
       throw new ApiError(404, "Transaction not found");
     }
 
-    const frontendUrl = resolveFrontendUrl();
+    const baseUrl = resolveBaseUrl(req);
 
-    // If transaction is already completed, redirect to purchases page
+    // If transaction is already completed, redirect to success page
     if (
       transaction.status === "escrowed" ||
       transaction.status === "released"
     ) {
       return res.redirect(
         302,
-        `${frontendUrl}/buyer/purchases?already_paid=true`
+        `${baseUrl}/payment/success?transaction_id=${transaction._id}&already_paid=true`
       );
     }
 
@@ -339,8 +355,8 @@ const redirectToStripeCheckout = async (req, res, next) => {
           vendorId: transaction.vendorId.toString(),
           transactionId: transaction._id.toString(),
         },
-        success_url: `${frontendUrl}/buyer/purchases?session_id={CHECKOUT_SESSION_ID}&success=true`,
-        cancel_url: `${frontendUrl}/buyer/offers?canceled=true`,
+        success_url: `${baseUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${baseUrl}/payment/cancel`,
         customer_email: buyer?.email || undefined,
       });
 
