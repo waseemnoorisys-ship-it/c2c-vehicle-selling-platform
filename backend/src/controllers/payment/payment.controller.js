@@ -1,5 +1,6 @@
 // const stripe = require("../../config/stripe");
 // isme hum ek function banayenge jiske through stripe api call karenge and yeh function hum use karke hum ek payment intent create karenge
+require("dotenv").config();
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const ApiError = require("../../utils/ApiError");
 const ApiResponse = require("../../utils/ApiResponse");
@@ -215,7 +216,7 @@ const createPaymentIntent = async (req, res, next) => {
     const commission = amountInCents - vendorAmount;
 
     const baseUrl =
-      process.env.APP_URL || "http://localhost:5000";
+      process.env.APP_URL;
 
     // Temporary value before Stripe session is created
     const tempTransactionId = `checkout-${offerId}-${Date.now()}`;
