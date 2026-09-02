@@ -44,46 +44,183 @@ const chatService = require("../../services/chat/chat.service");
 //7. payment_intent.payment_method_expired
 //8. payment_intent.payment_method_failed
 //9. payment_intent.payment_method_garbage_collected
+// const createPaymentIntent = async (req, res, next) => {
+//   try {
+//     const lang = getLang(req);
+//     const { error, value } = createIntentSchema.validate(req.body);
+//     if (error) throw new ApiError(400, error.details[0].message);
+
+//     const { offerId } = value;
+//     const buyerId = req.user._id;
+
+//     const offer = await offerService.findOfferById(offerId);
+//     if (!offer || offer.deletedAt) throw new ApiError(404, t("errors.payment.offerNotFound", lang));
+
+//     if (offer.buyerId.toString() !== buyerId.toString()) {
+//       throw new ApiError(403, t("errors.payment.notOwner", lang));
+//     }
+
+//     if (offer.status !== "accepted") {
+//       throw new ApiError(400, t("errors.payment.onlyAccepted", lang));
+//     }
+
+//     const listing = await listingService.findListingById(offer.listingId);
+//     if (!listing || listing.deletedAt) {
+//       throw new ApiError(404, t("errors.payment.listingNotFound", lang));
+//     }
+
+//     const existing = await paymentService.findTransactionByOfferId(offerId);
+//     if (existing) {
+//       throw new ApiError(409, t("errors.payment.transactionExists", lang));
+//     }
+
+//     const amountInCents = Math.round(listing.displayPrice);
+//     if (!Number.isInteger(amountInCents) || amountInCents < 50) {
+//       throw new ApiError(400, t("errors.payment.invalidPrice", lang));
+//     }
+
+//     const vendorAmount = Math.round(listing.askingPrice);
+//     const commission = amountInCents - vendorAmount;
+//     const baseUrl = process.env.APP_URL || "http://localhost:5000";
+
+//     const tempTransactionId = `checkout-${offerId}-${Date.now()}`;
+//     const transaction = await paymentService.createTransaction({
+//       buyerId,
+//       vendorId: listing.vendorId,
+//       listingId: listing._id,
+//       offerId,
+//       amount: amountInCents,
+//       vendorAmount,
+//       commission,
+//       commissionPercent: listing.commissionPercent,
+//       currency: "usd",
+//       status: "pending",
+//       stripePaymentIntentId: tempTransactionId,
+//       stripePaymentStatus: "pending",
+//     });
+
+//     const session = await stripe.checkout.sessions.create({
+//       mode: "payment",
+//       payment_method_types: ["card"],
+//       line_items: [
+//         {
+//           price_data: {
+//             currency: "usd",
+//             unit_amount: amountInCents,
+//             product_data: {
+//               name: listing.title || "Vehicle purchase",
+//             },
+//           },
+//           quantity: 1,
+//         },
+//       ],
+//       metadata: {
+//         offerId: offerId.toString(),
+//         buyerId: buyerId.toString(),
+//         listingId: listing._id.toString(),
+//         vendorId: listing.vendorId.toString(),
+//         transactionId: transaction._id.toString(),
+//       },
+//       success_url: `${baseUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+//       cancel_url: `${baseUrl}/payment/cancel`,
+//       customer_email: req.user?.email || undefined,
+//     });
+
+//     await paymentService.updateTransactionById(transaction._id, {
+//       stripePaymentIntentId: session.id,
+//       stripePaymentStatus: session.payment_status || "pending",
+//     });
+
+//     return res.status(200).json(
+//       new ApiResponse(
+//         200,
+//         {
+//           checkoutUrl: session.url,
+//           sessionId: session.id,
+//           transactionId: transaction._id,
+//           clientSecret: null,
+//         },
+//         t("success.payment.intentCreated", lang)
+//       )
+//     );
+//   } catch (err) {
+//     next(err);
+//   }
+// };
+
+
 const createPaymentIntent = async (req, res, next) => {
   try {
     const lang = getLang(req);
+
     const { error, value } = createIntentSchema.validate(req.body);
-    if (error) throw new ApiError(400, error.details[0].message);
+    if (error) {
+      throw new ApiError(400, error.details[0].message);
+    }
 
     const { offerId } = value;
     const buyerId = req.user._id;
 
     const offer = await offerService.findOfferById(offerId);
-    if (!offer || offer.deletedAt) throw new ApiError(404, t("errors.payment.offerNotFound", lang));
+
+    if (!offer || offer.deletedAt) {
+      throw new ApiError(
+        404,
+        t("errors.payment.offerNotFound", lang)
+      );
+    }
 
     if (offer.buyerId.toString() !== buyerId.toString()) {
-      throw new ApiError(403, t("errors.payment.notOwner", lang));
+      throw new ApiError(
+        403,
+        t("errors.payment.notOwner", lang)
+      );
     }
 
     if (offer.status !== "accepted") {
-      throw new ApiError(400, t("errors.payment.onlyAccepted", lang));
+      throw new ApiError(
+        400,
+        t("errors.payment.onlyAccepted", lang)
+      );
     }
 
     const listing = await listingService.findListingById(offer.listingId);
+
     if (!listing || listing.deletedAt) {
-      throw new ApiError(404, t("errors.payment.listingNotFound", lang));
+      throw new ApiError(
+        404,
+        t("errors.payment.listingNotFound", lang)
+      );
     }
 
     const existing = await paymentService.findTransactionByOfferId(offerId);
+
     if (existing) {
-      throw new ApiError(409, t("errors.payment.transactionExists", lang));
+      throw new ApiError(
+        409,
+        t("errors.payment.transactionExists", lang)
+      );
     }
 
     const amountInCents = Math.round(listing.displayPrice);
+
     if (!Number.isInteger(amountInCents) || amountInCents < 50) {
-      throw new ApiError(400, t("errors.payment.invalidPrice", lang));
+      throw new ApiError(
+        400,
+        t("errors.payment.invalidPrice", lang)
+      );
     }
 
     const vendorAmount = Math.round(listing.askingPrice);
     const commission = amountInCents - vendorAmount;
-    const baseUrl = process.env.APP_URL || "http://localhost:5000";
 
+    const baseUrl =
+      process.env.APP_URL || "http://localhost:5000";
+
+    // Temporary value before Stripe session is created
     const tempTransactionId = `checkout-${offerId}-${Date.now()}`;
+
+    // 1. Create transaction in your database
     const transaction = await paymentService.createTransaction({
       buyerId,
       vendorId: listing.vendorId,
@@ -99,9 +236,11 @@ const createPaymentIntent = async (req, res, next) => {
       stripePaymentStatus: "pending",
     });
 
+    // 2. Create Stripe Checkout Session
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       payment_method_types: ["card"],
+
       line_items: [
         {
           price_data: {
@@ -114,6 +253,7 @@ const createPaymentIntent = async (req, res, next) => {
           quantity: 1,
         },
       ],
+
       metadata: {
         offerId: offerId.toString(),
         buyerId: buyerId.toString(),
@@ -121,21 +261,34 @@ const createPaymentIntent = async (req, res, next) => {
         vendorId: listing.vendorId.toString(),
         transactionId: transaction._id.toString(),
       },
+
       success_url: `${baseUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/payment/cancel`,
+
       customer_email: req.user?.email || undefined,
     });
 
-    await paymentService.updateTransactionById(transaction._id, {
-      stripePaymentIntentId: session.id,
-      stripePaymentStatus: session.payment_status || "pending",
-    });
+    // 3. Save Stripe Checkout Session ID
+    await paymentService.updateTransactionById(
+      transaction._id,
+      {
+        stripePaymentIntentId: session.id,
+        stripePaymentStatus:
+          session.payment_status || "pending",
+      }
+    );
+
+    // 4. IMPORTANT:
+    // Do NOT return session.url directly.
+    // Return your own backend checkout URL.
+    const checkoutUrl =
+      `${baseUrl}/api/v1/payments/checkout/${transaction._id}`;
 
     return res.status(200).json(
       new ApiResponse(
         200,
         {
-          checkoutUrl: session.url,
+          checkoutUrl,
           sessionId: session.id,
           transactionId: transaction._id,
           clientSecret: null,
@@ -147,6 +300,42 @@ const createPaymentIntent = async (req, res, next) => {
     next(err);
   }
 };
+
+
+
+
+// ============================================================
+// Stripe Checkout Redirect (for MCP) -- change for mcp
+// ============================================================
+const redirectToStripeCheckout = async (req, res, next) => {
+  try {
+    const { transactionId } = req.params;
+
+    const transaction = await paymentService.findTransactionById(transactionId);
+
+    if (!transaction || transaction.deletedAt) {
+      throw new ApiError(404, "Transaction not found");
+    }
+
+    // The transaction stores the Stripe Checkout Session ID
+    const session = await stripe.checkout.sessions.retrieve(
+      transaction.stripePaymentIntentId
+    );
+
+    if (!session || !session.url) {
+      throw new ApiError(404, "Stripe checkout session not found");
+    }
+
+    // IMPORTANT:
+    // Do not modify session.url.
+    // Redirect directly to the URL returned by Stripe.
+    return res.redirect(302, session.url);
+  } catch (err) {
+    next(err);
+  }
+};
+
+
 
 //what is webhook?
 //webhook is a way to get notified when a payment is successful or failed or any other event occurs in the stripe dashboard
@@ -393,14 +582,14 @@ const confirmDelivery = async (req, res, next) => {
       const vendorUser = await userService.findById(transaction.vendorId);
       const lang = vendorUser?.language || "en";
       const formattedAmount = `$${(transaction.vendorAmount / 100).toFixed(2)}`;
-    
+
       await sendPushNotification({
         fcmToken: vendorUser?.fcmToken,
         title: t("payment.released.title", lang),
         body: t("payment.released.body", lang, { amount: formattedAmount }),
         data: { transactionId: transaction._id.toString() },
       });
-    
+
       await sendEmail({
         to: vendorUser.email,
         templateName: "paymentReleased",
@@ -505,6 +694,7 @@ const getTransaction = async (req, res, next) => {
 
 module.exports = {
   createPaymentIntent,
+  redirectToStripeCheckout,
   handleWebhook,
   confirmDelivery,
   getTransaction,
