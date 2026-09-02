@@ -267,6 +267,9 @@ const createPaymentIntent = async (req, res, next) => {
 
       customer_email: req.user?.email || undefined,
     });
+    console.log("APP_URL:", baseUrl);
+    console.log("SUCCESS URL:", `${baseUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}`);
+    console.log("CANCEL URL:", `${baseUrl}/payment/cancel`);
 
     // 3. Save Stripe Checkout Session ID
     await paymentService.updateTransactionById(
