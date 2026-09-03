@@ -7,9 +7,10 @@ import StatusBadge from "../../components/dashboard/StatusBadge";
 import Button from "../../components/common/Button";
 import { VENDOR_NAV } from "../../config/navigation";
 import { fetchVendorOffers, respondToOffer } from "../../api/vendor.api";
-import { formatPrice } from "../../components/vehicles/BrowseVehicleCard";
+import useCurrencyStore from "../../store/useCurrencyStore";
 
 export default function VendorOffersPage() {
+  const { formatPrice } = useCurrencyStore();
   const [offers, setOffers] = useState([]);
 
   useEffect(() => {

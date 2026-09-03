@@ -7,9 +7,10 @@ import StatusBadge from "../../components/dashboard/StatusBadge";
 import Button from "../../components/common/Button";
 import { ADMIN_NAV } from "../../config/navigation";
 import { fetchAdminListings, approveListing } from "../../api/admin.api";
-import { formatPrice } from "../../components/vehicles/BrowseVehicleCard";
+import useCurrencyStore from "../../store/useCurrencyStore";
 
 export default function AdminListingsPage() {
+  const { formatPrice } = useCurrencyStore();
   const [listings, setListings] = useState([]);
 
   useEffect(() => {

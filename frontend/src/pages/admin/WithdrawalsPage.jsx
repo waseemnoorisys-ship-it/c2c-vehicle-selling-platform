@@ -7,9 +7,10 @@ import StatusBadge from "../../components/dashboard/StatusBadge";
 import Button from "../../components/common/Button";
 import { ADMIN_NAV } from "../../config/navigation";
 import { fetchWithdrawals, processWithdrawal } from "../../api/admin.api";
-import { formatPrice } from "../../components/vehicles/BrowseVehicleCard";
+import useCurrencyStore from "../../store/useCurrencyStore";
 
 export default function WithdrawalsPage() {
+  const { formatPrice } = useCurrencyStore();
   const [withdrawals, setWithdrawals] = useState([]);
 
   useEffect(() => {

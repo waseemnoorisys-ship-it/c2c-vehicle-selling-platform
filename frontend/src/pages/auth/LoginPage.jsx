@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import Input from "../../components/common/Input";
@@ -12,7 +12,11 @@ import { loginApi } from "../../api/auth.api";
 export default function LoginPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const setAuth = useAuthStore((s) => s.setAuth);
+
+  const mcpSession = searchParams.get("mcp_session");
+  const mcpCallback = searchParams.get("mcp_callback");
 
   const [form, setForm] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState({});
@@ -25,8 +29,14 @@ export default function LoginPage() {
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!form.email) { setErrors({ email: "Required" }); return; }
-    if (!form.password) { setErrors({ password: "Required" }); return; }
+    if (!form.email) {
+      setErrors({ email: "Required" });
+      return;
+    }
+    if (!form.password) {
+      setErrors({ password: "Required" });
+      return;
+    }
 
     setLoading(true);
     try {
@@ -34,6 +44,18 @@ export default function LoginPage() {
       const { user, accessToken, refreshToken } = res.data.data;
       setAuth(user, accessToken, refreshToken);
       toast.success(`Welcome back, ${user.firstName}!`);
+
+      // If user was redirected from MCP OAuth flow, return to MCP authorization callback
+      if (mcpSession) {
+        const targetCallback =
+          mcpCallback ||
+          "https://myth-ceremony-avenging.ngrok-free.dev/oauth/authorize/callback";
+        const callbackUrl = new URL(targetCallback);
+        callbackUrl.searchParams.set("session", mcpSession);
+        callbackUrl.searchParams.set("token", accessToken);
+        window.location.href = callbackUrl.toString();
+        return;
+      }
 
       if (user.role === "buyer") navigate("/buyer/dashboard");
       if (user.role === "vendor") navigate("/vendor/dashboard");
@@ -104,7 +126,10 @@ export default function LoginPage() {
       </p>
 
       <p className="text-center text-xs text-text-muted mt-3">
-        <Link to="/admin/login" className="hover:text-text-accent hover:underline">
+        <Link
+          to="/admin/login"
+          className="hover:text-text-accent hover:underline"
+        >
           Admin login →
         </Link>
       </p>

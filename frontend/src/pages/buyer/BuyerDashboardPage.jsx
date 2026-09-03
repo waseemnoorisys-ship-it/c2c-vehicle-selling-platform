@@ -5,10 +5,10 @@ import StatCard from "../../components/dashboard/StatCard";
 import DataTable from "../../components/dashboard/DataTable";
 import StatusBadge from "../../components/dashboard/StatusBadge";
 import { BUYER_NAV } from "../../config/navigation";
-import { fetchBuyerDashboard } from "../../api/buyer.api";
-import { formatPrice } from "../../components/vehicles/BrowseVehicleCard";
+import useCurrencyStore from "../../store/useCurrencyStore";
 
 export default function BuyerDashboardPage() {
+  const { formatPrice } = useCurrencyStore();
   const [data, setData] = useState(null);
 
   useEffect(() => {

@@ -6,11 +6,14 @@ import PageHeader from "../../components/dashboard/PageHeader";
 import BrowseVehicleCard from "../../components/vehicles/BrowseVehicleCard";
 import { fetchVehicles, fetchFilterOptions } from "../../api/vehicles.api";
 import useAuthStore from "../../store/useAuthStore";
+import useCurrencyStore from "../../store/useCurrencyStore";
 
 export default function BrowsePage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuthStore();
+  const { getSymbol } = useCurrencyStore();
+  const currencySymbol = getSymbol();
   const isBuyer = user?.role === "buyer";
 
   const [vehicles, setVehicles] = useState([]);
@@ -143,7 +146,7 @@ export default function BrowsePage() {
 
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-xs text-text-muted mb-1 block">Min €</label>
+                <label className="text-xs text-text-muted mb-1 block">Min ({currencySymbol})</label>
                 <input
                   type="number"
                   value={filters.minPrice}
@@ -153,7 +156,7 @@ export default function BrowsePage() {
                 />
               </div>
               <div>
-                <label className="text-xs text-text-muted mb-1 block">Max €</label>
+                <label className="text-xs text-text-muted mb-1 block">Max ({currencySymbol})</label>
                 <input
                   type="number"
                   value={filters.maxPrice}

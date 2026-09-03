@@ -9,9 +9,11 @@ import Button from "../../components/common/Button";
 import Input from "../../components/common/Input";
 import { VENDOR_NAV } from "../../config/navigation";
 import { fetchWallet, requestWithdrawal } from "../../api/vendor.api";
-import { formatPrice } from "../../components/vehicles/BrowseVehicleCard";
+import useCurrencyStore, { formatPrice } from "../../store/useCurrencyStore";
 
 export default function WalletPage() {
+  const { getSymbol } = useCurrencyStore();
+  const currencySymbol = getSymbol();
   const [wallet, setWallet] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [withdrawAmount, setWithdrawAmount] = useState("");
@@ -75,7 +77,7 @@ export default function WalletPage() {
           <div className="w-full max-w-md rounded-xl border border-border bg-surface p-6">
             <h3 className="font-display text-xl font-bold text-text-primary mb-4">Request Withdrawal</h3>
             <form onSubmit={handleWithdraw} className="space-y-4">
-              <Input label="Amount (€)" type="number" value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)} placeholder="Max available balance" />
+              <Input label={`Amount (${currencySymbol})`} type="number" value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)} placeholder="Max available balance" />
               <div className="flex gap-3">
                 <Button type="button" variant="outline" className="normal-case" onClick={() => setShowWithdraw(false)}>Cancel</Button>
                 <Button type="submit" loading={loading}>Submit Request</Button>

@@ -6,10 +6,10 @@ import DataTable from "../../components/dashboard/DataTable";
 import StatusBadge from "../../components/dashboard/StatusBadge";
 import Button from "../../components/common/Button";
 import { BUYER_NAV } from "../../config/navigation";
-import { fetchBuyerPurchases } from "../../api/buyer.api";
-import { formatPrice } from "../../components/vehicles/BrowseVehicleCard";
+import useCurrencyStore from "../../store/useCurrencyStore";
 
 export default function BuyerPurchasesPage() {
+  const { formatPrice } = useCurrencyStore();
   const [purchases, setPurchases] = useState([]);
 
   useEffect(() => {

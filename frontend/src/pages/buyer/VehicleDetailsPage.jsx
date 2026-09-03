@@ -6,7 +6,7 @@ import LandingFooter from "../../components/landing/LandingFooter";
 import Button from "../../components/common/Button";
 import Input from "../../components/common/Input";
 import StatusBadge from "../../components/dashboard/StatusBadge";
-import { formatPrice } from "../../components/vehicles/BrowseVehicleCard";
+import useCurrencyStore, { formatPrice } from "../../store/useCurrencyStore";
 import { fetchVehicleById, createOffer } from "../../api/vehicles.api";
 import { getVehiclePlaceholderUrl } from "../../utils/vehicleImage.utils";
 import ListingLocationMap from "../../components/vehicles/ListingLocationMap";
@@ -17,6 +17,8 @@ export default function VehicleDetailsPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user, accessToken } = useAuthStore();
+  const { getSymbol } = useCurrencyStore();
+  const currencySymbol = getSymbol();
   const [vehicle, setVehicle] = useState(null);
   const [loading, setLoading] = useState(true);
   const [offerAmount, setOfferAmount] = useState("");
@@ -190,7 +192,7 @@ export default function VehicleDetailsPage() {
             <h3 className="font-display text-xl font-bold text-text-primary mb-4">Make An Offer</h3>
             <form onSubmit={handleMakeOffer} className="space-y-4">
               <Input
-                label="Your Offer (€)"
+                label={`Your Offer (${currencySymbol})`}
                 type="number"
                 value={offerAmount}
                 onChange={(e) => setOfferAmount(e.target.value)}

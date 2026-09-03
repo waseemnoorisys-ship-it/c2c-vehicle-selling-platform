@@ -16,6 +16,7 @@ import {
 import { fetchVendorListingById } from "../../api/vendor.api";
 import { getVehicleMasters, getModelsForMakeId } from "../../api/vehicleMaster.cache";
 import { FILTER_OPTIONS } from "../../data/mockData";
+import useCurrencyStore, { formatPrice } from "../../store/useCurrencyStore";
 
 const STEPS = ["Basic Info", "Details", "Photos", "Preview"];
 const MAX_PHOTOS = 10;
@@ -47,6 +48,8 @@ export default function AddEditVehiclePage() {
   const [photoItems, setPhotoItems] = useState([]);
   const [removedPublicIds, setRemovedPublicIds] = useState([]);
   const [dragActive, setDragActive] = useState(false);
+  const { getSymbol } = useCurrencyStore();
+  const currencySymbol = getSymbol();
   const [loading, setLoading] = useState(false);
   const [makes, setMakes] = useState([]);
   const [models, setModels] = useState([]);
@@ -275,7 +278,7 @@ export default function AddEditVehiclePage() {
             </div>
             <div className="grid sm:grid-cols-2 gap-4">
               <Input label="Year" name="year" type="number" value={form.year} onChange={handleChange} placeholder="2021" />
-              <Input label="Price (€)" name="price" type="number" value={form.price} onChange={handleChange} placeholder="45000" />
+              <Input label={`Price (${currencySymbol})`} name="price" type="number" value={form.price} onChange={handleChange} placeholder="45000" />
             </div>
             <Input label="Location" name="location" value={form.location} onChange={handleChange} placeholder="Paris, France" />
           </div>
@@ -398,7 +401,7 @@ export default function AddEditVehiclePage() {
               </div>
             )}
             <p className="text-text-secondary">{form.year} {selectedMakeName} {selectedModelName}</p>
-            <p className="text-text-accent font-bold">€{form.price}</p>
+            <p className="text-text-accent font-bold">{formatPrice(form.price)}</p>
             <p className="text-sm text-text-muted">{form.mileage} km · {form.fuel} · {form.transmission}</p>
             <p className="text-sm text-text-muted">{form.location}</p>
             <p className="text-xs text-text-muted">{photoItems.length} photo(s) attached</p>

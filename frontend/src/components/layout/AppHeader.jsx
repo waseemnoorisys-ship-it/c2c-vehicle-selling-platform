@@ -1,6 +1,7 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import Logo from "./Logo";
 import ThemeToggle from "../theme/ThemeToggle";
+import CurrencySelector from "../theme/CurrencySelector";
 
 const NAV_LINKS = [
   { label: "Login", to: "/login" },
@@ -51,7 +52,10 @@ export default function AppHeader({ showBack = false }) {
         ))}
       </nav>
 
-      <ThemeToggle />
+      <div className="flex items-center gap-2">
+        <CurrencySelector />
+        <ThemeToggle />
+      </div>
     </header>
   );
 }

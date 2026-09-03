@@ -5,10 +5,10 @@ import PageHeader from "../../components/dashboard/PageHeader";
 import DataTable from "../../components/dashboard/DataTable";
 import StatusBadge from "../../components/dashboard/StatusBadge";
 import { BUYER_NAV } from "../../config/navigation";
-import { fetchBuyerOffers, fetchBuyerPayments } from "../../api/buyer.api";
-import { formatPrice } from "../../components/vehicles/BrowseVehicleCard";
+import useCurrencyStore from "../../store/useCurrencyStore";
 
 export default function BuyerOffersPage() {
+  const { formatPrice } = useCurrencyStore();
   const [offers, setOffers] = useState([]);
   const [payments, setPayments] = useState([]);
 
@@ -18,9 +18,11 @@ export default function BuyerOffersPage() {
   }, []);
 
   const offerColumns = [
-    { key: "vehicleTitle", label: "Vehicle", render: (r) => (
-      <Link to={`/vehicles/${r.vehicleId}`} className="text-text-accent hover:underline">{r.vehicleTitle}</Link>
-    )},
+    {
+      key: "vehicleTitle", label: "Vehicle", render: (r) => (
+        <Link to={`/vehicles/${r.vehicleId}`} className="text-text-accent hover:underline">{r.vehicleTitle}</Link>
+      )
+    },
     { key: "amount", label: "Offer", render: (r) => formatPrice(r.amount) },
     { key: "createdAt", label: "Date" },
     { key: "status", label: "Status", render: (r) => <StatusBadge status={r.status} /> },

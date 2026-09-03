@@ -15,10 +15,10 @@ export const STATS = [
 ];
 
 export const FEATURED_VEHICLES = [
-  { id: 1, title: "2021 BMW X5 xDrive40i", price: "€45,500", mileage: "32,000 km", transmission: "Auto", fuel: "Petrol" },
-  { id: 2, title: "2020 Mercedes-Benz GLE 350", price: "€52,900", mileage: "28,500 km", transmission: "Auto", fuel: "Diesel" },
-  { id: 3, title: "2022 Audi Q7 55 TFSI", price: "€58,200", mileage: "18,200 km", transmission: "Auto", fuel: "Petrol" },
-  { id: 4, title: "2019 Porsche Cayenne S", price: "€67,800", mileage: "41,000 km", transmission: "Auto", fuel: "Petrol" },
+  { id: 1, title: "2021 BMW X5 xDrive40i", price: 45500, mileage: "32,000 km", transmission: "Auto", fuel: "Petrol" },
+  { id: 2, title: "2020 Mercedes-Benz GLE 350", price: 52900, mileage: "28,500 km", transmission: "Auto", fuel: "Diesel" },
+  { id: 3, title: "2022 Audi Q7 55 TFSI", price: 58200, mileage: "18,200 km", transmission: "Auto", fuel: "Petrol" },
+  { id: 4, title: "2019 Porsche Cayenne S", price: 67800, mileage: "41,000 km", transmission: "Auto", fuel: "Petrol" },
 ];
 
 export const ADVANTAGES = [

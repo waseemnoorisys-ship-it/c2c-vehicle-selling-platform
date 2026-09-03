@@ -8,10 +8,10 @@ import StatusBadge from "../../components/dashboard/StatusBadge";
 import Button from "../../components/common/Button";
 import VehicleImage from "../../components/vehicles/VehicleImage";
 import { VENDOR_NAV } from "../../config/navigation";
-import { fetchVendorListings, deleteListing } from "../../api/vendor.api";
-import { formatPrice } from "../../components/vehicles/BrowseVehicleCard";
+import useCurrencyStore from "../../store/useCurrencyStore";
 
 export default function ManageListingsPage() {
+  const { formatPrice } = useCurrencyStore();
   const navigate = useNavigate();
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);

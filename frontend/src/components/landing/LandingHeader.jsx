@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Logo from "../layout/Logo";
 import ThemeToggle from "../theme/ThemeToggle";
+import CurrencySelector from "../theme/CurrencySelector";
 import { NAV_LINKS } from "../../data/landingData";
 
 export default function LandingHeader() {
@@ -51,6 +52,7 @@ export default function LandingHeader() {
           </nav>
 
           <div className="flex items-center gap-2 sm:gap-3">
+            <CurrencySelector />
             <ThemeToggle />
             <button
               type="button"

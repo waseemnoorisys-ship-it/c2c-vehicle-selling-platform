@@ -4,9 +4,10 @@ import PageHeader from "../../components/dashboard/PageHeader";
 import StatCard from "../../components/dashboard/StatCard";
 import { ADMIN_NAV } from "../../config/navigation";
 import { fetchAdminDashboard } from "../../api/admin.api";
-import { formatPrice } from "../../components/vehicles/BrowseVehicleCard";
+import useCurrencyStore from "../../store/useCurrencyStore";
 
 export default function AdminDashboard() {
+  const { formatPrice } = useCurrencyStore();
   const [data, setData] = useState(null);
 
   useEffect(() => {

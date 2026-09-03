@@ -8,6 +8,7 @@ import {
   toBackendTransmission,
 } from "./mappers";
 import { findMakeIdByName, getMakeNames, syncMakesFromApi, syncModelsForMake } from "./vehicleMaster.cache";
+import useCurrencyStore from "../store/useCurrencyStore";
 
 function buildBrowseBody(filters = {}) {
   const body = { page: 1, limit: 50, sort: "newest" };
@@ -28,15 +29,16 @@ function buildBrowseBody(filters = {}) {
 }
 
 function buildPriceRanges(pricesEuros) {
+  const symbol = useCurrencyStore.getState().getSymbol() || "$";
   const any = { label: "Any price", value: "", min: "", max: "" };
 
   if (!pricesEuros.length) {
     return [
       any,
-      { label: "Under €15,000", value: "0-15000", min: 0, max: 15000 },
-      { label: "€15,000 – €30,000", value: "15000-30000", min: 15000, max: 30000 },
-      { label: "€30,000 – €50,000", value: "30000-50000", min: 30000, max: 50000 },
-      { label: "Over €50,000", value: "50000-", min: 50000, max: "" },
+      { label: `Under ${symbol}15,000`, value: "0-15000", min: 0, max: 15000 },
+      { label: `${symbol}15,000 – ${symbol}30,000`, value: "15000-30000", min: 15000, max: 30000 },
+      { label: `${symbol}30,000 – ${symbol}50,000`, value: "30000-50000", min: 30000, max: 50000 },
+      { label: `Over ${symbol}50,000`, value: "50000-", min: 50000, max: "" },
     ];
   }
 
@@ -49,7 +51,7 @@ function buildPriceRanges(pricesEuros) {
   for (let start = min; start < max; start += step) {
     const end = start + step;
     ranges.push({
-      label: `€${start.toLocaleString()} – €${end.toLocaleString()}`,
+      label: `${symbol}${start.toLocaleString()} – ${symbol}${end.toLocaleString()}`,
       value: `${start}-${end}`,
       min: start,
       max: end,
@@ -57,7 +59,7 @@ function buildPriceRanges(pricesEuros) {
   }
 
   ranges.push({
-    label: `Over €${max.toLocaleString()}`,
+    label: `Over ${symbol}${max.toLocaleString()}`,
     value: `${max}-`,
     min: max,
     max: "",

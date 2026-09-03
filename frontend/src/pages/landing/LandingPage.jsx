@@ -18,16 +18,19 @@ import {
   FAQS,
 } from "../../data/landingData";
 import { fetchSearchFilterData, fetchFeaturedVehicles } from "../../api/vehicles.api";
+import useCurrencyStore, { formatPrice } from "../../store/useCurrencyStore";
 
 const EMPTY_SEARCH = { makeId: "", modelId: "", priceRange: "" };
 
-const DEFAULT_PRICE_RANGES = [
+const getDefaultPriceRanges = (symbol = "$") => [
   { label: "Any price", value: "", min: "", max: "" },
-  { label: "Under €15,000", value: "0-15000", min: 0, max: 15000 },
-  { label: "€15,000 – €30,000", value: "15000-30000", min: 15000, max: 30000 },
-  { label: "€30,000 – €50,000", value: "30000-50000", min: 30000, max: 50000 },
-  { label: "Over €50,000", value: "50000-", min: 50000, max: "" },
+  { label: `Under ${symbol}15,000`, value: "0-15000", min: 0, max: 15000 },
+  { label: `${symbol}15,000 – ${symbol}30,000`, value: "15000-30000", min: 15000, max: 30000 },
+  { label: `${symbol}30,000 – ${symbol}50,000`, value: "30000-50000", min: 30000, max: 50000 },
+  { label: `Over ${symbol}50,000`, value: "50000-", min: 50000, max: "" },
 ];
+
+const DEFAULT_PRICE_RANGES = getDefaultPriceRanges("$");
 
 function StatIcon({ type }) {
   const icons = {
@@ -120,19 +123,22 @@ export default function LandingPage() {
   const [vehiclesLoading, setVehiclesLoading] = useState(true);
   const [ctaImageIndex, setCtaImageIndex] = useState(0);
 
+  const { getSymbol } = useCurrencyStore();
+  const currencySymbol = getSymbol();
+
   useEffect(() => {
     fetchSearchFilterData()
       .then((res) => {
         const data = res.data.data;
         setMakes(data.makes || []);
         setModelsByMake(data.models || {});
-        setPriceRanges(data.priceRanges?.length ? data.priceRanges : DEFAULT_PRICE_RANGES);
+        setPriceRanges(data.priceRanges?.length ? data.priceRanges : getDefaultPriceRanges(currencySymbol));
       })
       .catch(() => {
-        setPriceRanges(DEFAULT_PRICE_RANGES);
+        setPriceRanges(getDefaultPriceRanges(currencySymbol));
       })
       .finally(() => setFiltersLoading(false));
-  }, []);
+  }, [currencySymbol]);
 
   useEffect(() => {
     fetchFeaturedVehicles(12)
@@ -273,7 +279,7 @@ export default function LandingPage() {
               disabled={filtersLoading}
               className="flex-1 px-4 py-3 rounded-lg bg-background border border-border text-sm text-text-primary outline-none focus:ring-2 focus:ring-primary-400 disabled:opacity-60"
             >
-              {(filtersLoading ? DEFAULT_PRICE_RANGES : priceRanges).map((range) => (
+              {(filtersLoading ? getDefaultPriceRanges(currencySymbol) : priceRanges).map((range) => (
                 <option key={range.value || "any"} value={range.value}>
                   {range.value === "" ? "Price Range" : range.label}
                 </option>
@@ -527,7 +533,7 @@ export default function LandingPage() {
                   <div className="absolute bottom-0 left-0 right-0 p-4">
                     <p className="text-sm font-semibold text-text-primary line-clamp-1">{ctaVehicle.title}</p>
                     <p className="text-xs text-text-accent mt-1">
-                      €{Number(ctaVehicle.price || 0).toLocaleString()}
+                      {formatPrice(ctaVehicle.price)}
                     </p>
                   </div>
                   {vehicles.length > 1 && (

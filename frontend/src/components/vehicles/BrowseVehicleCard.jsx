@@ -2,11 +2,12 @@ import { Link } from "react-router-dom";
 import StatusBadge from "../dashboard/StatusBadge";
 import VehicleImage from "./VehicleImage";
 
-export function formatPrice(amount) {
-  return new Intl.NumberFormat("en-EU", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(amount);
-}
+import useCurrencyStore, { formatPrice } from "../../store/useCurrencyStore";
+
+export { formatPrice };
 
 export default function BrowseVehicleCard({ vehicle }) {
+  const { formatPrice } = useCurrencyStore();
   return (
     <article className="rounded-xl border border-border bg-surface overflow-hidden hover:border-primary-400/40 transition group">
       <Link to={`/vehicles/${vehicle.id}`} className="block">
