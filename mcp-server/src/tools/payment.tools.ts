@@ -75,7 +75,7 @@ export function registerPaymentTools(server: McpServer) {
         {
             title: "Create Vehicle Payment",
             description:
-                "Create a secure Stripe Checkout payment for an accepted vehicle offer on behalf of the authenticated buyer. The C2C backend determines and validates the final payment amount.",
+                "Create a secure Stripe Checkout payment in EUR for an accepted vehicle offer on behalf of the authenticated buyer. The C2C backend determines and validates the final payment amount in EUR cents.",
             inputSchema: z.object({
                 offerId: z
                     .string()
@@ -84,10 +84,15 @@ export function registerPaymentTools(server: McpServer) {
                         "offerId must be a valid 24-character hex MongoDB ObjectId",
                     )
                     .describe("MongoDB ObjectId of the accepted offer"),
+                returnUrl: z
+                    .string()
+                    .url()
+                    .optional()
+                    .describe("Optional URL of the current chat conversation window (e.g. ChatGPT / Claude conversation URL) to redirect back to after payment"),
             }),
         },
 
-        async ({ offerId }, extra) => {
+        async ({ offerId, returnUrl }, extra) => {
             const { userId, role } = getUserContext(extra);
 
             if (!userId) {
@@ -103,6 +108,7 @@ export function registerPaymentTools(server: McpServer) {
                     method: "POST",
                     body: {
                         offerId,
+                        ...(returnUrl ? { returnUrl } : {}),
                     },
                     userId,
                     role,

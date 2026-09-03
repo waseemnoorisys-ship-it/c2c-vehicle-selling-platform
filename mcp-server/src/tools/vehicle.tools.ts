@@ -55,11 +55,11 @@ export function registerVehicleTools(server: McpServer) {
         minPrice: z
           .number()
           .optional()
-          .describe("Minimum price in lowest currency unit"),
+          .describe("Minimum price in EUR cents (e.g. 500000 for €5,000.00)"),
         maxPrice: z
           .number()
           .optional()
-          .describe("Maximum price in lowest currency unit"),
+          .describe("Maximum price in EUR cents (e.g. 2500000 for €25,000.00)"),
         fuelType: z
           .string()
           .optional()
@@ -193,7 +193,7 @@ export function registerVehicleTools(server: McpServer) {
     {
       title: "Create Vehicle Offer",
       description:
-        "Submit a formal purchase offer for a vehicle listing on the C2C marketplace on behalf of the authenticated buyer.",
+        "Submit a formal purchase offer in EUR (€) for a vehicle listing on behalf of the authenticated buyer. The entire marketplace operates in EUR only.",
       inputSchema: z.object({
         listingId: z
           .string()
@@ -206,13 +206,15 @@ export function registerVehicleTools(server: McpServer) {
           .number()
           .int()
           .min(1)
-          .describe("Offer amount in backend's currency unit (cents/pennies)"),
+          .describe("Offer amount in EUR cents (e.g. 4350000 for €43,500.00). Must strictly be in EUR."),
         message: z
           .string()
           .trim()
           .max(500)
           .optional()
-          .describe("Optional note to the vehicle seller"),
+          .describe(
+            "Optional note to the vehicle seller. CRITICAL: The platform is strictly EUR-only (€). Any monetary values in this message MUST strictly be written in EUR (e.g. 'I’d like to offer €43,500'). NEVER mention or write ₹ (INR), $ (USD), £ (GBP), or other non-EUR currencies.",
+          ),
       }),
     },
     async ({ listingId, amount, message }, extra) => {
@@ -488,14 +490,23 @@ export function registerVehicleTools(server: McpServer) {
             "offerId must be a valid 24-character hex MongoDB ObjectId",
           )
           .describe("The MongoDB ObjectId of the offer to accept"),
+        message: z
+          .string()
+          .trim()
+          .max(500)
+          .optional()
+          .describe("Optional acceptance message/note sent to the buyer"),
       }),
     },
-    async ({ offerId }, extra) => {
+    async ({ offerId, message }, extra) => {
       const { userId, role } = getUserContext(extra);
 
       const result = await fetchC2CBackend("/api/v1/offers/accept", {
         method: "POST",
-        body: { id: offerId },
+        body: {
+          id: offerId,
+          ...(message ? { message } : {}),
+        },
         userId,
         role,
         requiresAuth: true,
@@ -751,7 +762,7 @@ export function registerVehicleTools(server: McpServer) {
           .number()
           .int()
           .min(1)
-          .describe("Vehicle asking price in INR"),
+          .describe("Vehicle asking price in EUR cents (e.g. 1200000 for €12,000.00)"),
 
         locationText: z
           .string()
@@ -937,7 +948,7 @@ export function registerVehicleTools(server: McpServer) {
           .int()
           .min(1)
           .optional()
-          .describe("Vehicle asking price in INR"),
+          .describe("Vehicle asking price in EUR cents (e.g. 1200000 for €12,000.00)"),
 
         locationText: z
           .string()
@@ -1539,7 +1550,7 @@ export function registerVehicleTools(server: McpServer) {
           .number()
           .int()
           .min(1)
-          .describe("Vehicle asking price in INR"),
+          .describe("Vehicle asking price in EUR cents (e.g. 1200000 for €12,000.00)"),
 
         locationText: z
           .string()
@@ -2042,4 +2053,372 @@ export function registerVehicleTools(server: McpServer) {
     },
   );
 
+  // ============================================================
+  // 17. Get Available Makes and Models (Public Discovery)
+  // ============================================================
+  server.registerTool(
+    "get_makes_and_models",
+    {
+      title: "Get Available Makes and Models",
+      description:
+        "Discover available vehicle makes and models from the C2C database. Use this to find existing makes and their valid models with MongoDB ObjectIds before creating listings or applying search filters.",
+      inputSchema: z.object({
+        makeName: z
+          .string()
+          .trim()
+          .optional()
+          .describe("Optional make name to filter by (e.g. 'BMW', 'Mercedes-Benz', 'Audi')"),
+      }),
+    },
+    async ({ makeName }, _extra) => {
+      const result = await fetchC2CBackend("/api/v1/landing/search-filters", {
+        method: "POST",
+        body: {},
+        requiresAuth: false,
+      });
+
+      if (!result.success || !result.data) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                {
+                  success: false,
+                  status: result.status || 500,
+                  error: result.error || "Failed to fetch vehicle makes and models",
+                },
+                null,
+                2,
+              ),
+            },
+          ],
+          isError: true,
+        };
+      }
+
+      const filterPayload = result.data?.data || result.data || {};
+      const rawMakes: Array<{ id: string; name: string }> = filterPayload.makes || [];
+      const rawModelsByMake: Record<string, Array<{ id: string; name: string }>> =
+        filterPayload.models || {};
+
+      let makesWithModels = rawMakes.map((m) => ({
+        makeId: m.id,
+        makeName: m.name,
+        models: (rawModelsByMake[m.id] || []).map((model) => ({
+          modelId: model.id,
+          modelName: model.name,
+        })),
+      }));
+
+      if (makeName) {
+        const query = makeName.toLowerCase();
+        makesWithModels = makesWithModels.filter(
+          (m) =>
+            m.makeName.toLowerCase().includes(query) ||
+            query.includes(m.makeName.toLowerCase()),
+        );
+      }
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(
+              {
+                success: true,
+                totalMakes: makesWithModels.length,
+                makes: makesWithModels,
+              },
+              null,
+              2,
+            ),
+          },
+        ],
+      };
+    },
+  );
+
+  // ============================================================
+  // 18. Create Listing Smart (By Make/Model Name or ObjectId)
+  // Vendor Role Required
+  // ============================================================
+  server.registerTool(
+    "create_listing_smart",
+    {
+      title: "Create Listing by Make & Model Name",
+      description:
+        "Create a vehicle listing for the authenticated vendor by providing either make & model names (e.g. 'BMW', '3 Series') or MongoDB ObjectIds. It automatically discovers and validates make/model IDs from the database.",
+      inputSchema: z.object({
+        make: z
+          .string()
+          .trim()
+          .describe("Make name (e.g. 'BMW') or MongoDB ObjectId of the make"),
+        model: z
+          .string()
+          .trim()
+          .describe("Model name (e.g. '3 Series') or MongoDB ObjectId of the model"),
+        year: z
+          .number()
+          .int()
+          .min(1950)
+          .max(new Date().getFullYear() + 1)
+          .describe("Vehicle manufacturing year (e.g. 2021)"),
+        mileage: z.number().min(0).describe("Vehicle mileage in kilometers"),
+        fuelType: z
+          .enum(["petrol", "diesel", "electric", "hybrid", "cng", "lpg"])
+          .describe("Vehicle fuel type"),
+        transmission: z
+          .enum(["manual", "automatic", "semi-automatic"])
+          .describe("Vehicle transmission type"),
+        askingPrice: z
+          .number()
+          .int()
+          .min(1)
+          .describe("Vehicle asking price in EUR cents (e.g. 1200000 for €12,000.00)"),
+        condition: z
+          .enum(["new", "used", "certified-pre-owned"])
+          .optional()
+          .describe("Vehicle condition"),
+        registrationNumber: z
+          .string()
+          .trim()
+          .max(30)
+          .optional()
+          .describe("Vehicle registration number"),
+        locationText: z
+          .string()
+          .trim()
+          .max(200)
+          .optional()
+          .describe("Vehicle location (city, area)"),
+        latitude: z.number().min(-90).max(90).optional().describe("Location latitude"),
+        longitude: z.number().min(-180).max(180).optional().describe("Location longitude"),
+        submitForApproval: z
+          .boolean()
+          .optional()
+          .describe("Whether to submit listing for approval immediately (default true)"),
+      }),
+    },
+    async (
+      {
+        make,
+        model,
+        year,
+        mileage,
+        fuelType,
+        transmission,
+        askingPrice,
+        condition,
+        registrationNumber,
+        locationText,
+        latitude,
+        longitude,
+        submitForApproval = true,
+      },
+      extra,
+    ) => {
+      const { userId, role } = getUserContext(extra);
+
+      if (!userId) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                {
+                  success: false,
+                  status: 401,
+                  error: "Authentication required: No authenticated C2C user found.",
+                },
+                null,
+                2,
+              ),
+            },
+          ],
+          isError: true,
+        };
+      }
+
+      // 1. Fetch available makes and models from the database API
+      const filtersResult = await fetchC2CBackend(
+        "/api/v1/landing/search-filters",
+        {
+          method: "POST",
+          body: {},
+          requiresAuth: false,
+        },
+      );
+
+      if (!filtersResult.success || !filtersResult.data) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                {
+                  success: false,
+                  status: 500,
+                  error: "Failed to discover makes and models from the database.",
+                },
+                null,
+                2,
+              ),
+            },
+          ],
+          isError: true,
+        };
+      }
+
+      const filterPayload = filtersResult.data?.data || filtersResult.data || {};
+      const makesList: Array<{ id: string; name: string }> =
+        filterPayload.makes || [];
+      const modelsByMake: Record<string, Array<{ id: string; name: string }>> =
+        filterPayload.models || {};
+
+      // 2. Resolve makeId
+      const isMakeObjectId = /^[0-9a-fA-F]{24}$/.test(make);
+      let matchedMake = isMakeObjectId
+        ? makesList.find((m) => m.id === make)
+        : makesList.find(
+            (m) => m.name.toLowerCase() === make.toLowerCase().trim(),
+          );
+
+      if (!matchedMake && !isMakeObjectId) {
+        // Partial match fallback
+        matchedMake = makesList.find(
+          (m) =>
+            m.name.toLowerCase().includes(make.toLowerCase().trim()) ||
+            make.toLowerCase().trim().includes(m.name.toLowerCase()),
+        );
+      }
+
+      if (!matchedMake && !isMakeObjectId) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                {
+                  success: false,
+                  status: 400,
+                  error: `Vehicle make '${make}' not found in database.`,
+                  availableMakes: makesList.map((m) => m.name),
+                },
+                null,
+                2,
+              ),
+            },
+          ],
+          isError: true,
+        };
+      }
+
+      const resolvedMakeId = matchedMake ? matchedMake.id : make;
+      const availableModels = modelsByMake[resolvedMakeId] || [];
+
+      // 3. Resolve modelId
+      const isModelObjectId = /^[0-9a-fA-F]{24}$/.test(model);
+      let matchedModel = isModelObjectId
+        ? availableModels.find((m) => m.id === model)
+        : availableModels.find(
+            (m) => m.name.toLowerCase() === model.toLowerCase().trim(),
+          );
+
+      if (!matchedModel && !isModelObjectId) {
+        matchedModel = availableModels.find(
+          (m) =>
+            m.name.toLowerCase().includes(model.toLowerCase().trim()) ||
+            model.toLowerCase().trim().includes(m.name.toLowerCase()),
+        );
+      }
+
+      if (!matchedModel && !isModelObjectId) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                {
+                  success: false,
+                  status: 400,
+                  error: `Vehicle model '${model}' not found for make '${matchedMake?.name || make}'.`,
+                  availableModelsForMake: availableModels.map((m) => m.name),
+                },
+                null,
+                2,
+              ),
+            },
+          ],
+          isError: true,
+        };
+      }
+
+      const resolvedModelId = matchedModel ? matchedModel.id : model;
+
+      // 4. Create the listing with resolved IDs
+      const createResult = await fetchC2CBackend("/api/v1/listings/create", {
+        method: "POST",
+        body: {
+          makeId: resolvedMakeId,
+          modelId: resolvedModelId,
+          year,
+          mileage,
+          fuelType,
+          transmission,
+          askingPrice,
+          ...(condition !== undefined && { condition }),
+          ...(registrationNumber !== undefined && { registrationNumber }),
+          ...(locationText !== undefined && { locationText }),
+          ...(latitude !== undefined && { latitude }),
+          ...(longitude !== undefined && { longitude }),
+          ...(submitForApproval !== undefined && { submitForApproval }),
+        },
+        userId,
+        role,
+        requiresAuth: true,
+        allowedRoles: ["vendor"],
+      });
+
+      if (!createResult.success) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                {
+                  success: false,
+                  status: createResult.status,
+                  error: createResult.error,
+                },
+                null,
+                2,
+              ),
+            },
+          ],
+          isError: true,
+        };
+      }
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(
+              {
+                success: true,
+                message: "Listing created successfully.",
+                resolvedMake: matchedMake?.name || resolvedMakeId,
+                resolvedModel: matchedModel?.name || resolvedModelId,
+                listing: createResult.data,
+              },
+              null,
+              2,
+            ),
+          },
+        ],
+      };
+    },
+  );
 }
+

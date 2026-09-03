@@ -8,25 +8,21 @@
     "dev": "tsx src/server.ts",
     "typecheck": "tsc --noEmit",
     "build": "tsc",
-    "start": "tsc && node build/server.js"
+    "start": "node build/server.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
-  "devDependencies": {
-    "@types/express": "^5.0.6",
-    "@types/node": "^26.2.0",
-    "tsx": "^4.23.12",
-    "typescript": "^7.0.2"
-  },
   "dependencies": {
     "@modelcontextprotocol/client": "^2.0.0",
     "@modelcontextprotocol/express": "^2.0.0",
     "@modelcontextprotocol/node": "^2.0.0",
     "@modelcontextprotocol/sdk": "^1.30.0",
     "@modelcontextprotocol/server": "^2.0.0",
+    "@types/express": "^5.0.6",
     "@types/mongoose": "^5.11.96",
+    "@types/node": "^26.2.0",
     "bcryptjs": "^3.0.3",
     "crypto": "^1.0.1",
     "dotenv": "^17.4.2",
@@ -34,6 +30,8 @@
     "jose": "^6.2.9",
     "mongoose": "^9.9.4",
     "openai": "^7.4.0",
+    "tsx": "^4.23.12",
+    "typescript": "^5.8.2",
     "zod": "^4.4.3"
   }
 }
