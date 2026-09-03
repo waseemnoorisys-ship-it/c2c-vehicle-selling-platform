@@ -25,7 +25,7 @@ function toOrder(transaction) {
     label: `#${transaction._id.toString().slice(-8)}`,
     checkout_id: `ucp_chk_${transaction.offerId}`,
     permalink_url: `${baseUrl}/buyer/offers`,
-    currency: transaction.currency || "USD",
+    currency: transaction.currency || "EUR",
     line_items: [
       {
         id: "line_1",

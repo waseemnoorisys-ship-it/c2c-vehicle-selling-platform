@@ -13,11 +13,13 @@ const mcpUrl = process.env.MCP_SERVER_URL || "http://localhost:3001/mcp";
 const accessToken = process.env.MCP_ACCESS_TOKEN || "";
 
 const transport = new StreamableHTTPClientTransport(new URL(mcpUrl), {
-  headers: accessToken
-    ? {
-      Authorization: `Bearer ${accessToken}`,
-    }
-    : undefined,
+  requestInit: {
+    headers: accessToken
+      ? {
+          Authorization: `Bearer ${accessToken}`,
+        }
+      : undefined,
+  },
 });
 
 async function main() {

@@ -23,7 +23,7 @@ const withdrawalSchema = new mongoose.Schema(
     },
     currency: {
       type: String,
-      default: "usd",
+      default: "EUR",
     },
     status: {
       type: String,

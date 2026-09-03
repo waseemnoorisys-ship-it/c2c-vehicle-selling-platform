@@ -32,22 +32,40 @@ const Joi = require("joi");
 
 const objectId = Joi.string().hex().length(24);
 
-// ── Sprint 3 ──────────────────────────────────────────────────────
-// WHY integer amount: cents only — no decimals.
-// Frontend converts: $10,500 → send 1050000
+// NON-EUR currency regex: matches ₹, INR, Rs, $, USD, £, GBP, etc.
+const NON_EUR_CURRENCY_REGEX = /[₹\$£]|(\b(INR|USD|GBP|rupee|rupees|dollar|dollars|pound|pounds|rs\.?)\b)/i;
+
 const createOfferSchema = Joi.object({
   listingId: objectId.required().messages({
-    "string.hex":   "listingId must be a valid MongoDB ObjectId",
+    "string.hex": "listingId must be a valid MongoDB ObjectId",
     "any.required": "listingId is required",
   }),
   amount: Joi.number().integer().min(1).required().messages({
-    "number.integer": "Amount must be an integer (in cents, e.g. $10,500 = 1050000)",
-    "number.min":     "Amount must be at least 1 cent",
-    "any.required":   "Offer amount is required",
+    "number.integer": "Amount must be an integer in EUR cents (e.g. €43,500 = 4350000)",
+    "number.min": "Amount must be at least 1 cent",
+    "any.required": "Offer amount is required",
   }),
-  message: Joi.string().trim().max(500).optional().messages({
-    "string.max": "Message cannot exceed 500 characters",
-  }),
+  currency: Joi.string()
+    .valid("EUR", "eur")
+    .default("EUR")
+    .messages({
+      "any.only": "The platform is EUR-only. Currency must be EUR.",
+    }),
+  message: Joi.string()
+    .trim()
+    .max(500)
+    .custom((value, helpers) => {
+      if (NON_EUR_CURRENCY_REGEX.test(value)) {
+        return helpers.message(
+          "All offers and messages must be in EUR (€). Non-EUR currencies (INR/₹, USD/$, GBP/£) are not allowed."
+        );
+      }
+      return value;
+    })
+    .optional()
+    .messages({
+      "string.max": "Message cannot exceed 500 characters",
+    }),
 });
 
 // ── Sprint 4 ──────────────────────────────────────────────────────
@@ -58,6 +76,21 @@ const acceptOfferSchema = Joi.object({
   id: objectId.required().messages({
     "any.required": "Offer id is required",
   }),
+  message: Joi.string()
+    .trim()
+    .max(500)
+    .custom((value, helpers) => {
+      if (NON_EUR_CURRENCY_REGEX.test(value)) {
+        return helpers.message(
+          "All offers and messages must be in EUR (€). Non-EUR currencies (INR/₹, USD/$, GBP/£) are not allowed."
+        );
+      }
+      return value;
+    })
+    .optional()
+    .messages({
+      "string.max": "Acceptance message cannot exceed 500 characters",
+    }),
 });
 
 const rejectOfferSchema = Joi.object({

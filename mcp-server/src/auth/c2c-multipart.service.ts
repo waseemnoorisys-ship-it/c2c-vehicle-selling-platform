@@ -20,7 +20,7 @@ const ALLOWED_PROTOCOLS = new Set(["http:", "https:"]);
 
 export interface C2CMultipartFetchOptions {
   method?: "POST" | "PUT" | "PATCH";
-  body?: Record<string, string>;
+  body?: Record<string, string | number | boolean | undefined | null>;
   files?: Array<{
     fieldName: string;
     filename: string;
@@ -340,11 +340,13 @@ export async function fetchC2CBackendMultipart(
   const formData = new FormData();
 
   for (const [key, value] of Object.entries(body)) {
-    formData.append(key, value);
+    if (value !== undefined && value !== null) {
+      formData.append(key, String(value));
+    }
   }
 
   for (const file of files) {
-    const blob = new Blob([file.data], {
+    const blob = new Blob([new Uint8Array(file.data)], {
       type: file.mimeType,
     });
 

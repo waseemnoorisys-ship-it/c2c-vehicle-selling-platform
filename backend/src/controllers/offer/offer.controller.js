@@ -63,7 +63,7 @@ const createOffer = async (req, res, next) => {
       userId: listing.vendorId,
       type: "offer_received",
       title: "New Offer Received",
-      body: `You have a new offer of ${(amount / 100).toFixed(2)} on your listing.`,
+      body: `You have a new offer of €${(amount / 100).toFixed(2)} on your listing.`,
       data: { offerId: offer._id, listingId: listing._id },
     });
 
@@ -72,7 +72,7 @@ const createOffer = async (req, res, next) => {
       if (!vendor) throw new Error("Vendor not found");
 
       const notifyLang = vendor.language || "en";
-      const formattedAmount = `$${(offer.amount / 100).toFixed(2)}`;
+      const formattedAmount = `€${(offer.amount / 100).toFixed(2)}`;
 
       await sendPushNotification({
         fcmToken: vendor.fcmToken,
@@ -203,7 +203,7 @@ const acceptOffer = async (req, res, next) => {
   try {
     const lang = getLang(req);
     const vendorId = req.user._id;
-    const { id } = req.body;
+    const { id, message } = req.body;
 
     // WHY findOne not findOneWithFullPopulate:
     // we need mutable document to call .save() on it.
@@ -233,6 +233,7 @@ const acceptOffer = async (req, res, next) => {
 
     // Step 1: Accept this offer
     offer.status = "accepted";
+    if (message) offer.acceptanceMessage = message;
     await offerService.save(offer);
 
     // Step 2: Mark listing as sold
@@ -258,17 +259,21 @@ const acceptOffer = async (req, res, next) => {
     });
 
     // Step 5: Notify accepted buyer
+    const notificationBody = message
+      ? `Congratulations! Your offer of €${(offer.amount / 100).toFixed(2)} was accepted. Message from seller: "${message}"`
+      : `Congratulations! Your offer of €${(offer.amount / 100).toFixed(2)} was accepted. Proceed to payment.`;
+
     await notificationService.create({
       userId: offer.buyerId,
       type: "offer_accepted",
       title: "Your Offer Was Accepted!",
-      body: `Congratulations! Your offer of ${(offer.amount / 100).toFixed(2)} was accepted. Proceed to payment.`,
+      body: notificationBody,
       data: { offerId: offer._id, listingId: offer.listingId },
     });
     try {
       const buyer = await userService.findById(offer.buyerId);
       const notifyLang = buyer.language || "en";
-      const formattedAmount = `$${(offer.amount / 100).toFixed(2)}`;
+      const formattedAmount = `€${(offer.amount / 100).toFixed(2)}`;
 
       await sendPushNotification({
         fcmToken: buyer.fcmToken,
@@ -355,7 +360,7 @@ const rejectOffer = async (req, res, next) => {
     try {
       const buyer = await userService.findById(offer.buyerId);
       const notifyLang = buyer.language || "en";
-      const formattedAmount = `$${(offer.amount / 100).toFixed(2)}`;
+      const formattedAmount = `€${(offer.amount / 100).toFixed(2)}`;
     
       await sendPushNotification({
         fcmToken: buyer.fcmToken,

@@ -6,7 +6,7 @@ const Transaction = require("../../models/transaction/transaction.model");
 const UcpCheckoutSession = require("../../models/ucpCheckoutSession/ucpCheckoutSession.model");
 const { UCP_VERSION } = require("../../ucp/ucp.profile");
 
-const CURRENCY = process.env.UCP_CURRENCY || "USD";
+const CURRENCY = "EUR";
 
 function metadata(status = "success") {
   return {

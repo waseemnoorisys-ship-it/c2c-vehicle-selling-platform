@@ -128,7 +128,7 @@ const createPaymentIntent = async (req, res, next) => {
       listing.commissionPercent != null ? listing.commissionPercent : 5;
     const commission = Math.round((amountInMinorUnits * commissionPercent) / 100);
     const vendorAmount = amountInMinorUnits - commission;
-    const currency = (process.env.STRIPE_CURRENCY || "inr").toLowerCase();
+    const currency = "eur";
 
     const baseUrl = resolveBaseUrl(req);
     const frontendUrl = resolveFrontendUrl();
@@ -326,11 +326,7 @@ const redirectToStripeCheckout = async (req, res, next) => {
         transaction.listingId
       );
       const buyer = await userService.findById(transaction.buyerId);
-      const currency = (
-        transaction.currency ||
-        process.env.STRIPE_CURRENCY ||
-        "inr"
-      ).toLowerCase();
+      const currency = "eur";
 
       session = await stripe.checkout.sessions.create({
         mode: "payment",
@@ -645,7 +641,7 @@ const confirmDelivery = async (req, res, next) => {
       userId: transaction.vendorId,
       type: "payment_released",
       title: "Funds released",
-      body: `Your payment of ${(transaction.vendorAmount / 100).toFixed(2)} has been released to your wallet.`,
+      body: `Your payment of €${(transaction.vendorAmount / 100).toFixed(2)} has been released to your wallet.`,
       data: {
         transactionId: transaction._id,
         listingId: transaction.listingId,
@@ -654,7 +650,7 @@ const confirmDelivery = async (req, res, next) => {
     try {
       const vendorUser = await userService.findById(transaction.vendorId);
       const lang = vendorUser?.language || "en";
-      const formattedAmount = `$${(transaction.vendorAmount / 100).toFixed(2)}`;
+      const formattedAmount = `€${(transaction.vendorAmount / 100).toFixed(2)}`;
 
       await sendPushNotification({
         fcmToken: vendorUser?.fcmToken,

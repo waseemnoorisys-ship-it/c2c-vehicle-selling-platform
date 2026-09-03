@@ -6,7 +6,7 @@ const ucpCheckoutSessionSchema = new mongoose.Schema(
     buyerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     offerId: { type: mongoose.Schema.Types.ObjectId, ref: "Offer", default: null },
     listingId: { type: mongoose.Schema.Types.ObjectId, ref: "Listing", required: true },
-    currency: { type: String, required: true, default: "USD" },
+    currency: { type: String, required: true, default: "EUR" },
     amount: { type: Number, required: true, min: 0 },
     status: {
       type: String,

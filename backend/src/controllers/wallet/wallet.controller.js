@@ -18,7 +18,7 @@ const getWallet = async (req, res, next) => {
   try {
     const lang = getLang(req);
     const userId = req.user._id;
-    const wallet = await walletService.findOrCreateWallet(userId, "usd");
+    const wallet = await walletService.findOrCreateWallet(userId, "EUR");
     return res.status(200).json(new ApiResponse(200, { wallet }, t("success.wallet.fetched", lang)));
   } catch (err) {
     next(err);
@@ -122,7 +122,7 @@ const createWithdrawal = async (req, res, next) => {
       throw new ApiError(400, t("errors.wallet.addBankFirst", lang));
     }
 
-    const wallet = await walletService.findOrCreateWallet(userId, "usd");
+    const wallet = await walletService.findOrCreateWallet(userId, "EUR");
 
     if (amount > wallet.balance) {
       throw new ApiError(400, t("errors.wallet.exceedsBalance", lang));

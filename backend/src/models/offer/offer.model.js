@@ -56,6 +56,20 @@ const offerSchema = new mongoose.Schema(
       maxlength: [500, "Message cannot exceed 500 characters"],
     },
 
+    acceptanceMessage: {
+      type:      String,
+      trim:      true,
+      maxlength: [500, "Acceptance message cannot exceed 500 characters"],
+      default:   null,
+    },
+
+    rejectionReason: {
+      type:      String,
+      trim:      true,
+      maxlength: [500, "Rejection reason cannot exceed 500 characters"],
+      default:   null,
+    },
+
     // WHY expiresAt (not a TTL index like OTP):
     // we want the offer RECORD to remain for audit history.
     // TTL would delete the document. Instead we check expiresAt
