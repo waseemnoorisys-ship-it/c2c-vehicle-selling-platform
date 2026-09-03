@@ -10,6 +10,7 @@ import { registerVehiclePrompts } from "./prompts/vehicle.prompts.js";
 import oauthRoutes from "./auth/oauth.routes.js";
 import { tokenVerifier } from "./auth/oauth.token.service.js";
 import { registerPaymentTools } from "./tools/payment.tools.js";
+import { registerWalletTools } from "./tools/wallet.tools.js";
 // ============================================================
 // Initialize MongoDB Connection for MCP Persistence
 // ============================================================
@@ -27,6 +28,7 @@ const handler = createMcpHandler(() => {
     registerVehicleResources(server);
     registerVehiclePrompts(server);
     registerPaymentTools(server);
+    registerWalletTools(server);
     return server;
 });
 const node = toNodeHandler(handler);
