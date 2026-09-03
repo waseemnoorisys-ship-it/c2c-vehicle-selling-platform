@@ -3,6 +3,7 @@ const Joi = require("joi");
 //right credentials for creating a payment intent
 const createIntentSchema = Joi.object({
   offerId: Joi.string().hex().length(24).required(),
+  returnUrl: Joi.string().uri().optional(),
 });
 
 //Ensures a valid transactionId is provided before confirming delivery and releasing funds

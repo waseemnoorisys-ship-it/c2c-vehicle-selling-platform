@@ -206,9 +206,10 @@ const createPaymentIntent = async (req, res, next) => {
           listingId: listing._id.toString(),
           vendorId: listing.vendorId.toString(),
           transactionId: tempTransactionId,
+          ...(req.body.returnUrl ? { returnUrl: String(req.body.returnUrl).slice(0, 500) } : {}),
         },
-        success_url: `${baseUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${baseUrl}/payment/cancel`,
+        success_url: `${baseUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}${req.body.returnUrl ? `&return_url=${encodeURIComponent(req.body.returnUrl)}` : ""}`,
+        cancel_url: `${baseUrl}/payment/cancel${req.body.returnUrl ? `?return_url=${encodeURIComponent(req.body.returnUrl)}` : ""}`,
         customer_email: req.user?.email || undefined,
       });
 

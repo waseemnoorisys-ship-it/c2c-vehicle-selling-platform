@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Payment Successful - C2C Vehicle Platform</title>
+  <title>Payment Successful - Escrow Secured</title>
   <style>
     * {
       box-sizing: border-box;
@@ -23,25 +23,25 @@
     .card {
       background: #131b2e;
       border: 1px solid #1e293b;
-      border-radius: 16px;
+      border-radius: 20px;
       padding: 40px 32px;
       max-width: 480px;
       width: 100%;
       text-align: center;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
     }
     .icon-wrapper {
-      width: 72px;
-      height: 72px;
+      width: 76px;
+      height: 76px;
       background: rgba(16, 185, 129, 0.15);
-      border: 1px solid rgba(16, 185, 129, 0.3);
+      border: 2px solid rgba(16, 185, 129, 0.35);
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      margin: 0 auto 24px;
+      margin: 0 auto 20px;
       color: #10b981;
-      font-size: 36px;
+      font-size: 38px;
       font-weight: bold;
     }
     h1 {
@@ -61,23 +61,12 @@
       background: rgba(59, 130, 246, 0.15);
       color: #60a5fa;
       border: 1px solid rgba(59, 130, 246, 0.3);
-      padding: 6px 14px;
+      padding: 6px 16px;
       border-radius: 9999px;
       font-size: 13px;
-      font-weight: 500;
+      font-weight: 600;
       margin-bottom: 24px;
-    }
-    .hint-box {
-      display: none;
-      background: rgba(16, 185, 129, 0.1);
-      border: 1px solid rgba(16, 185, 129, 0.3);
-      border-radius: 10px;
-      padding: 12px 16px;
-      color: #34d399;
-      font-size: 14px;
-      margin-bottom: 20px;
-      text-align: center;
-      line-height: 1.5;
+      letter-spacing: 0.5px;
     }
     .btn-group {
       display: flex;
@@ -85,10 +74,13 @@
       gap: 12px;
     }
     .btn {
-      display: inline-block;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
       width: 100%;
       padding: 14px 20px;
-      border-radius: 10px;
+      border-radius: 12px;
       font-size: 15px;
       font-weight: 600;
       text-decoration: none;
@@ -99,21 +91,20 @@
     .btn-primary {
       background: #2563eb;
       color: #ffffff;
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
     }
     .btn-primary:hover {
       background: #1d4ed8;
-    }
-    .btn-success {
-      background: #059669;
-      color: #ffffff;
+      transform: translateY(-1px);
     }
     .btn-secondary {
-      background: #1e293b;
-      color: #cbd5e1;
+      background: transparent;
+      color: #94a3b8;
+      border: 1px solid #1e293b;
     }
     .btn-secondary:hover {
-      background: #334155;
-      color: #ffffff;
+      background: #1e293b;
+      color: #f1f5f9;
     }
     .footer-note {
       margin-top: 24px;
@@ -128,29 +119,48 @@
     <h1>Payment Successful</h1>
     <div class="badge">Escrow Secured</div>
     <p>
-      Your payment has been successfully processed through Stripe and held securely in escrow. You can now return to <strong>ChatGPT</strong> or your chat assistant.
+      Your payment has been successfully processed through Stripe and held securely in escrow.
     </p>
 
-    <div id="closeHint" class="hint-box">
-      ✓ Payment recorded! You can now safely close this browser tab and return to ChatGPT.
-    </div>
-
     <div class="btn-group">
-      <button id="returnBtn" class="btn btn-primary" onclick="handleReturn()">Return to Chat</button>
-      <a href="https://c2c-vehicle-selling-platform.vercel.app" class="btn btn-secondary">Open Marketplace</a>
+      <button id="returnBtn" class="btn btn-primary" onclick="handleReturn()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+        </svg>
+        Return to Chat Conversation
+      </button>
+
+      <a href="https://c2c-vehicle-selling-platform.vercel.app" class="btn btn-secondary">
+        Open Marketplace
+      </a>
     </div>
 
     <div class="footer-note">
-      Your payment status is automatically verified via secure webhooks.
+      Your escrow status has been automatically verified and recorded.
     </div>
   </div>
 
   <script>
     function handleReturn() {
       const btn = document.getElementById("returnBtn");
-      const hint = document.getElementById("closeHint");
+      btn.textContent = "Returning to Chat...";
 
-      // Try multiple ways to close tab
+      const params = new URLSearchParams(window.location.search);
+      const returnUrl = params.get('return_url') || params.get('chat_url');
+
+      // 1. If explicit returnUrl (exact conversation URL) was passed in query params:
+      if (returnUrl) {
+        window.location.href = returnUrl;
+        return;
+      }
+
+      // 2. Try focusing opener tab and closing current tab (works if opened in new tab from ChatGPT/Claude/Grok)
+      try {
+        if (window.opener && !window.opener.closed) {
+          window.opener.focus();
+        }
+      } catch (e) {}
+
       try {
         window.close();
       } catch (e) {}
@@ -160,20 +170,25 @@
         window.close();
       } catch (e) {}
 
-      // If browser security prevented window.close(), provide instant visual feedback
+      // 3. If in same tab history: jump back past Stripe straight to the chat conversation
+      if (window.history.length > 2) {
+        window.history.go(-2);
+        return;
+      } else if (window.history.length > 1) {
+        window.history.back();
+        return;
+      }
+
+      // 4. Referrer fallback if available
+      if (document.referrer && (document.referrer.includes("chatgpt.com") || document.referrer.includes("claude.ai") || document.referrer.includes("grok.com"))) {
+        window.location.href = document.referrer;
+        return;
+      }
+
+      // 5. Default fallback
       setTimeout(function() {
-        hint.style.display = "block";
-        btn.className = "btn btn-success";
-        btn.textContent = "✓ Switch to your ChatGPT Tab";
-        btn.onclick = function() {
-          // If in standalone browser, try to navigate back or to ChatGPT
-          if (document.referrer && document.referrer.includes("chatgpt.com")) {
-            window.location.href = document.referrer;
-          } else {
-            window.location.href = "https://chatgpt.com";
-          }
-        };
-      }, 150);
+        window.location.href = "https://chatgpt.com";
+      }, 200);
     }
   </script>
 </body>
