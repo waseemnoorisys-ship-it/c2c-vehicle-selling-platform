@@ -22,7 +22,7 @@ import useCurrencyStore, { formatPrice } from "../../store/useCurrencyStore";
 
 const EMPTY_SEARCH = { makeId: "", modelId: "", priceRange: "" };
 
-const getDefaultPriceRanges = (symbol = "$") => [
+const getDefaultPriceRanges = (symbol = "€") => [
   { label: "Any price", value: "", min: "", max: "" },
   { label: `Under ${symbol}15,000`, value: "0-15000", min: 0, max: 15000 },
   { label: `${symbol}15,000 – ${symbol}30,000`, value: "15000-30000", min: 15000, max: 30000 },
@@ -30,7 +30,7 @@ const getDefaultPriceRanges = (symbol = "$") => [
   { label: `Over ${symbol}50,000`, value: "50000-", min: 50000, max: "" },
 ];
 
-const DEFAULT_PRICE_RANGES = getDefaultPriceRanges("$");
+const DEFAULT_PRICE_RANGES = getDefaultPriceRanges("€");
 
 function StatIcon({ type }) {
   const icons = {

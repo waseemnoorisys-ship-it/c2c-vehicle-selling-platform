@@ -31,10 +31,9 @@ const handler = createMcpHandler(() => {
 });
 const node = toNodeHandler(handler);
 // Resolve public URL for OAuth metadata discovery
-const publicBaseUrl = process.env.MCP_PUBLIC_URL ||
-    (process.env.RENDER_EXTERNAL_HOSTNAME
-        ? `https://${process.env.RENDER_EXTERNAL_HOSTNAME}`
-        : "http://localhost:3001");
+const publicBaseUrl = process.env.RENDER_EXTERNAL_HOSTNAME
+    ? `https://${process.env.RENDER_EXTERNAL_HOSTNAME}`
+    : (process.env.MCP_PUBLIC_URL || "http://localhost:3001");
 let publicHost;
 try {
     publicHost = new URL(publicBaseUrl).hostname;
@@ -47,6 +46,8 @@ const allowedHosts = [
     "localhost",
     "127.0.0.1",
     "myth-ceremony-avenging.ngrok-free.dev",
+    "c2c-vehicle-selling-platform-mcp.onrender.com",
+    "c2c-vehicle-mcp-server.onrender.com",
     ...(publicHost ? [publicHost] : []),
     ...(renderHost ? [renderHost] : []),
 ];
@@ -57,12 +58,70 @@ const app = createMcpExpressApp({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 // ============================================================
+// Request & Response Logging Middleware
+// ============================================================
+app.use((req, res, next) => {
+    const start = Date.now();
+    const timestamp = new Date().toISOString();
+    const method = req.method;
+    const url = req.originalUrl || req.url;
+    // Safe body preview (omit sensitive fields like passwords/tokens)
+    let safeBody = undefined;
+    if (req.body && Object.keys(req.body).length > 0) {
+        const copy = { ...req.body };
+        if (copy.password)
+            copy.password = "***";
+        if (copy.client_secret)
+            copy.client_secret = "***";
+        if (copy.refreshToken)
+            copy.refreshToken = "***";
+        safeBody = JSON.stringify(copy);
+    }
+    console.log(`\n[MCP REQ] [${timestamp}] ${method} ${url}${safeBody ? ` | Body: ${safeBody}` : ""}`);
+    res.on("finish", () => {
+        const duration = Date.now() - start;
+        const status = res.statusCode;
+        const color = status >= 400 ? "\x1b[31m" : "\x1b[32m";
+        const reset = "\x1b[0m";
+        console.log(`[MCP RES] [${new Date().toISOString()}] ${method} ${url} -> ${color}${status}${reset} (${duration}ms)`);
+    });
+    next();
+});
+// ============================================================
+// Dynamic RFC 8414 & RFC 9728 OAuth Metadata Discovery
+// ============================================================
+app.get("/.well-known/oauth-authorization-server", (req, res) => {
+    const proto = req.headers["x-forwarded-proto"] || "https";
+    const host = req.headers["x-forwarded-host"] || req.headers.host || publicHost || "localhost:3001";
+    const origin = `${proto}://${host}`;
+    res.json({
+        issuer: origin,
+        authorization_endpoint: `${origin}/oauth/authorize`,
+        token_endpoint: `${origin}/oauth/token`,
+        registration_endpoint: `${origin}/oauth/register`,
+        response_types_supported: ["code"],
+        grant_types_supported: ["authorization_code"],
+        code_challenge_methods_supported: ["S256"],
+        scopes_supported: ["read", "write"],
+    });
+});
+app.get("/.well-known/oauth-protected-resource", (req, res) => {
+    const proto = req.headers["x-forwarded-proto"] || "https";
+    const host = req.headers["x-forwarded-host"] || req.headers.host || publicHost || "localhost:3001";
+    const origin = `${proto}://${host}`;
+    res.json({
+        resource: `${origin}/mcp`,
+        authorization_servers: [origin],
+        scopes_supported: ["read", "write"],
+        bearer_methods_supported: ["header"],
+    });
+});
+// ============================================================
 // Mount OAuth 2.1 Routes
 // ============================================================
 app.use("/oauth", oauthRoutes);
 // ============================================================
-// MCP / OAuth Authorization Server & Protected Resource Metadata
-// RFC 8414 & RFC 9728
+// MCP / OAuth Authorization Server & Protected Resource Metadata Fallback
 // ============================================================
 app.use(mcpAuthMetadataRouter({
     oauthMetadata: {

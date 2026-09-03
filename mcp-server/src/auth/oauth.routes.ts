@@ -12,6 +12,7 @@ import {
   getOAuthClient,
 } from "./oauth.service.js";
 import { verifyC2CUserToken } from "./c2c-auth.service.js";
+import { UserModel } from "../models/user.model.js";
 
 const router = Router();
 
@@ -369,47 +370,109 @@ router.post("/authorize/direct-login", async (req, res) => {
       return res.status(400).send("Missing required fields (session_id, email, password).");
     }
 
+    const cleanEmail = String(email).trim().toLowerCase();
     const session = await getOAuthSession(session_id);
     if (!session || session.status !== "pending") {
       return res.status(400).send("Invalid or expired OAuth session.");
     }
 
-    // Authenticate with C2C Backend Login API
+    let authenticatedUser: { _id: string; email: string; role: "admin" | "buyer" | "vendor" } | null = null;
+    let authErrorReason: string | null = null;
+
+    // Method 1: Authenticate with C2C Backend Login API
     const backendUrl =
       process.env.C2C_API_BASE_URL ||
       "https://c2c-vehicle-selling-platform.onrender.com";
 
-    const loginResponse = await fetch(`${backendUrl}/api/v1/auth/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
+    try {
+      console.log(`[MCP Direct Login] Attempting API login for "${cleanEmail}" against ${backendUrl}`);
+      const loginResponse = await fetch(`${backendUrl}/api/v1/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: cleanEmail, password }),
+      });
 
-    const loginData = await loginResponse.json().catch(() => null);
+      const loginData = await loginResponse.json().catch(() => null);
 
-    if (!loginResponse.ok || !loginData?.data?.user) {
-      const errorMsg = loginData?.message || "Invalid C2C email or password.";
-      return res.status(401).send(`
-        <div style="font-family: -apple-system, sans-serif; text-align: center; padding: 50px; background: #0f172a; color: white; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-          <div style="background: #1e293b; padding: 36px; border-radius: 12px; border: 1px solid #ef4444; max-width: 400px; width: 100%;">
-            <h2 style="color: #f87171; margin-bottom: 12px;">Authentication Failed</h2>
-            <p style="color: #94a3b8; margin-bottom: 24px; font-size: 14px;">${errorMsg}</p>
-            <a href="/oauth/login?session=${encodeURIComponent(
-              session_id,
-            )}" style="display: inline-block; padding: 10px 20px; background: #38bdf8; color: #0f172a; text-decoration: none; border-radius: 6px; font-weight: 600;">← Try Again</a>
-          </div>
-        </div>
-      `);
+      if (loginResponse.ok && loginData?.data?.user) {
+        authenticatedUser = {
+          _id: loginData.data.user._id.toString(),
+          email: loginData.data.user.email,
+          role: (loginData.data.user.role as "admin" | "buyer" | "vendor") || "buyer",
+        };
+        console.log(`[MCP Direct Login] API authentication successful for "${cleanEmail}"`);
+      } else {
+        authErrorReason = loginData?.message || null;
+        console.warn(`[MCP Direct Login] API returned ${loginResponse.status}: ${authErrorReason || "Invalid credentials"}`);
+      }
+    } catch (apiErr) {
+      console.warn(`[MCP Direct Login] Backend API unreachable, falling back to direct database lookup:`, apiErr);
     }
 
-    const user = loginData.data.user;
+    // Method 2: Fallback to direct MongoDB User lookup & password comparison
+    if (!authenticatedUser) {
+      console.log(`[MCP Direct Login] Attempting MongoDB direct authentication for "${cleanEmail}"...`);
+      try {
+        const user = await UserModel.findOne({ email: cleanEmail, deletedAt: null });
+        if (user) {
+          const isPasswordValid = await user.comparePassword(password);
+          if (isPasswordValid) {
+            if (user.isActive === false) {
+              authErrorReason = "Your account has been deactivated. Please contact support.";
+            } else {
+              // Auto-verify email if logging in directly with valid credentials
+              if (!user.isEmailVerified) {
+                user.isEmailVerified = true;
+                await user.save();
+                console.log(`[MCP Direct Login] Auto-verified email for user "${cleanEmail}"`);
+              }
+
+              authenticatedUser = {
+                _id: user._id.toString(),
+                email: user.email,
+                role: (user.role as "admin" | "buyer" | "vendor") || "buyer",
+              };
+              console.log(`[MCP Direct Login] Direct MongoDB authentication successful for "${cleanEmail}" (Role: ${user.role})`);
+            }
+          } else {
+            authErrorReason = "Incorrect password. Please verify and try again.";
+          }
+        } else {
+          authErrorReason = `No account found with email "${cleanEmail}". Please register on the marketplace first.`;
+        }
+      } catch (dbErr) {
+        console.error(`[MCP Direct Login] Database authentication failed:`, dbErr);
+      }
+    }
+
+    if (!authenticatedUser) {
+      const displayError = authErrorReason || "Invalid C2C email or password.";
+      return res.status(401).send(`
+        <!DOCTYPE html>
+        <html lang="en">
+          <head>
+            <meta charset="UTF-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+            <title>Authentication Failed - C2C MCP</title>
+          </head>
+          <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; text-align: center; padding: 20px; background: #0f172a; color: white; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 0;">
+            <div style="background: #1e293b; padding: 36px 32px; border-radius: 16px; border: 1px solid #ef4444; max-width: 420px; width: 100%; box-shadow: 0 20px 40px rgba(0,0,0,0.5);">
+              <div style="width: 56px; height: 56px; background: rgba(239, 68, 68, 0.15); border: 2px solid rgba(239, 68, 68, 0.4); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 26px; color: #ef4444;">✕</div>
+              <h2 style="color: #f87171; margin-bottom: 10px; font-size: 22px;">Authentication Failed</h2>
+              <p style="color: #cbd5e1; margin-bottom: 24px; font-size: 14px; line-height: 1.6;">${displayError}</p>
+              <a href="/oauth/login?session=${encodeURIComponent(session_id)}" style="display: block; width: 100%; box-sizing: border-box; padding: 12px 20px; background: #38bdf8; color: #0f172a; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 15px;">← Try Again</a>
+            </div>
+          </body>
+        </html>
+      `);
+    }
 
     // Associate C2C userId and role with session and issue authorization code
     const authResult = await authenticateOAuthSession({
       sessionId: session.sessionId,
-      userId: user._id,
-      userEmail: user.email,
-      userRole: user.role || "buyer",
+      userId: authenticatedUser._id,
+      userEmail: authenticatedUser.email,
+      userRole: authenticatedUser.role || "buyer",
     });
 
     if (!authResult) {

@@ -1,7 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import Logo from "./Logo";
 import ThemeToggle from "../theme/ThemeToggle";
-import CurrencySelector from "../theme/CurrencySelector";
 import useAuthStore from "../../store/useAuthStore";
 import { logoutApi } from "../../api/auth.api";
 import { adminLogoutApi } from "../../api/adminAuth.api";
@@ -38,7 +37,6 @@ export default function DashboardLayout({ children, title }) {
                 <span className="ml-2 text-xs text-text-muted capitalize">({user.role})</span>
               </span>
             )}
-            <CurrencySelector />
             <ThemeToggle />
             <button
               type="button"

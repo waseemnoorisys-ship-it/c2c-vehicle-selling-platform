@@ -29,7 +29,7 @@ function buildBrowseBody(filters = {}) {
 }
 
 function buildPriceRanges(pricesEuros) {
-  const symbol = useCurrencyStore.getState().getSymbol() || "$";
+  const symbol = "€";
   const any = { label: "Any price", value: "", min: "", max: "" };
 
   if (!pricesEuros.length) {
