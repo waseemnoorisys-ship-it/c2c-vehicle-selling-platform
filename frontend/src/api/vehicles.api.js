@@ -126,13 +126,37 @@ export async function fetchFilterOptions() {
   }
 }
 
-export async function createOffer(vehicleId, amountEuros) {
-  const { data } = await api.post("/offers/create", {
+export async function createOffer(vehicleId, amountEuros, message) {
+  const body = {
     listingId: vehicleId,
     amount: eurosToCents(amountEuros),
-  });
+  };
+  if (message && message.trim()) body.message = message.trim();
+  const { data } = await api.post("/offers/create", body);
   return data;
 }
+
+/**
+ * Fetch buyer's accepted offer for a specific listing (if any)
+ */
+export async function fetchAcceptedOfferForListing(listingId) {
+  const { data } = await api.post("/offers/mine", { page: 1, limit: 50 });
+  const offers = data.data?.offers || [];
+  return offers.find((o) => {
+    const offerListingId = o.listingId?._id || o.listingId;
+    return String(offerListingId) === String(listingId) && o.status === "accepted";
+  }) || null;
+}
+
+/**
+ * Create a Stripe Checkout session for an accepted offer.
+ * Returns { checkoutUrl } on success.
+ */
+export async function createPaymentIntent(offerId) {
+  const { data } = await api.post("/payments/create-intent", { offerId });
+  return data;
+}
+
 
 function buildListingPayload(payload, submitForApproval = true) {
   const makeId = payload.makeId || findMakeIdByName(payload.make);
