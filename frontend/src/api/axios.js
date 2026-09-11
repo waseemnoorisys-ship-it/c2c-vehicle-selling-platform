@@ -1,8 +1,27 @@
 import axios from "axios";
 import useAuthStore from "../store/useAuthStore";
 
+const getBaseURL = () => {
+  const envUrl = import.meta.env.VITE_API_URL;
+  const isLocalHost =
+    typeof window !== "undefined" &&
+    (window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1");
+
+  if (envUrl) {
+    if (!isLocalHost && envUrl.includes("localhost")) {
+      return "https://c2c-vehicle-selling-platform.onrender.com/api/v1";
+    }
+    return envUrl;
+  }
+
+  return isLocalHost
+    ? "http://localhost:5000/api/v1"
+    : "https://c2c-vehicle-selling-platform.onrender.com/api/v1";
+};
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api/v1",
+  baseURL: getBaseURL(),
   headers: { "Content-Type": "application/json" },
 });
 
@@ -32,9 +51,9 @@ api.interceptors.response.use(
       try {
         const { refreshToken, isAdmin, setTokens } = useAuthStore.getState();
         const refreshPath = isAdmin
-          ? "/api/v1/admin/auth/refresh-token"
-          : "/api/v1/auth/refresh-token";
-        const { data } = await axios.post(refreshPath, { refreshToken });
+          ? "/admin/auth/refresh-token"
+          : "/auth/refresh-token";
+        const { data } = await api.post(refreshPath, { refreshToken });
         setTokens(data.data.accessToken, data.data.refreshToken);
         original.headers.Authorization = `Bearer ${data.data.accessToken}`;
         return api(original);

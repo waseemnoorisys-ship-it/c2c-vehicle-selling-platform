@@ -1,6 +1,7 @@
 const { baseTemplate } = require("./base.template");
 
-function newsletterWelcomeTemplate({ email }) {
+function newsletterWelcomeTemplate(data = {}) {
+  const email = typeof data === "string" ? data : (data?.email || "");
   const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
   const unsubscribeUrl = `${frontendUrl}/unsubscribe?email=${encodeURIComponent(email)}`;
   

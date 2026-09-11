@@ -47,15 +47,14 @@ app.use(
   })
 );
 
+const fs = require("fs");
+
 app.use(
   cors({
-    origin: [
-      "http://localhost:3000",
-      "http://localhost:5500",
-      "http://127.0.0.1:5501",
-      "https://c2c-vehicle-selling-platform.vercel.app",
-      "*",
-    ],
+    origin: (origin, callback) => {
+      // Dynamically reflect origin to support Vercel preview builds, custom domains, and local dev
+      callback(null, true);
+    },
     credentials: true,
   }),
 );
@@ -80,6 +79,11 @@ app.use(
 app.use("/api", generalLimiter);
 // ── Swagger documentation UI
 app.use("/api-docs", swaggerRoutes);
+// ── Serve static public files (robots.txt, sitemap.xml, llms.txt)
+const publicDir = path.join(__dirname, "../../frontend/public");
+if (fs.existsSync(publicDir)) {
+  app.use(express.static(publicDir));
+}
 // ── Health check
 app.all("/health", (req, res) =>
   res.json({ status: "ok", timestamp: new Date() }),
