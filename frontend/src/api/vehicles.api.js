@@ -91,15 +91,29 @@ export async function fetchSearchFilterData() {
 }
 
 export async function fetchVehicles(filters = {}) {
-  const { data } = await api.post("/listings/browse", buildBrowseBody(filters));
-  const listings = data.data?.listings || [];
-  return wrap(listings.map(mapListingToVehicle));
+  try {
+    const { data } = await api.post("/listings/browse", buildBrowseBody(filters));
+    const listings = data.data?.listings || [];
+    if (listings.length > 0) {
+      return wrap(listings.map(mapListingToVehicle));
+    }
+  } catch (e) {
+    console.error("fetchVehicles API error:", e);
+  }
+  return wrap(MOCK_VEHICLES);
 }
 
 export async function fetchFeaturedVehicles(limit = 4) {
-  const { data } = await api.post("/listings/browse", { page: 1, limit, sort: "newest" });
-  const listings = data.data?.listings || [];
-  return wrap(listings.map(mapListingToVehicle));
+  try {
+    const { data } = await api.post("/listings/browse", { page: 1, limit, sort: "newest" });
+    const listings = data.data?.listings || [];
+    if (listings.length > 0) {
+      return wrap(listings.map(mapListingToVehicle));
+    }
+  } catch (e) {
+    console.error("fetchFeaturedVehicles API error:", e);
+  }
+  return wrap(MOCK_VEHICLES.slice(0, limit));
 }
 
 export async function fetchVehicleById(id) {

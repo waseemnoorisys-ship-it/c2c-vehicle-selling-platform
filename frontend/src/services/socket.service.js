@@ -13,7 +13,9 @@ class SocketService {
     const isLocalHost =
       typeof window !== "undefined" &&
       (window.location.hostname === "localhost" ||
-        window.location.hostname === "127.0.0.1");
+        window.location.hostname === "127.0.0.1" ||
+        window.location.hostname.includes("ngrok") ||
+        window.location.hostname.includes("192.168."));
 
     let socketUrl = import.meta.env.VITE_SOCKET_URL;
     if (!socketUrl && import.meta.env.VITE_API_URL) {

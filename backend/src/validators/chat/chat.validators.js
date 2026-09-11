@@ -10,13 +10,13 @@ const getConversationSchema = Joi.object({
 
 const listConversationsSchema = Joi.object({
   page: Joi.number().integer().min(1).default(1),
-  limit: Joi.number().integer().min(1).max(50).default(20),
+  limit: Joi.number().integer().min(1).max(100).default(20),
 });
 
 const listMessagesSchema = Joi.object({
   conversationId: Joi.string().hex().length(24).required(),
   page: Joi.number().integer().min(1).default(1),
-  limit: Joi.number().integer().min(1).max(50).default(50),
+  limit: Joi.number().integer().min(1).max(100).default(50),
 });
 
 const uploadImageSchema = Joi.object({

@@ -44,7 +44,7 @@ export const useChatStore = create((set, get) => ({
   fetchConversations: async () => {
     set({ isLoadingConversations: true });
     try {
-      const data = await chatApi.myConversations(1, 100);
+      const data = await chatApi.myConversations(1, 50);
       const convs = data?.data?.conversations || [];
       const unreads = {};
       convs.forEach((c) => {
