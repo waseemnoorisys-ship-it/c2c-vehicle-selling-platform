@@ -2,17 +2,22 @@ import React, { useState } from "react";
 import useAuthStore from "../../store/useAuthStore";
 import useChatStore from "../../store/useChatStore";
 import chatApi from "../../api/chat.api";
+import socketService from "../../services/socket.service";
+import AudioPlayer from "./AudioPlayer";
+
+const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
 
 export default function MessageBubble({ message, onImageClick, onReply }) {
   const { user } = useAuthStore();
   const { updateMessage, removeMessage } = useChatStore();
-  
+
   const isOutgoing =
     (message.senderId?._id || message.senderId) === (user?._id || user?.id);
 
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(message.content || "");
   const [showMenu, setShowMenu] = useState(false);
+  const [showReactionPicker, setShowReactionPicker] = useState(false);
 
   // Check if message is within 5 minutes for edit eligibility
   const createdDate = new Date(message.createdAt);
@@ -52,18 +57,30 @@ export default function MessageBubble({ message, onImageClick, onReply }) {
     }
   };
 
+  const handleReact = (emoji) => {
+    socketService.emit("react_message", {
+      messageId: message._id,
+      emoji,
+    });
+    setShowReactionPicker(false);
+  };
+
   // Render ticks for outgoing messages
   const renderTicks = () => {
     if (!isOutgoing) return null;
     if (message.isRead) {
-      return (
-        <span className="text-cyan-400 text-xs font-bold ml-1">✓✓</span>
-      );
+      return <span className="text-cyan-400 text-xs font-bold ml-1">✓✓</span>;
     }
-    return (
-      <span className="text-gray-400 text-xs font-bold ml-1">✓</span>
-    );
+    return <span className="text-gray-400 text-xs font-bold ml-1">✓</span>;
   };
+
+  // Group reactions by emoji
+  const reactionCounts = (message.reactions || []).reduce((acc, r) => {
+    if (r.emoji) {
+      acc[r.emoji] = (acc[r.emoji] || 0) + 1;
+    }
+    return acc;
+  }, {});
 
   return (
     <div
@@ -72,25 +89,61 @@ export default function MessageBubble({ message, onImageClick, onReply }) {
       }`}
     >
       <div
-        className={`relative group max-w-[75%] sm:max-w-[65%] rounded-lg px-3 py-2 text-sm shadow-sm ${
+        className={`relative group max-w-[80%] sm:max-w-[65%] rounded-lg px-3 py-2 text-sm shadow-sm ${
           isOutgoing
             ? "bg-[#005c4b] text-gray-100 rounded-tr-none"
             : "bg-[#202c33] text-gray-100 rounded-tl-none"
         }`}
       >
-        {/* Hover Reply Button */}
+        {/* Hover Reaction & Reply Trigger Bar */}
         {!message.isDeleted && (
-          <button
-            onClick={() => onReply && onReply(message)}
-            className={`absolute top-2 ${
-              isOutgoing ? "-left-7" : "-right-7"
-            } opacity-0 group-hover:opacity-100 text-gray-400 hover:text-white p-1 rounded transition-opacity bg-[#202c33] border border-gray-700/50`}
-            title="Reply to message"
+          <div
+            className={`absolute -top-3 ${
+              isOutgoing ? "-left-16" : "-right-16"
+            } opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity bg-[#202c33] border border-gray-700/80 rounded-full px-1.5 py-0.5 z-20 shadow-lg`}
           >
-            <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-              <path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z" />
-            </svg>
-          </button>
+            {/* Reaction Trigger */}
+            <button
+              type="button"
+              onClick={() => setShowReactionPicker(!showReactionPicker)}
+              className="text-xs hover:scale-125 transition-transform p-0.5"
+              title="React to message"
+            >
+              😀
+            </button>
+            {/* Reply Trigger */}
+            <button
+              type="button"
+              onClick={() => onReply && onReply(message)}
+              className="text-gray-400 hover:text-white p-0.5 rounded"
+              title="Reply"
+            >
+              <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                <path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z" />
+              </svg>
+            </button>
+          </div>
+        )}
+
+        {/* Quick Reaction Popover */}
+        {showReactionPicker && (
+          <div
+            className={`absolute bottom-full mb-1 ${
+              isOutgoing ? "right-0" : "left-0"
+            } bg-[#233138] border border-gray-700 rounded-full px-2 py-1 shadow-2xl z-30 flex items-center gap-1.5`}
+            onMouseLeave={() => setShowReactionPicker(false)}
+          >
+            {QUICK_REACTIONS.map((emoji) => (
+              <button
+                key={emoji}
+                type="button"
+                onClick={() => handleReact(emoji)}
+                className="text-base hover:scale-125 transition-transform p-0.5"
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
         )}
 
         {/* Action Menu Toggle for Outgoing Messages */}
@@ -136,7 +189,7 @@ export default function MessageBubble({ message, onImageClick, onReply }) {
                     handleDelete();
                     setShowMenu(false);
                   }}
-                  className="w-full text-left px-3 py-1.5 text-red-400 hover:bg-gray-700"
+                  className="w-full text-left px-3 py-1.5 text-xs text-red-400 hover:bg-gray-700"
                 >
                   Delete
                 </button>
@@ -154,6 +207,8 @@ export default function MessageBubble({ message, onImageClick, onReply }) {
             <p className="text-gray-300/90 truncate mt-0.5">
               {message.replyTo.type === "image"
                 ? "📷 Photo"
+                : message.replyTo.type === "video"
+                ? "🎥 Video"
                 : message.replyTo.type === "audio"
                 ? "🎙️ Voice message"
                 : message.replyTo.content || "Message"}
@@ -205,13 +260,23 @@ export default function MessageBubble({ message, onImageClick, onReply }) {
               </div>
             )}
 
-            {/* Audio Content */}
-            {message.type === "audio" && (
-              <div className="my-1">
-                <audio
+            {/* Video Content */}
+            {message.type === "video" && (
+              <div className="mb-1 rounded overflow-hidden">
+                <video
                   src={message.mediaUrl || message.content}
                   controls
-                  className="w-full max-w-[240px] h-9 rounded"
+                  className="max-h-60 w-full object-cover rounded"
+                />
+              </div>
+            )}
+
+            {/* Audio Voice Message Content */}
+            {message.type === "audio" && (
+              <div className="my-1">
+                <AudioPlayer
+                  src={message.mediaUrl || message.content}
+                  isOutgoing={isOutgoing}
                 />
               </div>
             )}
@@ -223,6 +288,21 @@ export default function MessageBubble({ message, onImageClick, onReply }) {
               </p>
             )}
           </>
+        )}
+
+        {/* Reaction Badges Footer */}
+        {Object.keys(reactionCounts).length > 0 && (
+          <div className="flex items-center gap-1 mt-1">
+            {Object.entries(reactionCounts).map(([emoji, count]) => (
+              <span
+                key={emoji}
+                className="inline-flex items-center gap-0.5 bg-[#111b21]/80 px-1.5 py-0.5 rounded-full text-xs text-gray-200 border border-gray-700/60"
+              >
+                <span>{emoji}</span>
+                {count > 1 && <span className="text-[10px] font-bold text-gray-400">{count}</span>}
+              </span>
+            ))}
+          </div>
         )}
 
         {/* Footer Meta (Timestamp + Edited Tag + Ticks) */}

@@ -75,10 +75,11 @@ export default function ChatInput({ conversationId, replyingTo, onCancelReply })
 
       const res = await chatApi.uploadChatMedia(formData);
       if (res.success && res.data?.url) {
+        const mediaType = file.type.startsWith("video/") ? "video" : "image";
         socketService.sendMessage(
           conversationId,
           res.data.url,
-          "image",
+          mediaType,
           replyingTo?._id || null
         );
         if (onCancelReply) onCancelReply();
@@ -239,12 +240,12 @@ export default function ChatInput({ conversationId, replyingTo, onCancelReply })
 
       {/* Input Action Bar */}
       <div className="px-4 py-3 flex items-center gap-2">
-        {/* Hidden Image File Input */}
+        {/* Hidden File Input (Image/Video) */}
         <input
           type="file"
           ref={fileInputRef}
           onChange={handleFileChange}
-          accept="image/*"
+          accept="image/*,video/*"
           className="hidden"
         />
 

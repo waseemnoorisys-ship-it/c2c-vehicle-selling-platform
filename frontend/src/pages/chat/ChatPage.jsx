@@ -68,8 +68,13 @@ export default function ChatPage() {
       setUserOnline(userId, false, lastSeen);
     };
 
+    const handleMessageReactionUpdated = (updatedMsg) => {
+      updateMessage(updatedMsg);
+    };
+
     socket.on("new_message", handleReceiveMessage);
     socket.on("receive_message", handleReceiveMessage);
+    socket.on("message_reaction_updated", handleMessageReactionUpdated);
     socket.on("user_typing", handleTypingStart);
     socket.on("typing_start", handleTypingStart);
     socket.on("user_stop_typing", handleTypingStop);
@@ -80,6 +85,7 @@ export default function ChatPage() {
     return () => {
       socket.off("new_message", handleReceiveMessage);
       socket.off("receive_message", handleReceiveMessage);
+      socket.off("message_reaction_updated", handleMessageReactionUpdated);
       socket.off("user_typing", handleTypingStart);
       socket.off("typing_start", handleTypingStart);
       socket.off("user_stop_typing", handleTypingStop);
