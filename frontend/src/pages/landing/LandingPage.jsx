@@ -541,9 +541,8 @@ export default function LandingPage() {
                       {vehicles.map((vehicle, index) => (
                         <span
                           key={vehicle.id}
-                          className={`h-1.5 rounded-full transition-all ${
-                            index === safeCtaIndex ? "w-5 bg-text-accent" : "w-1.5 bg-white/40"
-                          }`}
+                          className={`h-1.5 rounded-full transition-all ${index === safeCtaIndex ? "w-5 bg-text-accent" : "w-1.5 bg-white/40"
+                            }`}
                         />
                       ))}
                     </div>

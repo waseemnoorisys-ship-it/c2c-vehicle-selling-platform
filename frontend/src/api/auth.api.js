@@ -8,6 +8,8 @@ export const resendOtpApi = (data) => api.post("/auth/resend-otp", data);
 
 export const loginApi = (data) => api.post("/auth/login", data);
 
+export const socialLoginApi = (data) => api.post("/auth/social-login", data);
+
 export const refreshTokenApi = (data) =>
   api.post("/auth/refresh-token", data);
 

@@ -1,6 +1,9 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
+import toast from "react-hot-toast";
 import Logo from "../layout/Logo";
 import { FOOTER_COLUMNS } from "../../data/landingData";
+import { subscribeApi } from "../../api/newsletter.api";
 
 const SOCIAL = [
   { label: "Facebook", icon: "M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" },
@@ -12,9 +15,30 @@ const SOCIAL = [
 
 export default function LandingFooter() {
   const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
 
   function scrollTop() {
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  async function handleSubscribe(e) {
+    e.preventDefault();
+    if (!email.trim()) {
+      toast.error("Please enter a valid email address.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await subscribeApi({ email: email.trim() });
+      toast.success(res.data?.message || "Subscribed successfully!");
+      setEmail("");
+    } catch (err) {
+      const msg = err.response?.data?.message || "Subscription failed. Please try again.";
+      toast.error(msg);
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -31,11 +55,12 @@ export default function LandingFooter() {
               Get the latest vehicle listings, market insights, and exclusive deals delivered to your inbox.
             </p>
             <form
-              onSubmit={(e) => e.preventDefault()}
+              onSubmit={handleSubscribe}
               className="flex gap-2 mt-4"
             >
               <input
                 type="email"
+                required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Your email"
@@ -43,9 +68,10 @@ export default function LandingFooter() {
               />
               <button
                 type="submit"
-                className="px-4 py-2.5 btn-gradient text-white text-sm font-semibold rounded-lg shrink-0"
+                disabled={loading}
+                className="px-4 py-2.5 btn-gradient text-white text-sm font-semibold rounded-lg shrink-0 disabled:opacity-50 transition"
               >
-                Subscribe
+                {loading ? "Subscribing..." : "Subscribe"}
               </button>
             </form>
             <div className="flex gap-3 mt-5">
@@ -72,13 +98,13 @@ export default function LandingFooter() {
               </h4>
               <ul className="space-y-2.5">
                 {links.map((link) => (
-                  <li key={link}>
-                    <a
-                      href="#"
+                  <li key={link.label}>
+                    <Link
+                      to={link.to}
                       className="text-sm text-text-muted hover:text-text-accent transition"
                     >
-                      {link}
-                    </a>
+                      {link.label}
+                    </Link>
                   </li>
                 ))}
               </ul>

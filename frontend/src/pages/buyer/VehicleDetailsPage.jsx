@@ -263,15 +263,42 @@ export default function VehicleDetailsPage() {
                   Make An Offer
                 </Button>
               )}
-              <Button variant="outline" className="sm:w-auto flex-1 normal-case" onClick={() => toast.success("Contact request sent (mock)")}>
-                Contact Seller
+              <Button
+                variant="outline"
+                className="sm:w-auto flex-1 normal-case flex items-center justify-center gap-2"
+                onClick={() => {
+                  if (!accessToken) {
+                    navigate("/login");
+                    return;
+                  }
+                  navigate(`/chat?listingId=${id}`);
+                }}
+              >
+                <span>💬</span> Chat with Seller
               </Button>
             </div>
           </div>
 
-          <div className="mt-6 p-4 rounded-xl border border-border bg-surface">
-            <p className="text-xs text-text-muted uppercase tracking-wide mb-1">Seller</p>
-            <p className="font-semibold text-text-primary">{vehicle.sellerName}</p>
+          {/* Seller Info Box */}
+          <div className="mt-6 p-4 rounded-xl border border-border bg-surface flex items-center justify-between">
+            <div>
+              <p className="text-xs text-text-muted uppercase tracking-wide mb-1">Seller</p>
+              <p className="font-semibold text-text-primary">
+                {vehicle.sellerName || "Verified Seller"}
+              </p>
+            </div>
+            {!isOwnListing && (
+              <Button
+                variant="outline"
+                className="py-1.5 px-3 text-xs normal-case"
+                onClick={() => {
+                  if (!accessToken) { navigate("/login"); return; }
+                  navigate(`/chat?listingId=${id}`);
+                }}
+              >
+                💬 Chat Seller
+              </Button>
+            )}
           </div>
         </div>
       </div>

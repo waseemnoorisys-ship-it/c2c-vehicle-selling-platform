@@ -2,9 +2,11 @@ export const BUYER_NAV = [
   { label: "Dashboard", to: "/buyer/dashboard", icon: "dashboard" },
   { label: "Browse Vehicles", to: "/browse", icon: "browse" },
   { label: "My Offers", to: "/buyer/offers", icon: "offers" },
+  { label: "Pending Payments", to: "/buyer/pending-payments", icon: "wallet" },
   { label: "Purchase History", to: "/buyer/purchases", icon: "history" },
   { label: "Profile", to: "/buyer/profile", icon: "profile" },
 ];
+
 
 export const VENDOR_NAV = [
   { label: "Dashboard", to: "/vendor/dashboard", icon: "dashboard" },

@@ -6,10 +6,44 @@ import {
   centsToEuros,
 } from "./mappers";
 
+function formatDate(dateStr) {
+  if (!dateStr) return "—";
+  return new Date(dateStr).toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+
 export async function fetchBuyerOffers() {
   const { data } = await api.post("/offers/mine", { page: 1, limit: 50 });
   const offers = (data.data?.offers || []).map(mapOfferToBuyerRow);
   return wrap(offers);
+}
+
+export async function fetchAcceptedOffers() {
+  const { data } = await api.post("/offers/mine", { page: 1, limit: 50 });
+  const offers = (data.data?.offers || [])
+    .filter((o) => o.status === "accepted")
+    .map((o) => ({
+      ...mapOfferToBuyerRow(o),
+      _id: o._id,
+      listingId: o.listingId,         // keep raw listing for vehicleId
+      amountCents: o.amount,          // raw cents for payment
+    }));
+  return wrap(offers);
+}
+
+
+
+export async function fetchBuyerInvoice(transactionId) {
+  try {
+    const res = await api.post("/wallet/invoices/get", { transactionId });
+    return res.data?.data?.invoice || null;
+  } catch {
+    return null;
+  }
 }
 
 export async function fetchBuyerPurchases() {
@@ -18,13 +52,40 @@ export async function fetchBuyerPurchases() {
     .filter((o) => o.status === "accepted")
     .map((o) => {
       const row = mapOfferToBuyerRow(o);
+      const listing = o.listingId || {};
+      const buyer = o.buyerId || {};
+      const year = listing.year || "";
+      const make = listing.makeId?.name || listing.make || "";
+      const model = listing.modelId?.name || listing.model || "";
+      const invoiceId = `INV-${new Date(o.createdAt || Date.now()).getFullYear()}-${(o._id || o.id || "000000").slice(-6).toUpperCase()}`;
+
+      let sellerName = "Verified Private Vendor";
+      if (listing.vendorId) {
+        if (typeof listing.vendorId === "object") {
+          sellerName = `${listing.vendorId.firstName || ""} ${listing.vendorId.lastName || ""}`.trim() || listing.vendorId.email || sellerName;
+        }
+      }
+
       return {
         id: row.id,
+        offerId: o._id,
         vehicleTitle: row.vehicleTitle,
+        vehicleImage: listing.coverPhoto || null,
+        make,
+        model,
+        year,
+        location: listing.locationText || "Europe",
         amount: row.amount,
+        amountCents: o.amount,
         date: row.createdAt,
-        status: "completed",
-        invoiceId: "—",
+        rawDate: o.createdAt || o.updatedAt,
+        status: "Completed",
+        invoiceId,
+        sellerName,
+        sellerEmail: typeof listing.vendorId === "object" ? listing.vendorId?.email : "seller@c2cplatform.com",
+        buyerName: typeof buyer === "object" && buyer.firstName ? `${buyer.firstName || ""} ${buyer.lastName || ""}`.trim() : "Verified Buyer",
+        buyerEmail: typeof buyer === "object" ? buyer.email : "buyer@c2cplatform.com",
+        transactionId: o.transactionId || o._id,
       };
     });
   return wrap(purchases);

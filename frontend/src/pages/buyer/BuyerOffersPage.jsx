@@ -6,6 +6,8 @@ import DataTable from "../../components/dashboard/DataTable";
 import StatusBadge from "../../components/dashboard/StatusBadge";
 import { BUYER_NAV } from "../../config/navigation";
 import useCurrencyStore from "../../store/useCurrencyStore";
+import { fetchBuyerOffers, fetchBuyerPayments } from "../../api/buyer.api";
+
 
 export default function BuyerOffersPage() {
   const { formatPrice } = useCurrencyStore();

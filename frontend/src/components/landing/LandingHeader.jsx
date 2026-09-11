@@ -3,10 +3,14 @@ import { Link, useNavigate } from "react-router-dom";
 import Logo from "../layout/Logo";
 import ThemeToggle from "../theme/ThemeToggle";
 import { NAV_LINKS } from "../../data/landingData";
+import useAuthStore from "../../store/useAuthStore";
+import NotificationDropdown from "../common/NotificationDropdown";
+import UserProfileDropdown from "../common/UserProfileDropdown";
 
 export default function LandingHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
+  const { user } = useAuthStore();
 
   function handleNavClick(to) {
     setMenuOpen(false);
@@ -52,20 +56,31 @@ export default function LandingHeader() {
 
           <div className="flex items-center gap-2 sm:gap-3">
             <ThemeToggle />
-            <button
-              type="button"
-              onClick={() => navigate("/login")}
-              className="hidden sm:inline-flex px-4 py-2 text-sm font-medium text-text-primary border border-border rounded-lg hover:bg-surface-hover transition"
-            >
-              Login
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate("/register")}
-              className="hidden sm:inline-flex px-4 py-2 text-sm font-semibold text-white btn-gradient rounded-lg uppercase tracking-wide"
-            >
-              Register
-            </button>
+
+            {user ? (
+              <>
+                <NotificationDropdown />
+                <UserProfileDropdown />
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => navigate("/login")}
+                  className="hidden sm:inline-flex px-4 py-2 text-sm font-medium text-text-primary border border-border rounded-lg hover:bg-surface-hover transition"
+                >
+                  Login
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate("/register")}
+                  className="hidden sm:inline-flex px-4 py-2 text-sm font-semibold text-white btn-gradient rounded-lg uppercase tracking-wide"
+                >
+                  Register
+                </button>
+              </>
+            )}
+
             <button
               type="button"
               onClick={() => setMenuOpen(!menuOpen)}

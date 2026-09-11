@@ -111,6 +111,15 @@ export function mapListingToVehicle(listing) {
   const id = listing._id || listing.id;
   const coverPhoto = getListingImageUrl(listing);
   const { latitude, longitude } = getListingCoordinates(listing);
+
+  let sellerName = "";
+  if (typeof listing.vendorId === "object" && listing.vendorId !== null) {
+    sellerName = `${listing.vendorId.firstName || ""} ${listing.vendorId.lastName || ""}`.trim();
+  }
+  if (!sellerName) {
+    sellerName = listing.sellerName || listing.vendorName || "Verified Seller";
+  }
+
   return {
     id,
     _id: id,
@@ -134,10 +143,9 @@ export function mapListingToVehicle(listing) {
     longitude,
     verified: Boolean(listing.isVerified),
     status: listing.status === "approved" ? "active" : listing.status,
-    sellerId: listing.vendorId?._id || listing.vendorId,
-    sellerName: listing.vendorId?.firstName
-      ? `${listing.vendorId.firstName} ${listing.vendorId.lastName || ""}`.trim()
-      : listing.sellerName || "",
+    vendorId: listing.vendorId,
+    sellerId: typeof listing.vendorId === "object" ? listing.vendorId?._id : listing.vendorId,
+    sellerName: sellerName,
     description: listing.description || "",
     specs: listing.specs || {},
     images: listing.photos?.map((p) => p.url || p) || [],

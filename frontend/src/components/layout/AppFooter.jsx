@@ -1,10 +1,11 @@
+import { Link } from "react-router-dom";
 import Logo from "./Logo";
 
 const FOOTER_LINKS = [
-  { label: "Privacy Policy", href: "#" },
-  { label: "Terms of Service", href: "#" },
-  { label: "Help Center", href: "#" },
-  { label: "Contact", href: "#" },
+  { label: "Privacy Policy", to: "/privacy-policy" },
+  { label: "Terms of Service", to: "/terms-of-service" },
+  { label: "Help Center", to: "/faq" },
+  { label: "Contact", to: "/contact" },
 ];
 
 export default function AppFooter() {
@@ -19,16 +20,17 @@ export default function AppFooter() {
         </div>
         <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6">
           {FOOTER_LINKS.map((link) => (
-            <a
+            <Link
               key={link.label}
-              href={link.href}
+              to={link.to}
               className="text-xs text-text-muted hover:text-text-accent transition"
             >
               {link.label}
-            </a>
+            </Link>
           ))}
         </div>
       </div>
     </footer>
   );
 }
+

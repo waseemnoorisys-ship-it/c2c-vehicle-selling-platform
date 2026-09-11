@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import SidebarLayout from "../../components/dashboard/SidebarLayout";
 import PageHeader from "../../components/dashboard/PageHeader";
@@ -10,6 +11,7 @@ import { fetchVendorOffers, respondToOffer } from "../../api/vendor.api";
 import useCurrencyStore from "../../store/useCurrencyStore";
 
 export default function VendorOffersPage() {
+  const navigate = useNavigate();
   const { formatPrice } = useCurrencyStore();
   const [offers, setOffers] = useState([]);
 
@@ -34,15 +36,19 @@ export default function VendorOffersPage() {
     {
       key: "actions",
       label: "Actions",
-      render: (r) =>
-        r.status === "pending" ? (
-          <div className="flex gap-2">
-            <Button variant="ghost" className="w-auto py-1 px-2 text-xs normal-case text-success" onClick={() => handleRespond(r.id, "accept")}>Accept</Button>
-            <Button variant="ghost" className="w-auto py-1 px-2 text-xs normal-case text-danger" onClick={() => handleRespond(r.id, "reject")}>Reject</Button>
-          </div>
-        ) : (
-          <span className="text-text-muted text-xs">—</span>
-        ),
+      render: (r) => (
+        <div className="flex items-center gap-2">
+          {r.status === "pending" && (
+            <>
+              <Button variant="ghost" className="w-auto py-1 px-2 text-xs normal-case text-success" onClick={() => handleRespond(r.id, "accept")}>Accept</Button>
+              <Button variant="ghost" className="w-auto py-1 px-2 text-xs normal-case text-danger" onClick={() => handleRespond(r.id, "reject")}>Reject</Button>
+            </>
+          )}
+          {r.listingId && (
+            <Button variant="outline" className="w-auto py-1 px-2.5 text-xs normal-case flex items-center gap-1" onClick={() => navigate(`/chat?listingId=${r.listingId._id || r.listingId}`)}>💬 Chat</Button>
+          )}
+        </div>
+      ),
     },
   ];
 

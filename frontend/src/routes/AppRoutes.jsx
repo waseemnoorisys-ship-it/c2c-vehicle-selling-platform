@@ -10,12 +10,32 @@ import VerifyOtpPage from "../pages/auth/VerifyOtpPage";
 import ForgotPasswordPage from "../pages/auth/ForgotPasswordPage";
 import BrowsePage from "../pages/buyer/BrowsePage";
 import VehicleDetailsPage from "../pages/buyer/VehicleDetailsPage";
+import ChatPage from "../pages/chat/ChatPage";
+
+// Public Content Pages Layout & Pages
+import PublicLayout from "../components/layout/PublicLayout";
+import HowItWorksPage from "../pages/public/HowItWorksPage";
+import AboutUsPage from "../pages/public/AboutUsPage";
+import ContactUsPage from "../pages/public/ContactUsPage";
+import FaqPage from "../pages/public/FaqPage";
+import FinancingPage from "../pages/public/FinancingPage";
+import BuyerProtectionPage from "../pages/public/BuyerProtectionPage";
+import SellVehiclePage from "../pages/public/SellVehiclePage";
+import SellerGuidePage from "../pages/public/SellerGuidePage";
+import PricingToolsPage from "../pages/public/PricingToolsPage";
+import SuccessStoriesPage from "../pages/public/SuccessStoriesPage";
+import PrivacyPolicyPage from "../pages/public/PrivacyPolicyPage";
+import TermsOfServicePage from "../pages/public/TermsOfServicePage";
+import CookiePolicyPage from "../pages/public/CookiePolicyPage";
+import DisclaimerPage from "../pages/public/DisclaimerPage";
+import UnsubscribePage from "../pages/public/UnsubscribePage";
 
 // Buyer
 import BuyerDashboardPage from "../pages/buyer/BuyerDashboardPage";
 import BuyerOffersPage from "../pages/buyer/BuyerOffersPage";
 import BuyerPurchasesPage from "../pages/buyer/BuyerPurchasesPage";
 import BuyerProfilePage from "../pages/buyer/BuyerProfilePage";
+import BuyerPendingPaymentsPage from "../pages/buyer/BuyerPendingPaymentsPage";
 
 // Vendor
 import VendorDashboard from "../pages/vendor/VendorDashboard";
@@ -53,12 +73,32 @@ export default function AppRoutes() {
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/browse" element={<BrowsePage />} />
       <Route path="/vehicles/:id" element={<VehicleDetailsPage />} />
+      <Route path="/chat" element={<PrivateRoute><ChatPage /></PrivateRoute>} />
+
+      {/* Public Informational & Utility Pages */}
+      <Route path="/how-it-works" element={<PublicLayout><HowItWorksPage /></PublicLayout>} />
+      <Route path="/about" element={<PublicLayout><AboutUsPage /></PublicLayout>} />
+      <Route path="/contact" element={<PublicLayout><ContactUsPage /></PublicLayout>} />
+      <Route path="/faq" element={<PublicLayout><FaqPage /></PublicLayout>} />
+      <Route path="/financing" element={<PublicLayout><FinancingPage /></PublicLayout>} />
+      <Route path="/buyer-protection" element={<PublicLayout><BuyerProtectionPage /></PublicLayout>} />
+      <Route path="/sell" element={<PublicLayout><SellVehiclePage /></PublicLayout>} />
+      <Route path="/seller-guide" element={<PublicLayout><SellerGuidePage /></PublicLayout>} />
+      <Route path="/pricing-tools" element={<PublicLayout><PricingToolsPage /></PublicLayout>} />
+      <Route path="/success-stories" element={<PublicLayout><SuccessStoriesPage /></PublicLayout>} />
+      <Route path="/privacy-policy" element={<PublicLayout><PrivacyPolicyPage /></PublicLayout>} />
+      <Route path="/terms-of-service" element={<PublicLayout><TermsOfServicePage /></PublicLayout>} />
+      <Route path="/cookie-policy" element={<PublicLayout><CookiePolicyPage /></PublicLayout>} />
+      <Route path="/disclaimer" element={<PublicLayout><DisclaimerPage /></PublicLayout>} />
+      <Route path="/unsubscribe" element={<PublicLayout><UnsubscribePage /></PublicLayout>} />
 
       {/* Buyer */}
       <Route path="/buyer/dashboard" element={<PrivateRoute roles={["buyer"]}><BuyerDashboardPage /></PrivateRoute>} />
       <Route path="/buyer/offers" element={<PrivateRoute roles={["buyer"]}><BuyerOffersPage /></PrivateRoute>} />
+      <Route path="/buyer/pending-payments" element={<PrivateRoute roles={["buyer"]}><BuyerPendingPaymentsPage /></PrivateRoute>} />
       <Route path="/buyer/purchases" element={<PrivateRoute roles={["buyer"]}><BuyerPurchasesPage /></PrivateRoute>} />
       <Route path="/buyer/profile" element={<PrivateRoute roles={["buyer"]}><BuyerProfilePage /></PrivateRoute>} />
+
 
       {/* Vendor */}
       <Route path="/vendor/dashboard" element={<PrivateRoute roles={["vendor"]}><VendorDashboard /></PrivateRoute>} />

@@ -1,10 +1,10 @@
 export const NAV_LINKS = [
   { label: "Home", to: "/" },
   { label: "Browse Vehicles", to: "/browse" },
-  { label: "How It Works", to: "/#how-it-works" },
-  { label: "About Us", to: "#about" },
-  { label: "Contact Us", to: "#contact" },
-  { label: "FAQ", to: "#faq" },
+  { label: "How It Works", to: "/how-it-works" },
+  { label: "About Us", to: "/about" },
+  { label: "Contact Us", to: "/contact" },
+  { label: "FAQ", to: "/faq" },
 ];
 
 export const STATS = [
@@ -56,8 +56,29 @@ export const FAQS = [
 ];
 
 export const FOOTER_COLUMNS = {
-  "Quick Links": ["Home", "Browse Vehicles", "How It Works", "About Us"],
-  "For Buyers": ["Search Vehicles", "Financing", "Buyer Protection", "FAQs"],
-  "For Sellers": ["List Your Vehicle", "Seller Guide", "Pricing Tools", "Success Stories"],
-  Legal: ["Privacy Policy", "Terms of Service", "Cookie Policy", "Disclaimer"],
+  "Quick Links": [
+    { label: "Home", to: "/" },
+    { label: "Browse Vehicles", to: "/browse" },
+    { label: "How It Works", to: "/how-it-works" },
+    { label: "About Us", to: "/about" },
+  ],
+  "For Buyers": [
+    { label: "Search Vehicles", to: "/browse" },
+    { label: "Financing", to: "/financing" },
+    { label: "Buyer Protection", to: "/buyer-protection" },
+    { label: "FAQs", to: "/faq" },
+  ],
+  "For Sellers": [
+    { label: "List Your Vehicle", to: "/sell" },
+    { label: "Seller Guide", to: "/seller-guide" },
+    { label: "Pricing Tools", to: "/pricing-tools" },
+    { label: "Success Stories", to: "/success-stories" },
+  ],
+  Legal: [
+    { label: "Privacy Policy", to: "/privacy-policy" },
+    { label: "Terms of Service", to: "/terms-of-service" },
+    { label: "Cookie Policy", to: "/cookie-policy" },
+    { label: "Disclaimer", to: "/disclaimer" },
+  ],
 };
+

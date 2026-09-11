@@ -113,8 +113,6 @@ export default function LoginPage() {
         </Button>
       </form>
 
-      <SocialLoginButtons />
-
       <p className="text-center text-sm text-text-muted mt-6">
         {t("dontHaveAccount")}{" "}
         <Link

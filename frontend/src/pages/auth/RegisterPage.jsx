@@ -168,8 +168,6 @@ export default function RegisterPage() {
         </Button>
       </form>
 
-      <SocialLoginButtons />
-
       <p className="text-center text-sm text-text-muted mt-6">
         {t("alreadyHaveAccount")}{" "}
         <Link to="/login" className="text-text-accent font-semibold hover:underline">
