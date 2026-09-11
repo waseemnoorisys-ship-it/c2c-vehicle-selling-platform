@@ -15,6 +15,7 @@ export default function ChatPage() {
   const {
     fetchConversations,
     setActiveConversationId,
+    upsertConversation,
     addMessage,
     updateMessage,
     removeMessage,
@@ -37,8 +38,8 @@ export default function ChatPage() {
         .createOrGetConversation(listingIdParam)
         .then((res) => {
           if (res.success && res.data?.conversation?._id) {
+            upsertConversation(res.data.conversation);
             setActiveConversationId(res.data.conversation._id);
-            fetchConversations(); // refresh list
           }
         })
         .catch((err) => {

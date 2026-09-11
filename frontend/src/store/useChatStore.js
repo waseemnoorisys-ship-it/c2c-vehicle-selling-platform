@@ -16,6 +16,17 @@ export const useChatStore = create((set, get) => ({
 
   setConversations: (conversations) => set({ conversations }),
   
+  upsertConversation: (conversation) => {
+    if (!conversation || !conversation._id) return;
+    set((state) => {
+      const exists = state.conversations.some((c) => c._id === conversation._id);
+      const updatedConvs = exists
+        ? state.conversations.map((c) => (c._id === conversation._id ? conversation : c))
+        : [conversation, ...state.conversations];
+      return { conversations: updatedConvs };
+    });
+  },
+
   setActiveConversationId: (id) => {
     const currentId = get().activeConversationId;
     if (currentId && currentId !== id) {
