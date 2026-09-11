@@ -54,7 +54,7 @@ export default function UserProfileDropdown() {
 
       {/* Profile Dropdown Menu */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-64 bg-surface border border-border rounded-xl shadow-2xl z-50 overflow-hidden text-text-primary">
+        <div className="absolute right-0 mt-2 w-64 max-w-[calc(100vw-2rem)] bg-surface border border-border rounded-xl shadow-2xl z-50 overflow-hidden text-text-primary">
           {/* Header Profile Summary */}
           <div className="p-4 bg-surface-elevated border-b border-border flex items-center gap-3">
             <div className="w-11 h-11 rounded-full bg-[#00a884] text-white flex items-center justify-center font-bold text-sm uppercase overflow-hidden shrink-0">

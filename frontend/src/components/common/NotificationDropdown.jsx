@@ -104,7 +104,7 @@ export default function NotificationDropdown() {
 
       {/* Notifications Dropdown Panel */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-[calc(100vw-3rem)] max-w-sm sm:w-96 bg-surface border border-border rounded-xl shadow-2xl z-50 overflow-hidden text-text-primary">
+        <div className="fixed sm:absolute left-4 right-4 sm:left-auto sm:right-0 top-16 sm:top-auto sm:mt-2 w-auto sm:w-96 bg-surface border border-border rounded-xl shadow-2xl z-50 overflow-hidden text-text-primary">
           <div className="p-3 border-b border-border flex items-center justify-between bg-surface-elevated">
             <div className="flex items-center gap-2">
               <h3 className="font-semibold text-sm">Notifications</h3>
