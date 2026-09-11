@@ -136,9 +136,10 @@ function registerMessageHandlers(io, socket, onlineUsers) {
       //   createdAt: message.createdAt,
       // };
       //reply message functionality
-      const populatedMessage = await chatService.findMessageById(message._id);
-
-      io.to(conversationId).emit("new_message", populatedMessage);
+      io.to(conversationId)
+        .to(recipientId)
+        .to(sender._id.toString())
+        .emit("new_message", populatedMessage);
 
       const isRecipientOffline =
         !recipientPresence || !recipientPresence.isOnline;

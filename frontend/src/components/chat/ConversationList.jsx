@@ -30,10 +30,20 @@ export default function ConversationList() {
     return isBuyer ? conv.vendorId : conv.buyerId;
   };
 
+  const getListingTitle = (listing) => {
+    if (!listing || typeof listing === "string") return null;
+    if (listing.title && listing.title.trim()) return listing.title.trim();
+    const year = listing.year ? `${listing.year} ` : "";
+    const make = listing.makeId?.name || listing.make || "";
+    const model = listing.modelId?.name || listing.model || "";
+    const combined = `${year}${make} ${model}`.trim();
+    return combined || null;
+  };
+
   const filteredConversations = conversations.filter((conv) => {
     const partner = getOtherParticipant(conv);
     const name = `${partner?.firstName || ""} ${partner?.lastName || ""}`.toLowerCase();
-    const vehicleTitle = conv.listingId?.title?.toLowerCase() || "";
+    const vehicleTitle = (getListingTitle(conv.listingId) || "").toLowerCase();
     const q = search.toLowerCase();
     return name.includes(q) || vehicleTitle.includes(q);
   });
@@ -123,9 +133,9 @@ export default function ConversationList() {
                   </div>
 
                   {/* Vehicle context title */}
-                  {conv.listingId && (
-                    <p className="text-[11px] text-cyan-400 truncate mb-0.5">
-                      🚗 {conv.listingId.title || `${conv.listingId.make} ${conv.listingId.model}`}
+                  {getListingTitle(conv.listingId) && (
+                    <p className="text-[11px] text-[#00a884] font-medium truncate mb-0.5 flex items-center gap-1">
+                      <span>🚗</span> {getListingTitle(conv.listingId)}
                     </p>
                   )}
 

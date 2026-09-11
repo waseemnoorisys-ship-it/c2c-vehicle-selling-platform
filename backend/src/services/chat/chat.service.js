@@ -20,12 +20,15 @@ async function findConversationById(id) {
   return Conversation.findOne({ _id: id, deletedAt: null })
     .populate("buyerId", "firstName lastName profilePhoto fcmToken language")
     .populate("vendorId", "firstName lastName profilePhoto fcmToken language")
-    .populate(
-      "listingId",
-      "registrationNumber year photos status askingPrice makeId modelId",
-    );
+    .populate({
+      path: "listingId",
+      select: "title registrationNumber year photos images status askingPrice price makeId modelId",
+      populate: [
+        { path: "makeId", select: "name" },
+        { path: "modelId", select: "name" },
+      ],
+    });
 }
-// console.log(Conversation.listingId)
 
 async function findConversationsByUserId(userId, page, limit) {
   const skip = (page - 1) * limit;
@@ -36,22 +39,12 @@ async function findConversationsByUserId(userId, page, limit) {
     })
       .populate("buyerId", "firstName lastName profilePhoto")
       .populate("vendorId", "firstName lastName profilePhoto")
-      // old populate
-      // .populate("listingId", "registrationNumber year photos status askingPrice makeId modelId" )
-      // new erson according to specific details of vehicle on chat window
       .populate({
         path: "listingId",
-        select:
-          "registrationNumber year photos status askingPrice makeId modelId",
+        select: "title registrationNumber year photos images status askingPrice price makeId modelId",
         populate: [
-          {
-            path: "makeId",
-            select: "name",
-          },
-          {
-            path: "modelId",
-            select: "name",
-          },
+          { path: "makeId", select: "name" },
+          { path: "modelId", select: "name" },
         ],
       })
       .sort({ lastMessageAt: -1 })

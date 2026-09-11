@@ -67,6 +67,7 @@ function initSocket(httpServer) {
     const user = socket.data.user;
     logger.info(`Socket connected: ${user.firstName} (${user._id})`);
 
+    socket.join(user._id.toString());
     onlineUsers.set(user._id.toString(), {
       socketId: socket.id,
       lastSeen: new Date(),

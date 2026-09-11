@@ -76,21 +76,24 @@ export const useChatStore = create((set, get) => ({
   },
 
   addMessage: (message) => {
-    set((state) => {
-      // Check if belongs to active conversation
-      if (message.conversationId === state.activeConversationId) {
-        // Prevent duplicates
-        const exists = state.messages.some((m) => m._id === message._id);
-        if (exists) return state;
-        return { messages: [...state.messages, message] };
-      }
-      return state;
-    });
+    if (!message) return;
+    const msgConvId = (message.conversationId?._id || message.conversationId)?.toString();
 
-    // Update conversation last message & unread
     set((state) => {
+      const activeId = state.activeConversationId?.toString();
+      let updatedMessages = state.messages;
+
+      if (msgConvId && activeId && msgConvId === activeId) {
+        const exists = state.messages.some(
+          (m) => m._id?.toString() === message._id?.toString()
+        );
+        if (!exists) {
+          updatedMessages = [...state.messages, message];
+        }
+      }
+
       const updatedConvs = state.conversations.map((c) => {
-        if (c._id === message.conversationId) {
+        if (c._id?.toString() === msgConvId) {
           return {
             ...c,
             lastMessage: message,
@@ -100,13 +103,17 @@ export const useChatStore = create((set, get) => ({
         return c;
       });
 
-      const isCurrentActive = message.conversationId === state.activeConversationId;
+      const isCurrentActive = msgConvId === activeId;
       const newUnreads = { ...state.unreadCounts };
-      if (!isCurrentActive) {
-        newUnreads[message.conversationId] = (newUnreads[message.conversationId] || 0) + 1;
+      if (!isCurrentActive && msgConvId) {
+        newUnreads[msgConvId] = (newUnreads[msgConvId] || 0) + 1;
       }
 
-      return { conversations: updatedConvs, unreadCounts: newUnreads };
+      return {
+        messages: updatedMessages,
+        conversations: updatedConvs,
+        unreadCounts: newUnreads,
+      };
     });
   },
 
