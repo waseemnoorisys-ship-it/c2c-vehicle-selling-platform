@@ -1,0 +1,30 @@
+# www.robotstxt.org/
+
+User-agent: *
+Allow: /
+Allow: /browse
+Allow: /how-it-works
+Allow: /about
+Allow: /contact
+Allow: /faq
+Allow: /financing
+Allow: /buyer-protection
+Allow: /sell
+Allow: /seller-guide
+Allow: /pricing-tools
+Allow: /success-stories
+Allow: /privacy-policy
+Allow: /terms-of-service
+Allow: /cookie-policy
+Allow: /disclaimer
+
+# Disallow private dashboards and internal routes
+Disallow: /buyer/
+Disallow: /vendor/
+Disallow: /admin/
+Disallow: /chat/
+Disallow: /api/
+
+# Host & Sitemap
+Sitemap: https://c2c-vehicle-selling-platform.vercel.app/sitemap.xml
+Sitemap: https://c2c-vehicle-selling-platform.vercel.app/llms.txt

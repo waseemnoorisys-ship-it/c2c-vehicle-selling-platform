@@ -39,7 +39,7 @@ export default function ConversationList() {
   });
 
   return (
-    <div className="w-full md:w-80 lg:w-96 bg-[#111b21] border-r border-gray-800 flex flex-col h-full">
+    <div className={`w-full md:w-80 lg:w-96 bg-[#111b21] border-r border-gray-800 flex flex-col h-full ${activeConversationId ? "hidden md:flex" : "flex"}`}>
       {/* Header */}
       <div className="h-16 bg-[#202c33] px-4 flex items-center justify-between border-b border-gray-800/80 shrink-0">
         <div className="flex items-center gap-3">

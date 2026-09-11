@@ -12,6 +12,7 @@ export default function ChatWindow() {
   const {
     conversations,
     activeConversationId,
+    setActiveConversationId,
     messages,
     typingUsers,
     onlineUsers,
@@ -48,7 +49,7 @@ export default function ChatWindow() {
 
   if (!activeConversationId || !activeConv) {
     return (
-      <div className="flex-1 bg-[#0b141a] flex flex-col items-center justify-center text-center p-6 border-r border-gray-800/40">
+      <div className="hidden md:flex flex-1 bg-[#0b141a] flex-col items-center justify-center text-center p-6 border-r border-gray-800/40">
         <div className="w-20 h-20 bg-[#202c33] rounded-full flex items-center justify-center text-[#00a884] mb-4">
           <svg className="w-10 h-10 fill-current" viewBox="0 0 24 24">
             <path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z" />
@@ -67,11 +68,22 @@ export default function ChatWindow() {
   return (
     <div className="flex-1 bg-[#0b141a] flex flex-col h-full relative">
       {/* Header */}
-      <div className="h-16 bg-[#202c33] px-4 flex items-center justify-between border-b border-gray-800 shrink-0 z-10">
+      <div className="h-16 bg-[#202c33] px-3 sm:px-4 flex items-center justify-between border-b border-gray-800 shrink-0 z-10">
         {/* Partner Info */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <button
+            type="button"
+            onClick={() => setActiveConversationId(null)}
+            className="md:hidden p-1.5 -ml-1 text-gray-400 hover:text-gray-200 rounded-lg hover:bg-gray-800"
+            title="Back to chats"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+
           <div className="relative">
-            <div className="w-10 h-10 rounded-full bg-gray-700 text-gray-200 flex items-center justify-center font-bold text-sm uppercase">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gray-700 text-gray-200 flex items-center justify-center font-bold text-sm uppercase">
               {partner?.firstName ? partner.firstName[0] : partner?.role === "vendor" ? "S" : "U"}
             </div>
             {isOnline && (
