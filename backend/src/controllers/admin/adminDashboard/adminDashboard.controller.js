@@ -20,6 +20,7 @@ const getDashboardStats = async (req, res, next) => {
       totalTransactions,
       releasedTransactions,
       pendingWithdrawals,
+      makeStatsRaw,
     ] = await Promise.all([
       User.countDocuments({ deletedAt: null }),
       User.countDocuments({ role: "buyer", deletedAt: null }),
@@ -31,6 +32,28 @@ const getDashboardStats = async (req, res, next) => {
       Transaction.countDocuments({ deletedAt: null }),
       Transaction.countDocuments({ status: "released", deletedAt: null }),
       Withdrawal.countDocuments({ status: "pending", deletedAt: null }),
+      Listing.aggregate([
+        { $match: { deletedAt: null } },
+        { $group: { _id: "$makeId", count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+        { $limit: 6 },
+        {
+          $lookup: {
+            from: "vehiclemakes",
+            localField: "_id",
+            foreignField: "_id",
+            as: "make",
+          },
+        },
+        { $unwind: { path: "$make", preserveNullAndEmptyArrays: true } },
+        {
+          $project: {
+            _id: 1,
+            count: 1,
+            name: { $ifNull: ["$make.name", "Other"] },
+          },
+        },
+      ]),
     ]);
 
     const revenueAgg = await Transaction.aggregate([
@@ -60,6 +83,7 @@ const getDashboardStats = async (req, res, next) => {
             totalCommissionFormatted: `$${(totalRevenue / 100).toFixed(2)}`,
           },
           pendingWithdrawals,
+          topMakes: makeStatsRaw,
         },
         t("success.admin.dashboardFetched", lang)
       )
@@ -70,3 +94,4 @@ const getDashboardStats = async (req, res, next) => {
 };
 
 module.exports = { getDashboardStats };
+

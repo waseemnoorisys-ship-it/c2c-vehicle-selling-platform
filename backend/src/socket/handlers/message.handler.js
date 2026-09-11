@@ -46,12 +46,13 @@ function registerMessageHandlers(io, socket, onlineUsers) {
         return;
       }
 
+      const isAdmin = sender.role === "admin" || sender.role === "super_admin";
       const isBuyer =
         conversation.buyerId._id.toString() === sender._id.toString();
       const isVendor =
         conversation.vendorId._id.toString() === sender._id.toString();
 
-      if (!isBuyer && !isVendor) {
+      if (!isBuyer && !isVendor && !isAdmin) {
         socket.emit("error", { message: "Access denied" });
         return;
       }
@@ -65,7 +66,7 @@ function registerMessageHandlers(io, socket, onlineUsers) {
         return;
       }
 
-      const senderRole = isBuyer ? "buyer" : "vendor";
+      const senderRole = isBuyer ? "buyer" : isVendor ? "vendor" : "admin";
       //reply message functionality
       let replyMessage = null;
 
@@ -372,11 +373,14 @@ function registerMessageHandlers(io, socket, onlineUsers) {
         [unreadField]: 0,
       });
 
-      io.to(conversationId).emit("messages_read", {
-        conversationId,
-        readBy: userId,
-        readAt: new Date(),
-      });
+      io.to(conversationId)
+        .to(conversation.buyerId._id.toString())
+        .to(conversation.vendorId._id.toString())
+        .emit("messages_read", {
+          conversationId,
+          readBy: userId,
+          readAt: new Date(),
+        });
     } catch (err) {
       logger.error("mark_read handler error", err);
     }

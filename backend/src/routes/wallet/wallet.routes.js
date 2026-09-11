@@ -9,6 +9,7 @@ const {
   myWithdrawals,
   getWithdrawal,
   getInvoice,
+  downloadInvoice,
 } = require("../../controllers/wallet/wallet.controller");
 const { authenticate } = require("../../middleware/auth.middleware");
 
@@ -23,5 +24,6 @@ router.post("/withdrawals/mine", authenticate, myWithdrawals);
 router.post("/withdrawals/get", authenticate, getWithdrawal);
 
 router.post("/invoices/get", authenticate, getInvoice);
+router.get("/invoices/download/:transactionId", authenticate, downloadInvoice);
 
 module.exports = router;

@@ -216,9 +216,10 @@ const getInvoice = async (req, res, next) => {
     const transaction = await paymentService.findTransactionById(transactionId);
     if (!transaction) throw new ApiError(404, t("errors.walletExtra.transactionNotFound", lang));
 
-    const isBuyer = transaction.buyerId.toString() === userId.toString();
-    const isVendor = transaction.vendorId.toString() === userId.toString();
-    if (!isBuyer && !isVendor) throw new ApiError(403, t("errors.commonExtra.accessDenied", lang));
+    const isBuyer = transaction.buyerId?.toString() === userId.toString();
+    const isVendor = transaction.vendorId?.toString() === userId.toString();
+    const isAdmin = req.user.role === "admin" || req.user.role === "super_admin";
+    if (!isBuyer && !isVendor && !isAdmin) throw new ApiError(403, t("errors.commonExtra.accessDenied", lang));
 
     let invoice = await invoiceService.findInvoiceByTransactionId(transactionId);
     if (!invoice) {
@@ -233,6 +234,52 @@ const getInvoice = async (req, res, next) => {
   }
 };
 
+const downloadInvoice = async (req, res, next) => {
+  try {
+    const lang = getLang(req);
+    const { transactionId } = req.params;
+    const userId = req.user._id;
+
+    const transaction = await paymentService.findTransactionById(transactionId);
+    if (!transaction) throw new ApiError(404, t("errors.walletExtra.transactionNotFound", lang));
+
+    const isBuyer = transaction.buyerId?.toString() === userId.toString();
+    const isVendor = transaction.vendorId?.toString() === userId.toString();
+    const isAdmin = req.user.role === "admin" || req.user.role === "super_admin";
+    if (!isBuyer && !isVendor && !isAdmin) throw new ApiError(403, t("errors.commonExtra.accessDenied", lang));
+
+    let invoice = await invoiceService.findInvoiceByTransactionId(transactionId);
+    if (!invoice) {
+      invoice = await invoiceService.generateInvoiceForTransaction(transaction);
+    }
+
+    const listing = transaction.listingId;
+    const make = listing?.makeId?.name || listing?.make || "Vehicle";
+    const model = listing?.modelId?.name || listing?.model || "Purchase";
+    const year = listing?.year || "";
+    const rawTitle = `${year} ${make} ${model}`.trim();
+    const cleanTitle = rawTitle.replace(/[^a-zA-Z0-9]/g, "_").replace(/_+/g, "_");
+    const filename = `Invoice_${cleanTitle}_${invoice.invoiceNumber || "C2C"}.pdf`;
+
+    if (invoice.invoiceUrl) {
+      try {
+        const axios = require("axios");
+        const response = await axios.get(invoice.invoiceUrl, { responseType: "arraybuffer" });
+        res.setHeader("Content-Type", "application/pdf");
+        res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+        return res.send(Buffer.from(response.data));
+      } catch (err) {
+        console.error("Cloudinary invoice download error, fallback to redirect:", err);
+        return res.redirect(invoice.invoiceUrl);
+      }
+    }
+
+    throw new ApiError(404, "Invoice PDF file not found");
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   getWallet,
   getLedger,
@@ -242,4 +289,5 @@ module.exports = {
   myWithdrawals,
   getWithdrawal,
   getInvoice,
+  downloadInvoice,
 };

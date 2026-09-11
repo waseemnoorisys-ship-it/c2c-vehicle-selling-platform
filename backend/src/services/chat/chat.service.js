@@ -251,11 +251,34 @@ async function updateReportById(id, update) {
   return ConversationReport.findByIdAndUpdate(id, update, { new: true });
 }
 
+async function findAllConversationsForAdmin(page = 1, limit = 50) {
+  const skip = (page - 1) * limit;
+  const [conversations, total] = await Promise.all([
+    Conversation.find({ deletedAt: null })
+      .populate("buyerId", "firstName lastName profilePhoto role email")
+      .populate("vendorId", "firstName lastName profilePhoto role email")
+      .populate({
+        path: "listingId",
+        select: "title registrationNumber year photos images status askingPrice price makeId modelId",
+        populate: [
+          { path: "makeId", select: "name" },
+          { path: "modelId", select: "name" },
+        ],
+      })
+      .sort({ updatedAt: -1, lastMessageAt: -1 })
+      .skip(skip)
+      .limit(limit),
+    Conversation.countDocuments({ deletedAt: null }),
+  ]);
+  return { conversations, total };
+}
+
 module.exports = {
   findConversation,
   createConversation,
   findConversationById,
   findConversationsByUserId,
+  findAllConversationsForAdmin,
   updateConversationById,
   closeConversationsByListingId,
   findAllConversations,
@@ -279,3 +302,4 @@ module.exports = {
   findReplyMessage,
   reactToMessage,
 };
+

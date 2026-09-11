@@ -4,7 +4,14 @@ async function findAllTransactions(filter, skip, limit) {
   return Transaction.find(filter)
     .populate("buyerId", "firstName lastName email")
     .populate("vendorId", "firstName lastName email")
-    .populate("listingId", "registrationNumber year")
+    .populate({
+      path: "listingId",
+      select: "year make model makeId modelId displayPrice askingPrice",
+      populate: [
+        { path: "makeId", select: "name" },
+        { path: "modelId", select: "name" },
+      ],
+    })
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit);
@@ -18,7 +25,14 @@ async function findTransactionById(id) {
   return Transaction.findOne({ _id: id, deletedAt: null })
     .populate("buyerId", "firstName lastName email")
     .populate("vendorId", "firstName lastName email")
-    .populate("listingId", "registrationNumber year askingPrice displayPrice")
+    .populate({
+      path: "listingId",
+      select: "year make model makeId modelId displayPrice askingPrice",
+      populate: [
+        { path: "makeId", select: "name" },
+        { path: "modelId", select: "name" },
+      ],
+    })
     .populate("offerId");
 }
 

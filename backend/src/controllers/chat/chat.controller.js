@@ -79,7 +79,46 @@ const getConversation = async (req, res, next) => {
     if (error) throw new ApiError(400, error.details[0].message);
 
     const userId = req.user._id;
-    // console.log("userId " + userId);
+    const isAdmin = req.user.role === "admin" || req.user.role === "super_admin";
+
+    // Handle synthetic admin conversation creation for direct user messaging
+    if (value.conversationId.startsWith("admin_synthetic_")) {
+      const targetUserId = value.conversationId.replace("admin_synthetic_", "");
+      const targetUser = await User.findById(targetUserId);
+      if (!targetUser) throw new ApiError(404, "User not found");
+
+      const sampleListing =
+        (await Listing.findOne({ deletedAt: null, status: "approved" })) ||
+        (await Listing.findOne({ deletedAt: null }));
+
+      if (!sampleListing) {
+        throw new ApiError(400, "Cannot start chat: No listings found in system");
+      }
+
+      const isVendor = targetUser.role === "vendor";
+      const buyerId = isVendor ? userId : targetUser._id;
+      const vendorId = isVendor ? targetUser._id : userId;
+
+      let conversation = await chatService.findConversation(
+        buyerId,
+        vendorId,
+        sampleListing._id,
+      );
+
+      if (!conversation) {
+        conversation = await chatService.createConversation({
+          buyerId,
+          vendorId,
+          listingId: sampleListing._id,
+        });
+      }
+
+      const populated = await chatService.findConversationById(conversation._id);
+      return res
+        .status(200)
+        .json(new ApiResponse(200, { conversation: populated }, "Conversation ready"));
+    }
+
     const conversation = await chatService.findConversationById(
       value.conversationId,
     );
@@ -97,10 +136,11 @@ const getConversation = async (req, res, next) => {
     if (!conversation.listingId) {
       throw new ApiError(404, "Listing not found");
     }
+
     const isBuyer = conversation.buyerId._id.toString() === userId.toString();
     const isVendor = conversation.vendorId._id.toString() === userId.toString();
 
-    if (!isBuyer && !isVendor) {
+    if (!isBuyer && !isVendor && !isAdmin) {
       throw new ApiError(403, "Access denied");
     }
 
@@ -120,9 +160,58 @@ const myConversations = async (req, res, next) => {
 
     const { page, limit } = value;
     const userId = req.user._id;
+    const isAdmin = req.user.role === "admin" || req.user.role === "super_admin";
 
-    const { conversations, total } =
-      await chatService.findConversationsByUserId(userId, page, limit);
+    let conversations, total;
+
+    if (isAdmin) {
+      const adminRes = await chatService.findAllConversationsForAdmin(page, limit);
+      conversations = adminRes.conversations || [];
+      total = adminRes.total || 0;
+
+      // Collect existing user IDs in system conversations
+      const existingUserIds = new Set();
+      conversations.forEach((c) => {
+        if (c.buyerId?._id) existingUserIds.add(c.buyerId._id.toString());
+        if (c.vendorId?._id) existingUserIds.add(c.vendorId._id.toString());
+      });
+
+      // Fetch all buyers & vendors so admin can see and chat with ANY buyer or vendor
+      const remainingUsers = await User.find({
+        _id: { $nin: Array.from(existingUserIds) },
+        role: { $in: ["buyer", "vendor"] },
+        deletedAt: null,
+      }).select("firstName lastName profilePhoto role email createdAt");
+
+      if (remainingUsers.length > 0) {
+        const sampleListing =
+          (await Listing.findOne({ deletedAt: null, status: "approved" })) ||
+          (await Listing.findOne({ deletedAt: null }));
+
+        const syntheticConvs = remainingUsers.map((u) => {
+          const isVendor = u.role === "vendor";
+          return {
+            _id: `admin_synthetic_${u._id}`,
+            isSynthetic: true,
+            buyerId: isVendor ? req.user : u,
+            vendorId: isVendor ? u : req.user,
+            listingId: sampleListing || null,
+            lastMessage: null,
+            lastMessageAt: u.createdAt,
+            updatedAt: u.createdAt,
+            buyerUnread: 0,
+            vendorUnread: 0,
+          };
+        });
+
+        conversations = [...conversations, ...syntheticConvs];
+        total += syntheticConvs.length;
+      }
+    } else {
+      const userRes = await chatService.findConversationsByUserId(userId, page, limit);
+      conversations = userRes.conversations || [];
+      total = userRes.total || 0;
+    }
 
     return res
       .status(200)
@@ -145,7 +234,18 @@ const getMessages = async (req, res, next) => {
 
     const { conversationId, page, limit } = value;
     const userId = req.user._id;
-    // console.log(userId)
+    const isAdmin = req.user.role === "admin" || req.user.role === "super_admin";
+
+    if (conversationId.startsWith("admin_synthetic_")) {
+      return res.status(200).json(
+        new ApiResponse(
+          200,
+          { messages: [], total: 0, page, limit },
+          "Messages fetched",
+        ),
+      );
+    }
+
     const conversation = await chatService.findConversationById(conversationId);
     if (!conversation) throw new ApiError(404, "Conversation not found");
     if (!conversation.buyerId) {
@@ -162,12 +262,9 @@ const getMessages = async (req, res, next) => {
     }
 
     const isBuyer = conversation.buyerId._id.toString() === userId.toString();
-    // console.log(isBuyer)
-
     const isVendor = conversation.vendorId._id.toString() === userId.toString();
-    // console.log(isVendor)
 
-    if (!isBuyer && !isVendor) {
+    if (!isBuyer && !isVendor && !isAdmin) {
       throw new ApiError(403, "Access denied ");
     }
 
@@ -194,21 +291,16 @@ const getMessages = async (req, res, next) => {
         ),
       );
   } catch (err) {
-    // console.log(err.message)
-    // next(err + "chal budbag");
     throw new ApiError(404, "conversation not found");
   }
 };
 
-// const uploadChatImage = async (req, res, next) => {
 const uploadChatMedia = async (req, res, next) => {
-  // console.log("===== uploadChatMedia reached =====");
-  // console.log(req.file);
-  // console.log(req.body);
   try {
     if (!req.file) throw new ApiError(400, "No image uploaded");
 
     const userId = req.user._id;
+    const isAdmin = req.user.role === "admin" || req.user.role === "super_admin";
     const conversationId = req.body.conversationId;
 
     if (!conversationId) {
@@ -225,7 +317,7 @@ const uploadChatMedia = async (req, res, next) => {
     const isBuyer = conversation.buyerId._id.toString() === userId.toString();
     const isVendor = conversation.vendorId._id.toString() === userId.toString();
 
-    if (!isBuyer && !isVendor) {
+    if (!isBuyer && !isVendor && !isAdmin) {
       throw new ApiError(403, "Access denied");
     }
 

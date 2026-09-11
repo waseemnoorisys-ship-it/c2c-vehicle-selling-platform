@@ -334,7 +334,10 @@ const browseListings = async (req, res, next) => {
     } = req.body;
 
     const skip = (page - 1) * limit;
-    const filter = { status: "approved", deletedAt: null };
+    const filter = {
+      status: req.body.status && req.body.status !== "sold" ? req.body.status : { $in: ["approved", "pending"] },
+      deletedAt: null,
+    };
 
     const isGeoSearch = latitude !== undefined && longitude !== undefined;
 
@@ -433,15 +436,15 @@ const browseListings = async (req, res, next) => {
       listings,
       pagination: isGeoSearch
         ? {
-            note: "Geo search active — adjust radius to narrow results.",
-            returned: listings.length,
-          }
+          note: "Geo search active — adjust radius to narrow results.",
+          returned: listings.length,
+        }
         : {
-            total,
-            page: parseInt(page),
-            limit: parseInt(limit),
-            totalPages: Math.ceil(total / limit),
-          },
+          total,
+          page: parseInt(page),
+          limit: parseInt(limit),
+          totalPages: Math.ceil(total / limit),
+        },
     }, t("success.listing.browseRetrieved", lang)));
   } catch (err) { next(err); }
 };
