@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const logger   = require("./logger");
+const logger = require("./logger");
 
 async function connectDB() {
   try {
@@ -10,6 +10,6 @@ async function connectDB() {
     //Kills the Node process with error code 1
     process.exit(1);
   }
-} 
+}
 
 module.exports = connectDB;

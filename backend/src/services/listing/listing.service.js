@@ -67,13 +67,14 @@ async function findOneAndIncrementView(filter) {
   return Listing.findOneAndUpdate(filter, { $inc: { viewCount: 1 } }, { new: true })
     .populate("makeId", "name")
     .populate("modelId", "name")
-    .populate("vendorId", "firstName")
+    .populate("vendorId", "firstName lastName role")
     .lean();
 }
 async function findListingById(id) {
   return Listing.findById(id)
     .populate("makeId", "name")
-    .populate("modelId", "name");
+    .populate("modelId", "name")
+    .populate("vendorId", "firstName lastName role");
 }
 
 async function updateListingById(id, update) {

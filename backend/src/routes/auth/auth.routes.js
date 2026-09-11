@@ -16,6 +16,7 @@ router.post("/register",         validate(registerSchema),        controller.reg
 router.post("/verify-email",     validate(verifyEmailSchema),     controller.verifyEmail);
 router.post("/resend-otp",       validate(resendOtpSchema),       controller.resendOtp);
 router.post("/login",            validate(loginSchema),           controller.login);
+router.post("/social-login",     controller.socialLogin);
 router.post("/refresh-token",    validate(refreshTokenSchema),    controller.refreshToken);
 router.post("/logout",           controller.logout);
 router.post("/forgot-password",  validate(forgotPasswordSchema),  controller.forgotPassword);

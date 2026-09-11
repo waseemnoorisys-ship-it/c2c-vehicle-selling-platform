@@ -34,11 +34,18 @@ const landingRoutes = require("./routes/landing/landing.routes");
 const chatRoutes = require("./routes/chat/chat.routes");
 const adminChatRoutes = require("./routes/admin/adminChat/adminChat.routes");
 const ucpRoutes = require("./routes/ucp/ucp.routes");
+const swaggerRoutes = require("./routes/swagger/swagger.routes");
+const newsletterRoutes = require("./routes/newsletter/newsletter.routes");
 const app = express();
 app.set("trust proxy", 1);
 
-// ── Security headers
-app.use(helmet());
+// ── Security headers (Disable CSP so Swagger UI CDN scripts & inline setup can run)
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+  })
+);
 
 app.use(
   cors({
@@ -71,8 +78,10 @@ app.use(
 );
 // ── Global rate limiter
 app.use("/api", generalLimiter);
+// ── Swagger documentation UI
+app.use("/api-docs", swaggerRoutes);
 // ── Health check
-app.post("/health", (req, res) =>
+app.all("/health", (req, res) =>
   res.json({ status: "ok", timestamp: new Date() }),
 );
 // ── API Routes
@@ -102,6 +111,7 @@ app.use("/api/v1/cms", cmsRoutes);
 app.use("/api/v1/landing", landingRoutes);
 app.use("/api/v1/chat", chatRoutes);
 app.use("/api/v1/admin/chat", adminChatRoutes);
+app.use("/api/v1/newsletter", newsletterRoutes);
 app.use(ucpRoutes);
 app.get("/payment/success", async (req, res) => {
   const { session_id, transaction_id } = req.query;

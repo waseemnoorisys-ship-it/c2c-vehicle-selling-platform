@@ -261,6 +261,69 @@ const resetPassword = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+const socialLogin = async (req, res, next) => {
+  try {
+    const { provider, email, firstName, lastName, photoUrl, role = "buyer" } = req.body;
+    const lang = getLang(req);
+
+    if (!email) {
+      throw new ApiError(400, "Email is required for social login");
+    }
+
+    let user = await authService.findByEmail(email);
+
+    if (!user) {
+      const dummyPassword = crypto.randomBytes(32).toString("hex");
+      const passwordHash = await bcrypt.hash(dummyPassword, 10);
+
+      user = await authService.createUser({
+        firstName: firstName || `${provider || "Social"} User`,
+        lastName: lastName || "Member",
+        email: email.toLowerCase(),
+        mobile: "+1000000000",
+        countryCode: "+1",
+        passwordHash,
+        role: role === "vendor" ? "vendor" : "buyer",
+        isEmailVerified: true,
+        profilePhoto: photoUrl || null,
+        language: lang,
+      });
+    } else {
+      if (!user.isActive || user.deletedAt) {
+        throw new ApiError(403, "Account is disabled");
+      }
+      if (!user.isEmailVerified) {
+        user.isEmailVerified = true;
+        await authService.saveUser(user);
+      }
+    }
+
+    const accessToken = signAccessToken(user._id, user.role);
+    const refreshToken = await createRefreshToken(
+      user._id,
+      req.headers["user-agent"],
+      req.ip
+    );
+
+    const userObj = user.toObject();
+    delete userObj.passwordHash;
+
+    res.status(200).json(
+      new ApiResponse(
+        200,
+        {
+          accessToken,
+          refreshToken,
+          user: userObj,
+        },
+        "Social login successful"
+      )
+    );
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   register,
   verifyEmail,
@@ -271,4 +334,5 @@ module.exports = {
   forgotPassword,
   verifyResetOtp,
   resetPassword,
+  socialLogin,
 };
