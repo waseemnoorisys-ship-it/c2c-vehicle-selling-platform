@@ -86,8 +86,10 @@ class SocketService {
     this.emit("leave_conversation", { conversationId });
   }
 
-  sendMessage(conversationId, content, type = "text") {
-    this.emit("send_message", { conversationId, content, type });
+  sendMessage(conversationId, content, type = "text", replyTo = null) {
+    const payload = { conversationId, content, type };
+    if (replyTo) payload.replyTo = replyTo;
+    this.emit("send_message", payload);
   }
 
   startTyping(conversationId) {

@@ -3,7 +3,7 @@ import useAuthStore from "../../store/useAuthStore";
 import useChatStore from "../../store/useChatStore";
 import chatApi from "../../api/chat.api";
 
-export default function MessageBubble({ message, onImageClick }) {
+export default function MessageBubble({ message, onImageClick, onReply }) {
   const { user } = useAuthStore();
   const { updateMessage, removeMessage } = useChatStore();
   
@@ -78,6 +78,21 @@ export default function MessageBubble({ message, onImageClick }) {
             : "bg-[#202c33] text-gray-100 rounded-tl-none"
         }`}
       >
+        {/* Hover Reply Button */}
+        {!message.isDeleted && (
+          <button
+            onClick={() => onReply && onReply(message)}
+            className={`absolute top-2 ${
+              isOutgoing ? "-left-7" : "-right-7"
+            } opacity-0 group-hover:opacity-100 text-gray-400 hover:text-white p-1 rounded transition-opacity bg-[#202c33] border border-gray-700/50`}
+            title="Reply to message"
+          >
+            <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+              <path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z" />
+            </svg>
+          </button>
+        )}
+
         {/* Action Menu Toggle for Outgoing Messages */}
         {isOutgoing && !message.isDeleted && (
           <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -96,6 +111,15 @@ export default function MessageBubble({ message, onImageClick }) {
                 className="absolute right-0 mt-1 w-28 bg-[#233138] border border-gray-700 rounded shadow-lg z-20 py-1"
                 onMouseLeave={() => setShowMenu(false)}
               >
+                <button
+                  onClick={() => {
+                    onReply && onReply(message);
+                    setShowMenu(false);
+                  }}
+                  className="w-full text-left px-3 py-1.5 text-xs text-gray-200 hover:bg-gray-700"
+                >
+                  Reply
+                </button>
                 {message.type === "text" && isWithinFiveMins && (
                   <button
                     onClick={() => {
@@ -112,12 +136,28 @@ export default function MessageBubble({ message, onImageClick }) {
                     handleDelete();
                     setShowMenu(false);
                   }}
-                  className="w-full text-left px-3 py-1.5 text-xs text-red-400 hover:bg-gray-700"
+                  className="w-full text-left px-3 py-1.5 text-red-400 hover:bg-gray-700"
                 >
                   Delete
                 </button>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Quoted Message Preview (if replyTo exists) */}
+        {message.replyTo && (
+          <div className="mb-2 p-2 rounded bg-black/25 border-l-4 border-[#00a884] text-xs">
+            <span className="font-semibold text-[#00a884] block truncate">
+              {message.replyTo.senderId?.firstName || "Replying to message"}
+            </span>
+            <p className="text-gray-300/90 truncate mt-0.5">
+              {message.replyTo.type === "image"
+                ? "📷 Photo"
+                : message.replyTo.type === "audio"
+                ? "🎙️ Voice message"
+                : message.replyTo.content || "Message"}
+            </p>
           </div>
         )}
 

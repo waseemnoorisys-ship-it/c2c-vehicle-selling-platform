@@ -22,6 +22,7 @@ export default function ChatWindow() {
   const [previewImage, setPreviewImage] = useState(null);
   const [modalType, setModalType] = useState(null); // "block" | "unblock" | "report" | null
   const [showDropdown, setShowDropdown] = useState(false);
+  const [replyingTo, setReplyingTo] = useState(null);
 
   const messagesEndRef = useRef(null);
 
@@ -48,7 +49,16 @@ export default function ChatWindow() {
     ? listing.title || `${listing.year || ""} ${listing.makeId?.name || listing.make || ""} ${listing.modelId?.name || listing.model || ""}`.trim() || "Vehicle Listing"
     : "Vehicle Listing";
   const vehiclePrice = listing ? listing.price || listing.askingPrice : null;
-  const vehicleImg = listing ? listing.images?.[0] || listing.photos?.[0] : null;
+
+  const getVehicleImageUrl = (l) => {
+    if (!l) return null;
+    const firstImg = l.images?.[0] || l.photos?.[0];
+    if (!firstImg) return null;
+    if (typeof firstImg === "string") return firstImg;
+    if (typeof firstImg === "object") return firstImg.url || firstImg.secure_url || firstImg.path || null;
+    return null;
+  };
+  const vehicleImg = getVehicleImageUrl(listing);
   const listingId = listing?._id || (typeof activeConv?.listingId === "string" ? activeConv.listingId : null);
 
   // Auto-scroll to bottom on new messages
@@ -223,6 +233,7 @@ export default function ChatWindow() {
               key={msg._id}
               message={msg}
               onImageClick={(url) => setPreviewImage(url)}
+              onReply={(m) => setReplyingTo(m)}
             />
           ))
         )}
@@ -242,7 +253,11 @@ export default function ChatWindow() {
       </div>
 
       {/* Input Bar */}
-      <ChatInput conversationId={activeConversationId} />
+      <ChatInput
+        conversationId={activeConversationId}
+        replyingTo={replyingTo}
+        onCancelReply={() => setReplyingTo(null)}
+      />
 
       {/* Image Lightbox Modal */}
       {previewImage && (
