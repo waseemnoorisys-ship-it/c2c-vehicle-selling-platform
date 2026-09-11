@@ -2,6 +2,7 @@ export const NAV_LINKS = [
   { label: "Home", to: "/" },
   { label: "Browse Vehicles", to: "/browse" },
   { label: "How It Works", to: "/how-it-works" },
+  { label: "⚡ AI & MCP Server", to: "/mcp-guide" },
   { label: "About Us", to: "/about" },
   { label: "Contact Us", to: "/contact" },
   { label: "FAQ", to: "/faq" },
@@ -59,6 +60,7 @@ export const FOOTER_COLUMNS = {
   "Quick Links": [
     { label: "Home", to: "/" },
     { label: "Browse Vehicles", to: "/browse" },
+    { label: "⚡ AI & MCP Server", to: "/mcp-guide" },
     { label: "How It Works", to: "/how-it-works" },
     { label: "About Us", to: "/about" },
   ],
@@ -81,4 +83,5 @@ export const FOOTER_COLUMNS = {
     { label: "Disclaimer", to: "/disclaimer" },
   ],
 };
+
 

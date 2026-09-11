@@ -141,7 +141,7 @@ export default function LandingPage() {
   }, [currencySymbol]);
 
   useEffect(() => {
-    fetchFeaturedVehicles(12)
+    fetchFeaturedVehicles(50)
       .then((res) => setVehicles(res.data.data || []))
       .catch(() => setVehicles([]))
       .finally(() => setVehiclesLoading(false));
@@ -156,7 +156,8 @@ export default function LandingPage() {
   }, [vehicles.length]);
 
   const featuredVehicles = vehicles.slice(0, 4);
-  const verifiedVehicles = vehicles.filter((v) => v.verified).slice(0, 4);
+  const verifiedList = vehicles.filter((v) => v.verified);
+  const verifiedVehicles = (verifiedList.length > 0 ? verifiedList : vehicles).slice(0, 4);
   const latestVehicles = vehicles.slice(0, 4);
 
   const models = search.makeId ? (modelsByMake[search.makeId] || []) : [];
@@ -368,37 +369,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Browse By Category */}
-      <section className="bg-background-secondary border-y border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16">
-          <SectionHeader
-            label="Browse By Category"
-            title="Explore Vehicles By Category"
-            linkText="View All Categories"
-            linkTo="/browse"
-          />
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-            {CATEGORIES.map((cat) => (
-              <button
-                key={cat.name}
-                type="button"
-                onClick={() => navigate("/browse")}
-                className="p-5 rounded-xl border border-border bg-surface hover:border-primary-400/40 hover:bg-surface-hover transition text-center group"
-              >
-                <svg
-                  className="w-12 h-8 mx-auto text-text-muted group-hover:text-text-accent transition mb-3"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M5 11h14l-1.5 6H6.5L5 11zM7 8l1-3h8l1 3" />
-                </svg>
-                <p className="font-semibold text-text-primary text-sm">{cat.name}</p>
-                <p className="text-xs text-text-muted mt-1">{cat.count} vehicles</p>
-              </button>
-            ))}
-          </div>
-        </div>
-      </section>
+
 
       {/* Verified Vehicles */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16">
@@ -454,6 +425,7 @@ export default function LandingPage() {
           label="What Our Customers Say"
           title="Trusted By Thousands"
           linkText="View All Reviews"
+          linkTo="/success-stories"
         />
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {TESTIMONIALS.map((t) => (
@@ -490,6 +462,7 @@ export default function LandingPage() {
             label="Frequently Asked Questions"
             title="Got Questions? We've Got Answers"
             linkText="View All FAQs"
+            linkTo="/faq"
           />
           <div className="grid md:grid-cols-2 gap-4">
             {FAQS.map((faq) => (

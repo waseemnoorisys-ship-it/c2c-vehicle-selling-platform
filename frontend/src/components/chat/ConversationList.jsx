@@ -26,8 +26,16 @@ export default function ConversationList() {
   };
 
   const getOtherParticipant = (conv) => {
-    const isBuyer = (conv.buyerId?._id || conv.buyerId) === (user?._id || user?.id);
-    return isBuyer ? conv.vendorId : conv.buyerId;
+    if (!conv) return null;
+    const currentUserId = (user?._id || user?.id)?.toString();
+    const buyerId = (conv.buyerId?._id || conv.buyerId)?.toString();
+    const vendorId = (conv.vendorId?._id || conv.vendorId)?.toString();
+
+    if (currentUserId === buyerId) return conv.vendorId;
+    if (currentUserId === vendorId) return conv.buyerId;
+
+    if (conv.vendorId && vendorId !== currentUserId) return conv.vendorId;
+    return conv.buyerId || conv.vendorId;
   };
 
   const getListingTitle = (listing) => {
@@ -42,7 +50,7 @@ export default function ConversationList() {
 
   const filteredConversations = conversations.filter((conv) => {
     const partner = getOtherParticipant(conv);
-    const name = `${partner?.firstName || ""} ${partner?.lastName || ""}`.toLowerCase();
+    const name = `${partner?.firstName || ""} ${partner?.lastName || ""} ${partner?.email || ""}`.toLowerCase();
     const vehicleTitle = (getListingTitle(conv.listingId) || "").toLowerCase();
     const q = search.toLowerCase();
     return name.includes(q) || vehicleTitle.includes(q);
@@ -54,11 +62,11 @@ export default function ConversationList() {
       <div className="h-16 bg-[#202c33] px-4 flex items-center justify-between border-b border-gray-800/80 shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-full bg-[#00a884] text-white flex items-center justify-center font-bold text-sm uppercase">
-            {user?.firstName ? user.firstName[0] : "U"}
+            {user?.firstName ? user.firstName[0] : "A"}
           </div>
           <div>
             <h2 className="text-gray-100 font-semibold text-sm">Chats</h2>
-            <span className="text-xs text-gray-400 capitalize">{user?.role}</span>
+            <span className="text-xs text-emerald-400 capitalize font-medium">{user?.role}</span>
           </div>
         </div>
       </div>
@@ -71,7 +79,7 @@ export default function ConversationList() {
           </svg>
           <input
             type="text"
-            placeholder="Search conversations..."
+            placeholder="Search buyers, vendors, vehicles..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full bg-transparent text-gray-200 placeholder-gray-400 text-xs focus:outline-none"
@@ -96,6 +104,7 @@ export default function ConversationList() {
             const isOnline = onlineUsers[partnerId]?.isOnline;
             const unread = unreadCounts[conv._id] || 0;
             const isActive = activeConversationId === conv._id;
+            const isSynthetic = conv.isSynthetic;
 
             return (
               <div
@@ -120,15 +129,22 @@ export default function ConversationList() {
                 {/* Content Details */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">
-                    <h3 className="text-gray-100 text-sm font-medium truncate">
-                      {partner?.firstName
-                        ? `${partner.firstName} ${partner.lastName || ""}`.trim()
-                        : partner?.role === "vendor"
-                        ? "Seller"
-                        : "User"}
-                    </h3>
-                    <span className="text-[11px] text-gray-400 shrink-0">
-                      {formatTime(conv.updatedAt || conv.lastMessage?.createdAt)}
+                    <div className="flex items-center gap-1.5 truncate">
+                      <h3 className="text-gray-100 text-sm font-medium truncate">
+                        {partner?.firstName
+                          ? `${partner.firstName} ${partner.lastName || ""}`.trim()
+                          : partner?.role === "vendor"
+                          ? "Seller"
+                          : "User"}
+                      </h3>
+                      {partner?.role && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-semibold uppercase shrink-0">
+                          {partner.role}
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[11px] text-gray-400 shrink-0 ml-1">
+                      {formatTime(conv.updatedAt || conv.lastMessageAt || conv.lastMessage?.createdAt)}
                     </span>
                   </div>
 
@@ -148,7 +164,9 @@ export default function ConversationList() {
                         ? "📷 Photo"
                         : conv.lastMessage?.type === "audio"
                         ? "🎙️ Voice message"
-                        : conv.lastMessage?.content || "No messages yet"}
+                        : typeof conv.lastMessage === "string"
+                        ? conv.lastMessage
+                        : conv.lastMessage?.content || (isSynthetic ? "Click to start messaging" : "No messages yet")}
                     </p>
 
                     {unread > 0 && (
@@ -165,4 +183,5 @@ export default function ConversationList() {
       </div>
     </div>
   );
+
 }

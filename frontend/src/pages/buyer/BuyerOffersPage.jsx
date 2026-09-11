@@ -28,6 +28,18 @@ export default function BuyerOffersPage() {
     { key: "amount", label: "Offer", render: (r) => formatPrice(r.amount) },
     { key: "createdAt", label: "Date" },
     { key: "status", label: "Status", render: (r) => <StatusBadge status={r.status} /> },
+    {
+      key: "actions",
+      label: "Actions",
+      render: (r) => (
+        <Link
+          to={`/chat?listingId=${r.vehicleId}`}
+          className="px-2.5 py-1 rounded-lg border border-border text-xs font-semibold text-text-accent hover:bg-surface-hover transition-colors inline-flex items-center gap-1"
+        >
+          💬 Chat
+        </Link>
+      ),
+    },
   ];
 
   const paymentColumns = [

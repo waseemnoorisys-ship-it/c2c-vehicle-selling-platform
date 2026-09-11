@@ -5,6 +5,7 @@ import useChatStore from "../../store/useChatStore";
 import MessageBubble from "./MessageBubble";
 import ChatInput from "./ChatInput";
 import BlockReportModal from "./BlockReportModal";
+import socketService from "../../services/socket.service";
 
 export default function ChatWindow() {
   const navigate = useNavigate();
@@ -30,8 +31,15 @@ export default function ChatWindow() {
 
   const getOtherParticipant = (conv) => {
     if (!conv) return null;
-    const isBuyer = (conv.buyerId?._id || conv.buyerId) === (user?._id || user?.id);
-    return isBuyer ? conv.vendorId : conv.buyerId;
+    const currentUserId = (user?._id || user?.id)?.toString();
+    const buyerId = (conv.buyerId?._id || conv.buyerId)?.toString();
+    const vendorId = (conv.vendorId?._id || conv.vendorId)?.toString();
+
+    if (currentUserId === buyerId) return conv.vendorId;
+    if (currentUserId === vendorId) return conv.buyerId;
+
+    if (conv.vendorId && vendorId !== currentUserId) return conv.vendorId;
+    return conv.buyerId || conv.vendorId;
   };
 
   const partner = getOtherParticipant(activeConv);
@@ -42,6 +50,13 @@ export default function ChatWindow() {
   const isOnline = partnerId ? onlineUsers[partnerId]?.isOnline : false;
   const activeTyping = activeConversationId ? typingUsers[activeConversationId] : [];
   const isPartnerTyping = activeTyping && activeTyping.length > 0;
+
+  // Request presence for current partner on conversation select
+  useEffect(() => {
+    if (partnerId) {
+      socketService.getPresence(partnerId);
+    }
+  }, [partnerId, activeConversationId]);
 
   // Vehicle summary banner variables
   const listing = typeof activeConv?.listingId === "object" ? activeConv.listingId : null;

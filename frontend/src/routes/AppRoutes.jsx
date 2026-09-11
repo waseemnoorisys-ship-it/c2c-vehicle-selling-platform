@@ -12,6 +12,8 @@ import BrowsePage from "../pages/buyer/BrowsePage";
 import VehicleDetailsPage from "../pages/buyer/VehicleDetailsPage";
 import ChatPage from "../pages/chat/ChatPage";
 
+import McpGuidePage from "../pages/mcp/McpGuidePage";
+
 // Public Content Pages Layout & Pages
 import PublicLayout from "../components/layout/PublicLayout";
 import HowItWorksPage from "../pages/public/HowItWorksPage";
@@ -42,6 +44,7 @@ import VendorDashboard from "../pages/vendor/VendorDashboard";
 import ManageListingsPage from "../pages/vendor/ManageListingsPage";
 import AddEditVehiclePage from "../pages/vendor/AddEditVehiclePage";
 import VendorOffersPage from "../pages/vendor/VendorOffersPage";
+import VendorSalesPage from "../pages/vendor/VendorSalesPage";
 import WalletPage from "../pages/vendor/WalletPage";
 import BankDetailsPage from "../pages/vendor/BankDetailsPage";
 
@@ -50,6 +53,7 @@ import AdminDashboard from "../pages/admin/AdminDashboard";
 import ManageBuyersPage from "../pages/admin/ManageBuyersPage";
 import ManageSellersPage from "../pages/admin/ManageSellersPage";
 import AdminListingsPage from "../pages/admin/AdminListingsPage";
+import AdminInvoicesPage from "../pages/admin/AdminInvoicesPage";
 import CommissionPage from "../pages/admin/CommissionPage";
 import WithdrawalsPage from "../pages/admin/WithdrawalsPage";
 import VehicleDataPage from "../pages/admin/VehicleDataPage";
@@ -73,6 +77,7 @@ export default function AppRoutes() {
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/browse" element={<BrowsePage />} />
       <Route path="/vehicles/:id" element={<VehicleDetailsPage />} />
+      <Route path="/mcp-guide" element={<McpGuidePage />} />
       <Route path="/chat" element={<PrivateRoute><ChatPage /></PrivateRoute>} />
 
       {/* Public Informational & Utility Pages */}
@@ -106,6 +111,7 @@ export default function AppRoutes() {
       <Route path="/vendor/listings/new" element={<PrivateRoute roles={["vendor"]}><AddEditVehiclePage /></PrivateRoute>} />
       <Route path="/vendor/listings/:id/edit" element={<PrivateRoute roles={["vendor"]}><AddEditVehiclePage /></PrivateRoute>} />
       <Route path="/vendor/offers" element={<PrivateRoute roles={["vendor"]}><VendorOffersPage /></PrivateRoute>} />
+      <Route path="/vendor/sales" element={<PrivateRoute roles={["vendor"]}><VendorSalesPage /></PrivateRoute>} />
       <Route path="/vendor/wallet" element={<PrivateRoute roles={["vendor"]}><WalletPage /></PrivateRoute>} />
       <Route path="/vendor/bank" element={<PrivateRoute roles={["vendor"]}><BankDetailsPage /></PrivateRoute>} />
 
@@ -114,6 +120,7 @@ export default function AppRoutes() {
       <Route path="/admin/buyers" element={<PrivateRoute roles={["admin"]}><ManageBuyersPage /></PrivateRoute>} />
       <Route path="/admin/sellers" element={<PrivateRoute roles={["admin"]}><ManageSellersPage /></PrivateRoute>} />
       <Route path="/admin/listings" element={<PrivateRoute roles={["admin"]}><AdminListingsPage /></PrivateRoute>} />
+      <Route path="/admin/invoices" element={<PrivateRoute roles={["admin"]}><AdminInvoicesPage /></PrivateRoute>} />
       <Route path="/admin/commission" element={<PrivateRoute roles={["admin"]}><CommissionPage /></PrivateRoute>} />
       <Route path="/admin/withdrawals" element={<PrivateRoute roles={["admin"]}><WithdrawalsPage /></PrivateRoute>} />
       <Route path="/admin/vehicle-data" element={<PrivateRoute roles={["admin"]}><VehicleDataPage /></PrivateRoute>} />

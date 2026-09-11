@@ -51,7 +51,13 @@ export default function AppHeader({ showBack = false }) {
         {user ? (
           <>
             <Link
-              to={user.role === "vendor" ? "/vendor/dashboard" : "/buyer/dashboard"}
+              to={
+                user.role === "admin" || user.role === "super_admin"
+                  ? "/admin/dashboard"
+                  : user.role === "vendor"
+                  ? "/vendor/dashboard"
+                  : "/buyer/dashboard"
+              }
               className="text-sm font-medium text-text-muted hover:text-text-primary transition"
             >
               Dashboard

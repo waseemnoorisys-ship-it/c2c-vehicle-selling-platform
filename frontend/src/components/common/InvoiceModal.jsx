@@ -44,7 +44,38 @@ export default function InvoiceModal({ purchase, onClose }) {
   };
 
   const handleDownloadPdf = () => {
-    if (backendInvoice?.url) {
+    const rawTitle = purchase.vehicleTitle || purchase.title || "Vehicle_Purchase";
+    const cleanTitle = rawTitle.replace(/[^a-zA-Z0-9]/g, "_").replace(/_+/g, "_");
+    const fileName = `Invoice_${cleanTitle}_${invoiceNumber}.pdf`;
+
+    const txId = purchase.transactionId || purchase.id;
+    if (txId) {
+      const token = useAuthStore.getState().accessToken;
+      fetch(`/api/v1/wallet/invoices/download/${txId}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
+        .then((res) => {
+          if (!res.ok) throw new Error("Download failed");
+          return res.blob();
+        })
+        .then((blob) => {
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = fileName;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          window.URL.revokeObjectURL(url);
+        })
+        .catch(() => {
+          if (backendInvoice?.url) {
+            window.open(backendInvoice.url, "_blank");
+          } else {
+            window.print();
+          }
+        });
+    } else if (backendInvoice?.url) {
       window.open(backendInvoice.url, "_blank");
     } else {
       window.print();

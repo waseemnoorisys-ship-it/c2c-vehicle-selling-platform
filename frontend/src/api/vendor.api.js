@@ -110,11 +110,13 @@ export async function fetchBankDetails() {
 }
 
 export async function updateBankDetails(payload) {
+  const rawRouting = payload.swift || payload.ifscOrRouting || "NONE";
+  const ifscOrRouting = rawRouting.trim().length < 4 ? rawRouting.trim().padEnd(4, "X") : rawRouting.trim();
   const { data } = await api.post("/wallet/bank-details/create", {
     accountHolderName: payload.accountName,
     bankName: payload.bankName,
     accountNumber: payload.iban?.replace(/\s/g, "") || payload.accountNumber,
-    ifscOrRouting: payload.swift || payload.ifscOrRouting || "NA",
+    ifscOrRouting,
   });
   return data;
 }
@@ -122,4 +124,39 @@ export async function updateBankDetails(payload) {
 export async function deleteListing(id) {
   const { data } = await api.post("/listings/delete", { id });
   return data;
+}
+
+export async function fetchVendorSales() {
+  try {
+    const { data } = await api.post("/offers/received", { page: 1, limit: 50 });
+    const offers = data.data?.offers || [];
+    const sales = offers
+      .filter((o) => o.status === "accepted" || o.status === "completed" || o.listingId?.status === "sold")
+      .map((o) => {
+        const year = o.listingId?.year || "";
+        const make = o.listingId?.makeId?.name || o.listingId?.make || "";
+        const model = o.listingId?.modelId?.name || o.listingId?.model || "";
+        const title = `${year} ${make} ${model}`.trim() || "Vehicle";
+        const buyerName = o.buyerId ? `${o.buyerId.firstName || ""} ${o.buyerId.lastName || ""}`.trim() : "Verified Buyer";
+        const invoiceId = `INV-${new Date(o.createdAt || Date.now()).getFullYear()}-${(o._id || "000000").slice(-6).toUpperCase()}`;
+
+        return {
+          id: o._id,
+          transactionId: o.transactionId || o._id,
+          offerId: o._id,
+          vehicleTitle: title,
+          amount: (o.amount || 0) / 100,
+          date: new Date(o.createdAt || Date.now()).toISOString().split("T")[0],
+          status: "completed",
+          buyerName,
+          buyerEmail: o.buyerId?.email || "buyer@c2cplatform.com",
+          sellerName: "Vendor / You",
+          invoiceId,
+        };
+      });
+    return wrap(sales);
+  } catch (err) {
+    console.error("fetchVendorSales error:", err);
+    return wrap([]);
+  }
 }

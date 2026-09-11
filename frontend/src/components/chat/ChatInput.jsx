@@ -13,14 +13,21 @@ export default function ChatInput({ conversationId, replyingTo, onCancelReply })
   const [text, setText] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+
+  // Voice recording states
   const [isRecording, setIsRecording] = useState(false);
+  const [isPreviewing, setIsPreviewing] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
+  const [audioBlob, setAudioBlob] = useState(null);
+  const [audioUrl, setAudioUrl] = useState(null);
+  const [isPlayingPreview, setIsPlayingPreview] = useState(false);
 
   const fileInputRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const timerRef = useRef(null);
   const typingTimerRef = useRef(null);
+  const previewAudioRef = useRef(null);
 
   // Handle typing event dispatching
   const handleTextChange = (e) => {
@@ -62,7 +69,7 @@ export default function ChatInput({ conversationId, replyingTo, onCancelReply })
     }
   };
 
-  // Image Upload Handler
+  // Image / Video Upload Handler
   const handleFileChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file || !conversationId) return;
@@ -85,8 +92,8 @@ export default function ChatInput({ conversationId, replyingTo, onCancelReply })
         if (onCancelReply) onCancelReply();
       }
     } catch (err) {
-      console.error("Failed to upload image:", err);
-      alert(err.response?.data?.message || "Image upload failed");
+      console.error("Failed to upload file:", err);
+      alert(err.response?.data?.message || "Media upload failed");
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -106,14 +113,17 @@ export default function ChatInput({ conversationId, replyingTo, onCancelReply })
         }
       };
 
-      mediaRecorderRef.current.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
-        await sendVoiceMessage(audioBlob);
+      mediaRecorderRef.current.onstop = () => {
+        const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+        const url = URL.createObjectURL(blob);
+        setAudioBlob(blob);
+        setAudioUrl(url);
         stream.getTracks().forEach((track) => track.stop());
       };
 
       mediaRecorderRef.current.start();
       setIsRecording(true);
+      setIsPreviewing(false);
       setRecordingTime(0);
 
       timerRef.current = setInterval(() => {
@@ -125,14 +135,17 @@ export default function ChatInput({ conversationId, replyingTo, onCancelReply })
     }
   };
 
+  // Stop recording and move to preview state
   const stopRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
+      setIsPreviewing(true);
       if (timerRef.current) clearInterval(timerRef.current);
     }
   };
 
+  // Cancel / Trash recording
   const cancelRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.onstop = null;
@@ -140,17 +153,37 @@ export default function ChatInput({ conversationId, replyingTo, onCancelReply })
       if (mediaRecorderRef.current.stream) {
         mediaRecorderRef.current.stream.getTracks().forEach((t) => t.stop());
       }
-      setIsRecording(false);
-      if (timerRef.current) clearInterval(timerRef.current);
-      setRecordingTime(0);
+    }
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (audioUrl) URL.revokeObjectURL(audioUrl);
+    setIsRecording(false);
+    setIsPreviewing(false);
+    setAudioBlob(null);
+    setAudioUrl(null);
+    setIsPlayingPreview(false);
+    setRecordingTime(0);
+  };
+
+  // Toggle preview playback
+  const togglePlayPreview = () => {
+    if (!previewAudioRef.current) return;
+    if (isPlayingPreview) {
+      previewAudioRef.current.pause();
+      setIsPlayingPreview(false);
+    } else {
+      previewAudioRef.current.play();
+      setIsPlayingPreview(true);
     }
   };
 
-  const sendVoiceMessage = async (audioBlob) => {
-    if (!conversationId) return;
+  // Upload and send voice message
+  const handleSendRecordedVoice = async () => {
+    const targetBlob = audioBlob;
+    if (!targetBlob || !conversationId) return;
+
     setIsUploading(true);
     try {
-      const file = new File([audioBlob], "voice-message.webm", {
+      const file = new File([targetBlob], "voice-message.webm", {
         type: "audio/webm",
       });
       const formData = new FormData();
@@ -167,6 +200,7 @@ export default function ChatInput({ conversationId, replyingTo, onCancelReply })
         );
         if (onCancelReply) onCancelReply();
       }
+      cancelRecording();
     } catch (err) {
       console.error("Failed to upload voice message:", err);
       alert("Voice message upload failed");
@@ -185,11 +219,12 @@ export default function ChatInput({ conversationId, replyingTo, onCancelReply })
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
       if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+      if (audioUrl) URL.revokeObjectURL(audioUrl);
     };
-  }, []);
+  }, [audioUrl]);
 
   return (
-    <div className="bg-[#202c33] border-t border-gray-700/50 relative">
+    <div className="bg-[#202c33] border-t border-gray-800/80 relative">
       {/* Quoted Reply Banner */}
       {replyingTo && (
         <div className="bg-[#111b21] px-4 py-2 flex items-center justify-between border-b border-gray-700/60 text-xs">
@@ -198,6 +233,8 @@ export default function ChatInput({ conversationId, replyingTo, onCancelReply })
             <span className="text-gray-300 truncate">
               {replyingTo.type === "image"
                 ? "📷 Photo"
+                : replyingTo.type === "video"
+                ? "🎥 Video"
                 : replyingTo.type === "audio"
                 ? "🎙️ Voice message"
                 : replyingTo.content}
@@ -239,7 +276,7 @@ export default function ChatInput({ conversationId, replyingTo, onCancelReply })
       )}
 
       {/* Input Action Bar */}
-      <div className="px-4 py-3 flex items-center gap-2">
+      <div className="px-4 py-2.5 flex items-center gap-2.5">
         {/* Hidden File Input (Image/Video) */}
         <input
           type="file"
@@ -250,29 +287,103 @@ export default function ChatInput({ conversationId, replyingTo, onCancelReply })
         />
 
         {isRecording ? (
-          /* Voice Recording UI Bar */
-          <div className="flex-1 flex items-center justify-between bg-[#111b21] px-4 py-2 rounded-full text-red-400 text-sm">
-            <div className="flex items-center gap-2 animate-pulse">
-              <span className="w-3 h-3 bg-red-500 rounded-full"></span>
-              <span>Recording... {formatRecordingTime(recordingTime)}</span>
+          /* Active Voice Recording UI Bar */
+          <div className="flex-1 flex items-center justify-between bg-[#111b21] px-4 py-2 rounded-full text-red-400 text-sm border border-red-500/20 shadow-inner">
+            <div className="flex items-center gap-2.5 animate-pulse">
+              <span className="w-3 h-3 bg-red-500 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.8)]"></span>
+              <span className="font-medium text-gray-200">
+                Recording... {formatRecordingTime(recordingTime)}
+              </span>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              {/* Trash / Cancel */}
               <button
+                type="button"
                 onClick={cancelRecording}
-                className="text-gray-400 hover:text-gray-200 text-xs px-2 py-1"
+                className="p-2 text-gray-400 hover:text-red-400 rounded-full hover:bg-gray-800 transition-colors"
+                title="Discard recording"
               >
-                Cancel
+                <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                  <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+                </svg>
               </button>
+
+              {/* Stop & Preview */}
               <button
+                type="button"
                 onClick={stopRecording}
-                className="bg-[#00a884] text-white p-2 rounded-full hover:bg-[#00cf9d]"
-                title="Send Voice Message"
+                className="p-2 text-[#00a884] hover:text-[#00cf9d] rounded-full hover:bg-gray-800 transition-colors"
+                title="Stop and preview recording"
               >
-                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                  <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                  <path d="M6 6h12v12H6z" />
                 </svg>
               </button>
             </div>
+          </div>
+        ) : isPreviewing ? (
+          /* Recorded Audio Preview Bar */
+          <div className="flex-1 flex items-center justify-between bg-[#111b21] px-4 py-2 rounded-full text-sm border border-gray-700/80 shadow-inner">
+            {audioUrl && (
+              <audio
+                ref={previewAudioRef}
+                src={audioUrl}
+                onEnded={() => setIsPlayingPreview(false)}
+              />
+            )}
+            <div className="flex items-center gap-3 flex-1 min-w-0 pr-2">
+              {/* Trash Preview */}
+              <button
+                type="button"
+                onClick={cancelRecording}
+                className="p-1.5 text-gray-400 hover:text-red-400 rounded-full hover:bg-gray-800 transition-colors"
+                title="Delete recording"
+              >
+                <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                  <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+                </svg>
+              </button>
+
+              {/* Play / Pause Preview */}
+              <button
+                type="button"
+                onClick={togglePlayPreview}
+                className="p-2 bg-[#00a884] hover:bg-[#00cf9d] text-white rounded-full transition-transform active:scale-95 shrink-0"
+                title={isPlayingPreview ? "Pause preview" : "Play preview"}
+              >
+                {isPlayingPreview ? (
+                  <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                    <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4 fill-current ml-0.5" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                )}
+              </button>
+
+              {/* Waveform track preview placeholder */}
+              <div className="flex-1 h-1.5 bg-gray-700 rounded-full overflow-hidden">
+                <div className={`h-full bg-[#00a884] ${isPlayingPreview ? "animate-pulse w-full" : "w-1/2"}`}></div>
+              </div>
+
+              <span className="text-xs text-gray-300 font-medium">
+                {formatRecordingTime(recordingTime)}
+              </span>
+            </div>
+
+            {/* Send Recorded Voice */}
+            <button
+              type="button"
+              onClick={handleSendRecordedVoice}
+              disabled={isUploading}
+              className="bg-[#00a884] hover:bg-[#00cf9d] text-white p-2.5 rounded-full shadow transition-all active:scale-95 disabled:opacity-50 shrink-0"
+              title="Send Voice Message"
+            >
+              <svg className="w-4 h-4 fill-current ml-0.5" viewBox="0 0 24 24">
+                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+              </svg>
+            </button>
           </div>
         ) : (
           /* Regular Message Bar */
@@ -281,7 +392,7 @@ export default function ChatInput({ conversationId, replyingTo, onCancelReply })
             <button
               type="button"
               onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-              className="text-gray-400 hover:text-yellow-400 p-2 rounded-full transition-colors text-lg leading-none"
+              className="text-gray-400 hover:text-gray-200 p-2 rounded-full hover:bg-[#374248] transition-colors text-xl leading-none"
               title="Emoji Picker"
             >
               😀
@@ -292,32 +403,33 @@ export default function ChatInput({ conversationId, replyingTo, onCancelReply })
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={isUploading}
-              className="text-gray-400 hover:text-gray-200 p-2 rounded-full transition-colors disabled:opacity-50"
-              title="Attach Image"
+              className="text-gray-400 hover:text-gray-200 p-2 rounded-full hover:bg-[#374248] transition-colors disabled:opacity-50"
+              title="Attach photo or video"
             >
               <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
                 <path d="M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5c0-1.38 1.12-2.5 2.5-2.5s2.5 1.12 2.5 2.5v10.5c0 .55-.45 1-1 1s-1-.45-1-1V6H10v9.5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V5c0-2.21-1.79-4-4-4S7 2.79 7 5v12.5c0 3.04 2.46 5.5 5.5 5.5s5.5-2.46 5.5-5.5V6h-1.5z" />
               </svg>
             </button>
 
-            {/* Text Input */}
-            <div className="flex-1 bg-[#2a3942] rounded-lg px-4 py-2 flex items-center">
+            {/* Text Input Box */}
+            <div className="flex-1 bg-[#2a3942] rounded-xl px-4 py-2 flex items-center border border-transparent focus-within:border-gray-600 transition-colors">
               <textarea
                 value={text}
                 onChange={handleTextChange}
                 onKeyDown={handleKeyDown}
                 placeholder="Type a message..."
                 rows={1}
-                className="w-full bg-transparent text-gray-100 placeholder-gray-400 text-sm focus:outline-none resize-none max-h-24"
+                className="w-full bg-transparent text-gray-100 placeholder-gray-400 text-sm focus:outline-none resize-none max-h-24 leading-relaxed"
               />
             </div>
 
             {/* Action Button: Send or Voice Record */}
             {text.trim() ? (
               <button
+                type="button"
                 onClick={handleSendMessage}
                 disabled={isUploading}
-                className="bg-[#00a884] text-white p-2.5 rounded-full hover:bg-[#00cf9d] transition-colors disabled:opacity-50"
+                className="bg-[#00a884] hover:bg-[#00cf9d] text-white p-2.5 rounded-full shadow transition-all active:scale-95 disabled:opacity-50 shrink-0"
                 title="Send Message"
               >
                 <svg className="w-4 h-4 fill-current ml-0.5" viewBox="0 0 24 24">
@@ -326,9 +438,10 @@ export default function ChatInput({ conversationId, replyingTo, onCancelReply })
               </button>
             ) : (
               <button
+                type="button"
                 onClick={startRecording}
                 disabled={isUploading}
-                className="text-gray-400 hover:text-gray-200 p-2.5 rounded-full hover:bg-gray-700/50 transition-colors disabled:opacity-50"
+                className="text-gray-400 hover:text-gray-200 p-2.5 rounded-full hover:bg-[#374248] transition-colors disabled:opacity-50 shrink-0"
                 title="Record Voice Message"
               >
                 <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">

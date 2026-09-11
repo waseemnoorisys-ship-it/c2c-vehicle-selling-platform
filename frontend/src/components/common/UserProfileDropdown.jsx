@@ -22,7 +22,12 @@ export default function UserProfileDropdown() {
 
   const initial = user.firstName ? user.firstName[0].toUpperCase() : "U";
   const fullName = `${user.firstName || ""} ${user.lastName || ""}`.trim();
-  const dashboardLink = user.role === "vendor" ? "/vendor/dashboard" : "/buyer/dashboard";
+  const dashboardLink =
+    user.role === "admin" || user.role === "super_admin"
+      ? "/admin/dashboard"
+      : user.role === "vendor"
+      ? "/vendor/dashboard"
+      : "/buyer/dashboard";
 
   const handleLogout = () => {
     logout();
@@ -95,14 +100,25 @@ export default function UserProfileDropdown() {
               </Link>
             )}
 
-            <Link
-              to={user.role === "vendor" ? "/vendor/offers" : "/buyer/offers"}
-              onClick={() => setIsOpen(false)}
-              className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors"
-            >
-              <span>🏷️</span>
-              <span>My Offers</span>
-            </Link>
+            {user.role === "admin" || user.role === "super_admin" ? (
+              <Link
+                to="/admin/listings"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors"
+              >
+                <span>🚗</span>
+                <span>Manage Listings</span>
+              </Link>
+            ) : (
+              <Link
+                to={user.role === "vendor" ? "/vendor/offers" : "/buyer/offers"}
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors"
+              >
+                <span>🏷️</span>
+                <span>My Offers</span>
+              </Link>
+            )}
 
             <Link
               to="/chat"

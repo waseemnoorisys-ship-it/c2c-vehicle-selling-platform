@@ -82,11 +82,19 @@ export default function BrowsePage() {
         title="Browse Vehicles"
         subtitle={`${vehicles.length} vehicles available`}
         action={
-          isBuyer ? (
+          user ? (
             <button
               type="button"
-              onClick={() => navigate("/buyer/dashboard")}
-              className="text-sm text-text-accent hover:underline"
+              onClick={() => {
+                const target =
+                  user.role === "admin" || user.role === "super_admin"
+                    ? "/admin/dashboard"
+                    : user.role === "vendor"
+                    ? "/vendor/dashboard"
+                    : "/buyer/dashboard";
+                navigate(target);
+              }}
+              className="text-sm text-text-accent hover:underline font-semibold"
             >
               Go to Dashboard →
             </button>

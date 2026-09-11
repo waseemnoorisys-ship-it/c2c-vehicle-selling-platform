@@ -32,9 +32,18 @@ export default function VendorDashboard() {
         title="Dashboard"
         subtitle="Your selling activity overview"
         action={
-          <Button className="w-auto px-6" onClick={() => navigate("/vendor/listings/new")}>
-            + Add Vehicle
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              className="w-auto px-4 text-xs border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
+              onClick={() => navigate("/vendor/sales")}
+            >
+              🧾 Sales & Invoices
+            </Button>
+            <Button className="w-auto px-6 text-xs" onClick={() => navigate("/vendor/listings/new")}>
+              + Add Vehicle
+            </Button>
+          </div>
         }
       />
 

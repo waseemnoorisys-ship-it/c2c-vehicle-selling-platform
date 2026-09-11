@@ -27,8 +27,8 @@ export default function BankDetailsPage() {
     try {
       await updateBankDetails(form);
       toast.success("Bank details saved!");
-    } catch {
-      toast.error("Failed to save");
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || "Failed to save bank details");
     } finally {
       setLoading(false);
     }

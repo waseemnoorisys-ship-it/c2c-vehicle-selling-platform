@@ -137,6 +137,23 @@ export const useChatStore = create((set, get) => ({
     }));
   },
 
+  markAllMessagesRead: (conversationId) => {
+    set((state) => {
+      const activeId = state.activeConversationId?.toString();
+      const targetId = conversationId?.toString();
+      if (activeId && targetId && activeId === targetId) {
+        return {
+          messages: state.messages.map((m) => ({
+            ...m,
+            isRead: true,
+            readAt: m.readAt || new Date().toISOString(),
+          })),
+        };
+      }
+      return {};
+    });
+  },
+
   setUserTyping: (conversationId, userId, isTyping) => {
     set((state) => {
       const currentList = state.typingUsers[conversationId] || [];

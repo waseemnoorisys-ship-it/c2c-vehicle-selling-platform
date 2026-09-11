@@ -21,6 +21,7 @@ export default function ChatPage() {
     removeMessage,
     setUserTyping,
     setUserOnline,
+    markAllMessagesRead,
   } = useChatStore();
 
   useEffect(() => {
@@ -68,6 +69,14 @@ export default function ChatPage() {
       setUserOnline(userId, false, lastSeen);
     };
 
+    const handlePresenceData = ({ userId, isOnline, lastSeen }) => {
+      setUserOnline(userId, isOnline, lastSeen);
+    };
+
+    const handleMessagesRead = ({ conversationId }) => {
+      markAllMessagesRead(conversationId);
+    };
+
     const handleMessageReactionUpdated = (updatedMsg) => {
       updateMessage(updatedMsg);
     };
@@ -81,6 +90,8 @@ export default function ChatPage() {
     socket.on("typing_stop", handleTypingStop);
     socket.on("user_online", handleUserOnline);
     socket.on("user_offline", handleUserOffline);
+    socket.on("presence_data", handlePresenceData);
+    socket.on("messages_read", handleMessagesRead);
 
     return () => {
       socket.off("new_message", handleReceiveMessage);
@@ -92,11 +103,13 @@ export default function ChatPage() {
       socket.off("typing_stop", handleTypingStop);
       socket.off("user_online", handleUserOnline);
       socket.off("user_offline", handleUserOffline);
+      socket.off("presence_data", handlePresenceData);
+      socket.off("messages_read", handleMessagesRead);
     };
   }, [accessToken, listingIdParam]);
 
   return (
-    <div className="h-[calc(100vh-64px)] w-full flex bg-[#111b21] overflow-hidden">
+    <div className="h-screen w-full flex bg-[#111b21] overflow-hidden">
       <ConversationList />
       <ChatWindow />
     </div>

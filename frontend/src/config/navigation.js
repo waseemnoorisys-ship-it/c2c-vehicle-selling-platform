@@ -1,18 +1,20 @@
 export const BUYER_NAV = [
   { label: "Dashboard", to: "/buyer/dashboard", icon: "dashboard" },
   { label: "Browse Vehicles", to: "/browse", icon: "browse" },
+  { label: "Messages", to: "/chat", icon: "chat" },
   { label: "My Offers", to: "/buyer/offers", icon: "offers" },
   { label: "Pending Payments", to: "/buyer/pending-payments", icon: "wallet" },
-  { label: "Purchase History", to: "/buyer/purchases", icon: "history" },
+  { label: "Invoices & Purchases", to: "/buyer/purchases", icon: "history" },
   { label: "Profile", to: "/buyer/profile", icon: "profile" },
 ];
-
 
 export const VENDOR_NAV = [
   { label: "Dashboard", to: "/vendor/dashboard", icon: "dashboard" },
   { label: "Add Vehicle", to: "/vendor/listings/new", icon: "add" },
   { label: "Manage Listings", to: "/vendor/listings", icon: "listings" },
+  { label: "Messages", to: "/chat", icon: "chat" },
   { label: "Offers", to: "/vendor/offers", icon: "offers" },
+  { label: "Sales & Invoices", to: "/vendor/sales", icon: "history" },
   { label: "Wallet", to: "/vendor/wallet", icon: "wallet" },
   { label: "Bank Details", to: "/vendor/bank", icon: "bank" },
 ];
@@ -22,6 +24,7 @@ export const ADMIN_NAV = [
   { label: "Buyers", to: "/admin/buyers", icon: "users" },
   { label: "Sellers", to: "/admin/sellers", icon: "sellers" },
   { label: "Listings", to: "/admin/listings", icon: "listings" },
+  { label: "Invoices & Receipts", to: "/admin/invoices", icon: "history" },
   { label: "Commission", to: "/admin/commission", icon: "commission" },
   { label: "Withdrawals", to: "/admin/withdrawals", icon: "withdrawals" },
   { label: "Vehicle Data", to: "/admin/vehicle-data", icon: "data" },

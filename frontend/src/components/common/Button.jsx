@@ -6,8 +6,11 @@ export default function Button({
   icon,
   ...props
 }) {
+  const hasCustomWidth = className.split(" ").some((cls) => cls.startsWith("w-"));
+  const widthClass = hasCustomWidth ? "" : "w-full";
+
   const base =
-    "w-full py-2.5 px-4 rounded-lg text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 focus:ring-offset-background disabled:opacity-60 disabled:cursor-not-allowed";
+    `${widthClass} py-2.5 px-4 rounded-lg text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 focus:ring-offset-background disabled:opacity-60 disabled:cursor-not-allowed`;
 
   const variants = {
     primary:

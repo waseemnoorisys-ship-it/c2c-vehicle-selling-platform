@@ -69,9 +69,24 @@ export default function MessageBubble({ message, onImageClick, onReply }) {
   const renderTicks = () => {
     if (!isOutgoing) return null;
     if (message.isRead) {
-      return <span className="text-cyan-400 text-xs font-bold ml-1">✓✓</span>;
+      return (
+        <span className="text-[#53bdeb] text-xs font-bold ml-1" title="Read">
+          ✓✓
+        </span>
+      );
     }
-    return <span className="text-gray-400 text-xs font-bold ml-1">✓</span>;
+    if (message.isDelivered) {
+      return (
+        <span className="text-gray-300 text-xs font-bold ml-1" title="Delivered">
+          ✓✓
+        </span>
+      );
+    }
+    return (
+      <span className="text-gray-400 text-xs font-bold ml-1" title="Sent">
+        ✓
+      </span>
+    );
   };
 
   // Group reactions by emoji

@@ -32,7 +32,18 @@ export default function BuyerDashboardPage() {
 
   return (
     <SidebarLayout navItems={BUYER_NAV} roleLabel="Buyer Portal">
-      <PageHeader title="Dashboard" subtitle="Your buying activity overview" />
+      <PageHeader
+        title="Dashboard"
+        subtitle="Your buying activity overview"
+        action={
+          <Link
+            to="/buyer/purchases"
+            className="px-4 py-2 text-xs font-semibold rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 transition"
+          >
+            🧾 Invoices & Purchases
+          </Link>
+        }
+      />
 
       {/* Pending payments alert */}
       {pendingCount > 0 && (
