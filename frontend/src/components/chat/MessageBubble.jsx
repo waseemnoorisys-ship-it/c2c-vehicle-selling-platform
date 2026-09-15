@@ -12,7 +12,7 @@ export default function MessageBubble({ message, onImageClick, onReply }) {
   const { updateMessage, removeMessage } = useChatStore();
 
   const isOutgoing =
-    (message.senderId?._id || message.senderId) === (user?._id || user?.id);
+    (message.senderId?._id || message.senderId)?.toString() === (user?._id || user?.id)?.toString();
 
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(message.content || "");

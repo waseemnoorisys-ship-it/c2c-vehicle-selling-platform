@@ -51,6 +51,11 @@ export default function ChatPage() {
     // Socket Event Listeners
     const handleReceiveMessage = (message) => {
       addMessage(message);
+      const activeId = useChatStore.getState().activeConversationId?.toString();
+      const msgConvId = (message.conversationId?._id || message.conversationId)?.toString();
+      if (activeId && msgConvId && activeId === msgConvId) {
+        socketService.markRead(activeId);
+      }
     };
 
     const handleTypingStart = ({ conversationId, userId }) => {

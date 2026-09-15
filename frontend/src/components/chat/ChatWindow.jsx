@@ -101,8 +101,77 @@ export default function ChatWindow() {
     );
   }
 
+  const partnerRole = partner?.role || (activeConv?.vendorId?._id === partnerId || activeConv?.vendorId === partnerId ? "vendor" : "buyer");
+  const partnerPhoto = partner?.profilePhoto;
+  const presence = partnerId ? onlineUsers[partnerId] : null;
+
   return (
     <div className="flex-1 bg-[#0b141a] flex flex-col h-full relative">
+      {/* Top Header Bar with Partner Profile & Online Status */}
+      <div className="h-16 bg-[#202c33] px-4 flex items-center justify-between border-b border-gray-800/80 shrink-0">
+        <div className="flex items-center gap-3 min-w-0">
+          <button
+            type="button"
+            onClick={() => setActiveConversationId(null)}
+            className="md:hidden text-gray-400 hover:text-gray-200 pr-1"
+            title="Back to chats"
+          >
+            <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+              <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
+            </svg>
+          </button>
+
+          <div className="relative shrink-0">
+            {partnerPhoto ? (
+              <img
+                src={partnerPhoto}
+                alt={partnerName}
+                className="w-10 h-10 rounded-full object-cover border border-gray-700/80"
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-[#00a884] text-white flex items-center justify-center font-bold text-sm uppercase shadow">
+                {partnerName[0] || "U"}
+              </div>
+            )}
+            <span
+              className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#202c33] ${
+                isOnline ? "bg-emerald-500" : "bg-gray-500"
+              }`}
+              title={isOnline ? "Online" : "Offline"}
+            />
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <h3 className="text-gray-100 font-semibold text-sm truncate">
+                {partnerName}
+              </h3>
+              {partnerRole && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-semibold uppercase shrink-0 border border-emerald-500/30">
+                  {partnerRole}
+                </span>
+              )}
+            </div>
+            <p className="text-xs truncate text-gray-400 mt-0.5 flex items-center gap-1">
+              {isPartnerTyping ? (
+                <span className="text-[#00a884] font-medium animate-pulse">typing...</span>
+              ) : isOnline ? (
+                <span className="text-emerald-400 font-medium flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping inline-block" />
+                  Online
+                </span>
+              ) : presence?.lastSeen ? (
+                <span className="text-gray-400">
+                  Last seen {new Date(presence.lastSeen).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                </span>
+              ) : (
+                <span className="text-gray-400">Offline</span>
+              )}
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Sold Notice Banner */}
       {isListingSold && (
         <div className="bg-[#1f2937] border-b border-amber-500/40 px-4 py-2 flex items-center justify-between gap-3 shrink-0 text-amber-300 text-xs">
