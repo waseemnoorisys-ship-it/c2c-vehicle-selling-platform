@@ -14,7 +14,6 @@ export default function BrowsePage() {
   const { user } = useAuthStore();
   const { getSymbol } = useCurrencyStore();
   const currencySymbol = getSymbol();
-  const isBuyer = user?.role === "buyer";
 
   const [vehicles, setVehicles] = useState([]);
   const [filters, setFilters] = useState(() => ({
@@ -82,23 +81,35 @@ export default function BrowsePage() {
         title="Browse Vehicles"
         subtitle={`${vehicles.length} vehicles available`}
         action={
-          user ? (
+          <div className="flex items-center gap-4">
             <button
               type="button"
-              onClick={() => {
-                const target =
-                  user.role === "admin" || user.role === "super_admin"
-                    ? "/admin/dashboard"
-                    : user.role === "vendor"
-                    ? "/vendor/dashboard"
-                    : "/buyer/dashboard";
-                navigate(target);
-              }}
-              className="text-sm text-text-accent hover:underline font-semibold"
+              onClick={() => navigate("/")}
+              className="text-sm text-text-muted hover:text-text-primary transition font-medium flex items-center gap-1.5"
             >
-              Go to Dashboard →
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 00-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              </svg>
+              Home
             </button>
-          ) : null
+            {user && (
+              <button
+                type="button"
+                onClick={() => {
+                  const target =
+                    user.role === "admin" || user.role === "super_admin"
+                      ? "/admin/dashboard"
+                      : user.role === "vendor"
+                      ? "/vendor/dashboard"
+                      : "/buyer/dashboard";
+                  navigate(target);
+                }}
+                className="text-sm text-text-accent hover:underline font-semibold"
+              >
+                Go to Dashboard →
+              </button>
+            )}
+          </div>
         }
       />
 
@@ -204,10 +215,6 @@ export default function BrowsePage() {
       </div>
   </>
   );
-
-  if (isBuyer) {
-    return content;
-  }
 
   return (
     <div className="min-h-screen bg-background">

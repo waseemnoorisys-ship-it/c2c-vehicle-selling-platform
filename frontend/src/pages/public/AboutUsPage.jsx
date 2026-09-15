@@ -2,10 +2,10 @@ import { Link } from "react-router-dom";
 
 export default function AboutUsPage() {
   const stats = [
-    { label: "Vehicles Traded", value: "12,500+" },
-    { label: "Escrow Volume", value: "$150M+" },
-    { label: "Verified Users", value: "45,000+" },
-    { label: "Satisfaction Rate", value: "99.2%" },
+    { label: "Vehicles Traded", value: "150+" },
+    { label: "Escrow Volume", value: "€2.5M+" },
+    { label: "Verified Users", value: "125+" },
+    { label: "Satisfaction Rate", value: "98%" },
   ];
 
   const values = [

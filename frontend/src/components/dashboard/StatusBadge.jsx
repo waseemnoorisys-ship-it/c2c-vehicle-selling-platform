@@ -8,7 +8,10 @@ const STATUS_STYLES = {
   rejected: "bg-danger/15 text-danger border-danger/30",
   draft: "bg-text-muted/15 text-text-muted border-border",
   inactive: "bg-text-muted/15 text-text-muted border-border",
-  sold: "bg-primary-400/15 text-text-accent border-primary-400/30",
+  sold: "bg-red-500/20 text-red-400 border-red-500/40 font-bold",
+  canceled: "bg-danger/15 text-danger border-danger/30",
+  withdrawn: "bg-danger/15 text-danger border-danger/30",
+  expired: "bg-warning/15 text-warning border-warning/30",
 };
 
 export default function StatusBadge({ status }) {

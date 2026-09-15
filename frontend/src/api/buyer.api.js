@@ -25,7 +25,7 @@ export async function fetchBuyerOffers() {
 export async function fetchAcceptedOffers() {
   const { data } = await api.post("/offers/mine", { page: 1, limit: 50 });
   const offers = (data.data?.offers || [])
-    .filter((o) => o.status === "accepted")
+    .filter((o) => o.status === "accepted" && !o.isPaid && !o.paid)
     .map((o) => ({
       ...mapOfferToBuyerRow(o),
       _id: o._id,
@@ -49,7 +49,7 @@ export async function fetchBuyerInvoice(transactionId) {
 export async function fetchBuyerPurchases() {
   const { data } = await api.post("/offers/mine", { page: 1, limit: 50 });
   const purchases = (data.data?.offers || [])
-    .filter((o) => o.status === "accepted")
+    .filter((o) => o.status === "accepted" && (o.isPaid || o.paid))
     .map((o) => {
       const row = mapOfferToBuyerRow(o);
       const listing = o.listingId || {};
@@ -100,7 +100,7 @@ export async function fetchBuyerPayments() {
       description: "Vehicle offer",
       amount: centsToEuros(o.amount),
       date: formatDate(o.createdAt),
-      status: o.status === "accepted" ? "paid" : "pending",
+      status: (o.isPaid || o.paid) ? "paid" : "pending",
       method: "Escrow",
     }));
   return wrap(payments);
@@ -130,14 +130,14 @@ export async function fetchBuyerProfile() {
 export async function fetchBuyerDashboard() {
   const { data } = await api.post("/offers/mine", { page: 1, limit: 50 });
   const offers = data.data?.offers || [];
-  const accepted = offers.filter((o) => o.status === "accepted");
+  const paid = offers.filter((o) => o.status === "accepted" && (o.isPaid || o.paid));
   const pending = offers.filter((o) => o.status === "pending");
 
   return wrap({
-    totalPurchases: accepted.length,
-    totalSpent: accepted.reduce((s, o) => s + centsToEuros(o.amount), 0),
+    totalPurchases: paid.length,
+    totalSpent: paid.reduce((s, o) => s + centsToEuros(o.amount), 0),
     activeOffers: pending.length,
-    recentPurchases: accepted.slice(0, 5).map((o) => {
+    recentPurchases: paid.slice(0, 5).map((o) => {
       const row = mapOfferToBuyerRow(o);
       return {
         vehicleTitle: row.vehicleTitle,

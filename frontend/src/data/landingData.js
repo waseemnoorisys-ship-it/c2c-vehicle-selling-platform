@@ -9,9 +9,9 @@ export const NAV_LINKS = [
 ];
 
 export const STATS = [
-  { icon: "car", value: "10,000+", label: "Vehicles Listed" },
-  { icon: "users", value: "5,000+", label: "Happy Buyers" },
-  { icon: "seller", value: "2,000+", label: "Trusted Sellers" },
+  { icon: "car", value: "150+", label: "Vehicles Listed" },
+  { icon: "users", value: "85+", label: "Happy Buyers" },
+  { icon: "seller", value: "40+", label: "Trusted Sellers" },
   { icon: "check", value: "98%", label: "Successful Transactions" },
 ];
 

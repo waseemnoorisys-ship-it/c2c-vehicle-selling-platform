@@ -5,18 +5,18 @@ import SidebarLayout from "../../components/dashboard/SidebarLayout";
 import PageHeader from "../../components/dashboard/PageHeader";
 import { BUYER_NAV } from "../../config/navigation";
 import { fetchAcceptedOffers } from "../../api/buyer.api";
-import { createPaymentIntent } from "../../api/vehicles.api";
+import { createPaymentIntent, cancelOffer } from "../../api/vehicles.api";
 import { formatPrice } from "../../store/useCurrencyStore";
 
 
-function PaymentCard({ offer, onPayNow, paying }) {
+function PaymentCard({ offer, onPayNow, onCancelOffer, paying, canceling }) {
   // After mapping: offer.amount is already in euros (from mapOfferToBuyerRow)
   // offer.vehicleTitle = mapped title
   // offer.vehicleId = listing _id
   // offer._id = offer mongo id (for payment)
   const vehicleTitle = offer.vehicleTitle || "Vehicle";
   const vehicleId = offer.vehicleId || offer.listingId?._id || offer.listingId;
-  const offerId = offer._id;         // raw mongo _id for createPaymentIntent
+  const offerId = offer._id || offer.id;         // raw mongo _id for createPaymentIntent
   const amountEuros = offer.amount;  // already converted by mapOfferToBuyerRow
 
   return (
@@ -95,7 +95,7 @@ function PaymentCard({ offer, onPayNow, paying }) {
           <div>
             <p style={{ fontSize: "11px", color: "#64748b", marginBottom: "4px" }}>Offer ID</p>
             <p style={{ fontSize: "12px", fontFamily: "monospace", color: "#94a3b8", margin: 0 }}>
-              #{String(offer.id || offer._id).slice(-8).toUpperCase()}
+              #{String(offerId).slice(-8).toUpperCase()}
             </p>
           </div>
           {offer.createdAt && (
@@ -120,53 +120,80 @@ function PaymentCard({ offer, onPayNow, paying }) {
         >
           <span style={{ fontSize: "14px", flexShrink: 0 }}>⏳</span>
           <p style={{ fontSize: "12px", color: "#fbbf24", margin: 0, lineHeight: 1.5 }}>
-            The seller has accepted your offer. Complete payment to secure this vehicle before it becomes
-            available to other buyers.
+            The seller has accepted your offer. Complete payment to secure this vehicle or cancel the offer if you no longer wish to purchase.
           </p>
         </div>
 
-        {/* Pay Now button */}
-        <button
-          type="button"
-          disabled={paying}
-          onClick={() => onPayNow(offerId)}
-          style={{
-            width: "100%",
-            padding: "14px",
-            borderRadius: "10px",
-            background: paying
-              ? "#374151"
-              : "linear-gradient(135deg, #10b981 0%, #059669 100%)",
-            color: "#fff",
-            fontWeight: 700,
-            fontSize: "15px",
-            border: "none",
-            cursor: paying ? "not-allowed" : "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "8px",
-            boxShadow: paying ? "none" : "0 4px 20px rgba(16, 185, 129, 0.4)",
-            transition: "all 0.2s",
-          }}
-        >
-          {paying ? (
-            <>
-              <svg style={{ width: 16, height: 16, animation: "spin 1s linear infinite" }} fill="none" viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" style={{ opacity: 0.25 }} />
-                <path fill="currentColor" d="M4 12a8 8 0 018-8v8z" style={{ opacity: 0.75 }} />
-              </svg>
-              Redirecting to Payment...
-            </>
-          ) : (
-            <>
-              <svg style={{ width: 18, height: 18 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-              </svg>
-              Pay Now — {formatPrice(amountEuros)}
-            </>
-          )}
-        </button>
+        {/* Action buttons */}
+        <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+          <button
+            type="button"
+            disabled={paying || canceling}
+            onClick={() => onPayNow(offerId)}
+            style={{
+              flex: "2",
+              minWidth: "180px",
+              padding: "14px",
+              borderRadius: "10px",
+              background: paying
+                ? "#374151"
+                : "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+              color: "#fff",
+              fontWeight: 700,
+              fontSize: "15px",
+              border: "none",
+              cursor: paying || canceling ? "not-allowed" : "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "8px",
+              boxShadow: paying ? "none" : "0 4px 20px rgba(16, 185, 129, 0.4)",
+              transition: "all 0.2s",
+            }}
+          >
+            {paying ? (
+              <>
+                <svg style={{ width: 16, height: 16, animation: "spin 1s linear infinite" }} fill="none" viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" style={{ opacity: 0.25 }} />
+                  <path fill="currentColor" d="M4 12a8 8 0 018-8v8z" style={{ opacity: 0.75 }} />
+                </svg>
+                Redirecting...
+              </>
+            ) : (
+              <>
+                <svg style={{ width: 18, height: 18 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                </svg>
+                Pay Now — {formatPrice(amountEuros)}
+              </>
+            )}
+          </button>
+
+          <button
+            type="button"
+            disabled={paying || canceling}
+            onClick={() => onCancelOffer(offerId)}
+            style={{
+              flex: "1",
+              minWidth: "120px",
+              padding: "14px",
+              borderRadius: "10px",
+              background: "rgba(239, 68, 68, 0.1)",
+              border: "1px solid rgba(239, 68, 68, 0.3)",
+              color: "#f87171",
+              fontWeight: 600,
+              fontSize: "14px",
+              cursor: paying || canceling ? "not-allowed" : "pointer",
+              transition: "all 0.2s",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "6px",
+            }}
+          >
+            {canceling ? "Canceling..." : "✕ Cancel Offer"}
+          </button>
+        </div>
 
         <p style={{ fontSize: "11px", color: "#475569", textAlign: "center", margin: 0 }}>
           🔒 Secure payment via Stripe · Funds held in escrow until delivery
@@ -180,6 +207,7 @@ export default function BuyerPendingPaymentsPage() {
   const [offers, setOffers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [payingId, setPayingId] = useState(null);
+  const [cancelingId, setCancelingId] = useState(null);
 
   useEffect(() => {
     fetchAcceptedOffers()
@@ -206,6 +234,20 @@ export default function BuyerPendingPaymentsPage() {
       toast.error(msg);
     } finally {
       setPayingId(null);
+    }
+  }
+
+  async function handleCancelOffer(offerId) {
+    setCancelingId(offerId);
+    try {
+      await cancelOffer(offerId);
+      toast.success("Offer canceled successfully.");
+      setOffers((prev) => prev.filter((o) => (o._id || o.id) !== offerId));
+    } catch (err) {
+      const msg = err?.response?.data?.message || "Failed to cancel offer";
+      toast.error(msg);
+    } finally {
+      setCancelingId(null);
     }
   }
 
@@ -281,10 +323,12 @@ export default function BuyerPendingPaymentsPage() {
           {/* Cards */}
           {offers.map((offer) => (
             <PaymentCard
-              key={offer._id}
+              key={offer._id || offer.id}
               offer={offer}
-              paying={payingId === offer._id}
+              paying={payingId === (offer._id || offer.id)}
+              canceling={cancelingId === (offer._id || offer.id)}
               onPayNow={handlePayNow}
+              onCancelOffer={handleCancelOffer}
             />
           ))}
         </div>

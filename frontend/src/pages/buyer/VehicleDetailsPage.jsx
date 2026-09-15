@@ -172,10 +172,25 @@ export default function VehicleDetailsPage() {
               <h1 className="font-display text-2xl sm:text-3xl font-bold text-text-primary">{vehicle.title}</h1>
               <p className="text-text-muted text-sm mt-1">{vehicle.location}</p>
             </div>
-            {vehicle.verified && <StatusBadge status="approved" />}
+            <StatusBadge status={vehicle.status || (vehicle.verified ? "approved" : "pending")} />
           </div>
 
           <p className="font-display text-3xl font-bold text-text-accent mt-4">{formatPrice(vehicle.price)}</p>
+
+          {/* Sold Banner */}
+          {vehicle.status === "sold" && (
+            <div className="mt-4 p-4 rounded-xl border border-red-500/40 bg-red-500/10 text-red-400 flex items-center gap-3">
+              <svg className="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <div>
+                <p className="font-bold text-base">Vehicle Sold</p>
+                <p className="text-xs text-red-300/80 font-normal mt-0.5">
+                  This listing has been sold and is no longer available for offers or purchase.
+                </p>
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6">
             {[
@@ -193,79 +208,97 @@ export default function VehicleDetailsPage() {
 
           {/* Action Buttons */}
           <div className="flex flex-col gap-3 mt-6">
-            {/* Buy Now / Checkout Button — only show for buyers, not own listing */}
-            {!isOwnListing && isBuyerRole && (
-              <div className="relative">
-                <button
-                  id="buy-now-btn"
-                  type="button"
-                  disabled={paymentLoading || checkingOffer}
-                  onClick={handleBuyNow}
-                  className="w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-bold text-base transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
-                  style={{
-                    background: acceptedOffer
-                      ? "linear-gradient(135deg, #10b981 0%, #059669 100%)"
-                      : "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
-                    color: "#fff",
-                    boxShadow: acceptedOffer
-                      ? "0 4px 20px rgba(16, 185, 129, 0.4)"
-                      : "0 4px 20px rgba(245, 158, 11, 0.4)",
-                  }}
-                >
-                  {paymentLoading || checkingOffer ? (
-                    <span className="flex items-center gap-2">
-                      <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                      </svg>
-                      {checkingOffer ? "Checking offers..." : "Redirecting to payment..."}
-                    </span>
-                  ) : acceptedOffer ? (
-                    <span className="flex items-center gap-2">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                      </svg>
-                      Buy Now — Pay {formatPrice(vehicle.price)}
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-2">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                      </svg>
-                      Quick Buy (Make Offer First)
-                    </span>
-                  )}
-                </button>
-                {/* Accepted offer badge */}
-                {acceptedOffer && (
-                  <div className="mt-2 flex items-center gap-1.5 text-xs text-emerald-400">
-                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    Offer accepted — ready to pay securely via Stripe
+            {vehicle.status !== "sold" ? (
+              <>
+                {/* Buy Now / Checkout Button — only show for buyers, not own listing */}
+                {!isOwnListing && isBuyerRole && (
+                  <div className="relative">
+                    <button
+                      id="buy-now-btn"
+                      type="button"
+                      disabled={paymentLoading || checkingOffer}
+                      onClick={handleBuyNow}
+                      className="w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-bold text-base transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
+                      style={{
+                        background: acceptedOffer
+                          ? "linear-gradient(135deg, #10b981 0%, #059669 100%)"
+                          : "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+                        color: "#fff",
+                        boxShadow: acceptedOffer
+                          ? "0 4px 20px rgba(16, 185, 129, 0.4)"
+                          : "0 4px 20px rgba(245, 158, 11, 0.4)",
+                      }}
+                    >
+                      {paymentLoading || checkingOffer ? (
+                        <span className="flex items-center gap-2">
+                          <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                          </svg>
+                          {checkingOffer ? "Checking offers..." : "Redirecting to payment..."}
+                        </span>
+                      ) : acceptedOffer ? (
+                        <span className="flex items-center gap-2">
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                          </svg>
+                          Buy Now — Pay {formatPrice(vehicle.price)}
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-2">
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                          </svg>
+                          Quick Buy (Make Offer First)
+                        </span>
+                      )}
+                    </button>
+                    {/* Accepted offer badge */}
+                    {acceptedOffer && (
+                      <div className="mt-2 flex items-center gap-1.5 text-xs text-emerald-400">
+                        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        Offer accepted — ready to pay securely via Stripe
+                      </div>
+                    )}
+                    {!acceptedOffer && !checkingOffer && accessToken && (
+                      <p className="mt-2 text-xs text-text-muted">
+                        💡 Your offer must be accepted by the seller before you can pay
+                      </p>
+                    )}
                   </div>
                 )}
-                {!acceptedOffer && !checkingOffer && accessToken && (
-                  <p className="mt-2 text-xs text-text-muted">
-                    💡 Your offer must be accepted by the seller before you can pay
-                  </p>
-                )}
-              </div>
-            )}
 
-            {/* Make Offer + Contact Seller */}
-            <div className="flex flex-col sm:flex-row gap-3">
-              {!isOwnListing && (
-                <Button className="sm:w-auto flex-1" onClick={() => {
-                  if (!accessToken) { navigate("/login"); return; }
-                  setShowOfferModal(true);
-                }}>
-                  Make An Offer
-                </Button>
-              )}
+                {/* Make Offer + Contact Seller */}
+                <div className="flex flex-col sm:flex-row gap-3">
+                  {!isOwnListing && (
+                    <Button className="sm:w-auto flex-1" onClick={() => {
+                      if (!accessToken) { navigate("/login"); return; }
+                      setShowOfferModal(true);
+                    }}>
+                      Make An Offer
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    className="sm:w-auto flex-1 normal-case flex items-center justify-center gap-2"
+                    onClick={() => {
+                      if (!accessToken) {
+                        navigate("/login");
+                        return;
+                      }
+                      navigate(`/chat?listingId=${id}`);
+                    }}
+                  >
+                    <span>💬</span> Chat with Seller
+                  </Button>
+                </div>
+              </>
+            ) : (
               <Button
                 variant="outline"
-                className="sm:w-auto flex-1 normal-case flex items-center justify-center gap-2"
+                className="w-full normal-case flex items-center justify-center gap-2"
                 onClick={() => {
                   if (!accessToken) {
                     navigate("/login");
@@ -274,9 +307,9 @@ export default function VehicleDetailsPage() {
                   navigate(`/chat?listingId=${id}`);
                 }}
               >
-                <span>💬</span> Chat with Seller
+                <span>💬</span> View Chat History
               </Button>
-            </div>
+            )}
           </div>
 
           {/* Seller Info Box */}

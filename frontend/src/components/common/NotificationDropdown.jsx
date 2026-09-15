@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import notificationApi from "../../api/notification.api";
 import useAuthStore from "../../store/useAuthStore";
+import socketService from "../../services/socket.service";
+import { requestAndSaveFcmToken } from "../../utils/fcm.utils";
 
 export default function NotificationDropdown() {
   const { accessToken } = useAuthStore();
@@ -11,6 +14,7 @@ export default function NotificationDropdown() {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [selectedNotification, setSelectedNotification] = useState(null);
 
   const dropdownRef = useRef(null);
 
@@ -31,9 +35,22 @@ export default function NotificationDropdown() {
   };
 
   useEffect(() => {
+    if (!accessToken) return;
     loadNotifications();
-    const interval = setInterval(loadNotifications, 30000); // Polling every 30s
-    return () => clearInterval(interval);
+    requestAndSaveFcmToken();
+
+    // Socket.IO real-time notification listener (No continuous polling required!)
+    const socket = socketService.connect(accessToken);
+    const handleNewNotification = (newNotif) => {
+      setNotifications((prev) => [newNotif, ...prev.filter((n) => n._id !== newNotif._id)]);
+      setUnreadCount((prev) => prev + 1);
+    };
+
+    socket.on("new_notification", handleNewNotification);
+
+    return () => {
+      socket.off("new_notification", handleNewNotification);
+    };
   }, [accessToken]);
 
   // Close dropdown on outside click
@@ -47,17 +64,23 @@ export default function NotificationDropdown() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleMarkAsRead = async (id, targetUrl) => {
-    try {
-      await notificationApi.markAsRead(id);
-      setNotifications((prev) =>
-        prev.map((n) => (n._id === id ? { ...n, isRead: true } : n))
-      );
-      setUnreadCount((prev) => Math.max(0, prev - 1));
-      if (targetUrl) navigate(targetUrl);
-    } catch (err) {
-      console.error("Failed to mark notification read:", err);
+  const handleNotificationClick = async (n) => {
+    // 1. Call mark as read API
+    if (!n.isRead) {
+      try {
+        await notificationApi.markAsRead(n._id);
+        setNotifications((prev) =>
+          prev.map((item) => (item._id === n._id ? { ...item, isRead: true } : item))
+        );
+        setUnreadCount((prev) => Math.max(0, prev - 1));
+      } catch (err) {
+        console.error("Failed to mark notification read:", err);
+      }
     }
+
+    // 2. Open full detail popup modal
+    setSelectedNotification(n);
+    setIsOpen(false);
   };
 
   const handleMarkAllAsRead = async () => {
@@ -138,7 +161,7 @@ export default function NotificationDropdown() {
               notifications.map((n) => (
                 <div
                   key={n._id}
-                  onClick={() => handleMarkAsRead(n._id, n.targetUrl)}
+                  onClick={() => handleNotificationClick(n)}
                   className={`p-3 text-xs cursor-pointer transition-colors flex gap-3 ${
                     !n.isRead ? "bg-surface-hover/80" : "hover:bg-surface-hover/50 opacity-80"
                   }`}
@@ -168,6 +191,53 @@ export default function NotificationDropdown() {
           </div>
         </div>
       )}
+
+      {/* Notification Detail Popup Modal */}
+      {selectedNotification &&
+        createPortal(
+          <div className="fixed inset-0 z-[9999] bg-black/75 backdrop-blur-md flex items-center justify-center p-4">
+            <div className="w-full max-w-md bg-surface border border-border rounded-2xl shadow-2xl p-6 relative text-text-primary max-h-[90vh] overflow-y-auto">
+              <button
+                type="button"
+                onClick={() => setSelectedNotification(null)}
+                className="absolute top-4 right-4 p-1 text-text-muted hover:text-text-primary rounded-lg transition-colors"
+              >
+                ✕
+              </button>
+
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center text-xl shrink-0 font-bold">
+                  🔔
+                </div>
+                <div>
+                  <h3 className="font-bold text-base text-text-primary">
+                    {selectedNotification.title}
+                  </h3>
+                  <p className="text-xs text-text-muted">
+                    {formatTime(selectedNotification.createdAt)}
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-xl bg-background-secondary border border-border mb-6">
+                <p className="text-sm text-text-secondary leading-relaxed whitespace-pre-wrap">
+                  {selectedNotification.message || selectedNotification.body}
+                </p>
+              </div>
+
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setSelectedNotification(null)}
+                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-semibold text-xs shadow-lg hover:brightness-110 transition"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

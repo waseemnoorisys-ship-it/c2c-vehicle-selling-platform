@@ -1,0 +1,37 @@
+# C2C Vehicle Selling Platform
+
+> C2C Motors is a peer-to-peer automotive marketplace connecting vehicle buyers and private sellers directly across Europe. The platform provides bank-grade Escrow payment protection, certified 200-point mechanical inspections, real-time messaging, and intelligent vehicle valuation tools.
+
+## Core Capabilities & Features
+
+- **Direct Peer-to-Peer Car Trading**: Buy and sell pre-owned and luxury vehicles directly without dealership markups.
+- **Escrow Vault Protection**: Payments are locked in regulated escrow accounts until the buyer physically inspects and approves handover.
+- **Certified 200-Point Mechanical Inspection**: Nationwide ASE-certified technicians conduct mechanical, diagnostic, and bodywork inspections prior to listing publication.
+- **Auto Loan & Financing Calculator**: Real-time auto loan payment estimator with custom vehicle price, down payment, interest rate, and term options.
+- **Vehicle Valuation Estimator**: Data-driven market pricing tool providing instant private party price ranges and trade-in comparisons based on live sales records.
+- **Direct Buyer-Seller Chat**: Embedded real-time messaging and negotiation platform with pre-funded binding offer capabilities.
+
+## Public Pages & Sitemap Index
+
+- [/]: Main landing page with featured vehicle inventory, statistics, and quick vehicle search filters.
+- [/browse]: Searchable vehicle catalog with filters for make, model, year, price range, transmission, fuel type, and certified inspection status.
+- [/how-it-works]: Comprehensive step-by-step guide for buyers and sellers outlining escrow deposit and handover processes.
+- [/about]: Company mission, executive team, trust pillars, and marketplace statistics.
+- [/contact]: 24/7 concierge support desk, department contacts, and interactive support form.
+- [/faq]: Searchable knowledge base covering buying, selling, escrow security, and vehicle inspection questions.
+- [/financing]: Auto loan hub with interactive loan payment calculator and lending partner network.
+- [/buyer-protection]: Detailed breakdown of the 200-point mechanical inspection process and Escrow Vault guarantee.
+- [/sell]: Seller portal with instant VIN valuation teaser, listing tier comparisons, and listing wizard.
+- [/seller-guide]: 5-chapter seller playbook for photography, title documentation, pricing strategy, and handover.
+- [/pricing-tools]: Interactive car valuation estimator and market depreciation insights tool.
+- [/success-stories]: Case studies and verified customer reviews from buyers and sellers.
+- [/privacy-policy]: GDPR compliant privacy policy and data collection details.
+- [/terms-of-service]: Platform terms of service, seller obligations, and escrow rules.
+- [/cookie-policy]: Interactive cookie preferences manager.
+- [/disclaimer]: Vehicle condition and financial valuation disclaimers.
+
+## API Integration & Developer Information
+
+- OpenAPI/Swagger Specification: `https://c2c-vehicle-selling-platform.onrender.com/api-docs`
+- Health Endpoint: `https://c2c-vehicle-selling-platform.onrender.com/health`
+- Architecture: Node.js / Express REST API backend, React 19 / Vite frontend, MongoDB Atlas database, Socket.io real-time engine, Stripe & Escrow payments.

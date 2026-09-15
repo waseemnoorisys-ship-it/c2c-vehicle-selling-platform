@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import toast from "react-hot-toast";
 import SidebarLayout from "../../components/dashboard/SidebarLayout";
 import PageHeader from "../../components/dashboard/PageHeader";
 import StatCard from "../../components/dashboard/StatCard";
@@ -8,20 +9,40 @@ import StatusBadge from "../../components/dashboard/StatusBadge";
 import { BUYER_NAV } from "../../config/navigation";
 import useCurrencyStore from "../../store/useCurrencyStore";
 import { fetchBuyerDashboard, fetchAcceptedOffers } from "../../api/buyer.api";
+import { cancelOffer } from "../../api/vehicles.api";
 
 export default function BuyerDashboardPage() {
   const { formatPrice } = useCurrencyStore();
   const [data, setData] = useState(null);
-  const [pendingCount, setPendingCount] = useState(0);
+  const [acceptedOffers, setAcceptedOffers] = useState([]);
+  const [canceling, setCanceling] = useState(false);
 
   useEffect(() => {
     fetchBuyerDashboard()
       .then((res) => setData(res.data.data))
       .catch(() => {});
     fetchAcceptedOffers()
-      .then((res) => setPendingCount((res.data.data || []).length))
+      .then((res) => setAcceptedOffers(res.data.data || []))
       .catch(() => {});
   }, []);
+
+  const pendingCount = acceptedOffers.length;
+
+  async function handleCancelFirstOffer() {
+    if (!acceptedOffers.length) return;
+    const target = acceptedOffers[0];
+    const offerId = target._id || target.id;
+    setCanceling(true);
+    try {
+      await cancelOffer(offerId);
+      toast.success("Offer canceled successfully.");
+      setAcceptedOffers((prev) => prev.filter((o) => (o._id || o.id) !== offerId));
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Failed to cancel offer");
+    } finally {
+      setCanceling(false);
+    }
+  }
 
   const columns = [
     { key: "vehicleTitle", label: "Vehicle" },
@@ -68,29 +89,50 @@ export default function BuyerDashboardPage() {
                 {pendingCount} offer{pendingCount > 1 ? "s" : ""} accepted — payment pending!
               </p>
               <p style={{ color: "#64748b", fontSize: "12px", margin: 0 }}>
-                A seller has accepted your offer. Complete payment to secure your vehicle.
+                A seller has accepted your offer. Complete payment to secure your vehicle or cancel if you no longer wish to buy.
               </p>
             </div>
           </div>
-          <Link
-            to="/buyer/pending-payments"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "6px",
-              padding: "9px 18px",
-              borderRadius: "8px",
-              background: "linear-gradient(135deg, #10b981, #059669)",
-              color: "#fff",
-              textDecoration: "none",
-              fontWeight: 700,
-              fontSize: "13px",
-              whiteSpace: "nowrap",
-              boxShadow: "0 3px 12px rgba(16,185,129,0.35)",
-            }}
-          >
-            Pay Now →
-          </Link>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <button
+              type="button"
+              disabled={canceling}
+              onClick={handleCancelFirstOffer}
+              style={{
+                padding: "8px 14px",
+                borderRadius: "8px",
+                background: "rgba(239, 68, 68, 0.12)",
+                border: "1px solid rgba(239, 68, 68, 0.3)",
+                color: "#f87171",
+                fontWeight: 600,
+                fontSize: "12px",
+                cursor: canceling ? "not-allowed" : "pointer",
+                transition: "all 0.2s",
+              }}
+            >
+              {canceling ? "Canceling..." : "✕ Cancel Offer"}
+            </button>
+            <Link
+              to="/buyer/pending-payments"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                padding: "9px 18px",
+                borderRadius: "8px",
+                background: "linear-gradient(135deg, #10b981, #059669)",
+                color: "#fff",
+                textDecoration: "none",
+                fontWeight: 700,
+                fontSize: "13px",
+                whiteSpace: "nowrap",
+                boxShadow: "0 3px 12px rgba(16,185,129,0.35)",
+              }}
+            >
+              Pay Now →
+            </Link>
+          </div>
         </div>
       )}
 

@@ -94,28 +94,28 @@ export async function fetchVehicles(filters = {}) {
   try {
     const { data } = await api.post("/listings/browse", buildBrowseBody(filters));
     const listings = data.data?.listings || [];
-    if (listings.length > 0) {
-      const mapped = listings.map(mapListingToVehicle).filter((v) => v && v.status !== "sold");
-      return wrap(mapped);
-    }
+    const mapped = listings
+      .map(mapListingToVehicle)
+      .filter((v) => v && v.status !== "sold" && (v.status === "active" || v.status === "approved"));
+    return wrap(mapped);
   } catch (e) {
     console.error("fetchVehicles API error:", e);
+    return wrap([]);
   }
-  return wrap(MOCK_VEHICLES.filter((v) => v.status !== "sold"));
 }
 
 export async function fetchFeaturedVehicles(limit = 50) {
   try {
     const { data } = await api.post("/listings/browse", { page: 1, limit, sort: "newest" });
     const listings = data.data?.listings || [];
-    if (listings.length > 0) {
-      const mapped = listings.map(mapListingToVehicle).filter((v) => v && v.status !== "sold");
-      return wrap(mapped);
-    }
+    const mapped = listings
+      .map(mapListingToVehicle)
+      .filter((v) => v && v.status !== "sold" && (v.status === "active" || v.status === "approved"));
+    return wrap(mapped);
   } catch (e) {
     console.error("fetchFeaturedVehicles API error:", e);
+    return wrap([]);
   }
-  return wrap(MOCK_VEHICLES.filter((v) => v.status !== "sold").slice(0, limit));
 }
 
 export async function fetchVehicleById(id) {
@@ -149,6 +149,11 @@ export async function createOffer(vehicleId, amountEuros, message) {
   };
   if (message && message.trim()) body.message = message.trim();
   const { data } = await api.post("/offers/create", body);
+  return data;
+}
+
+export async function cancelOffer(offerId) {
+  const { data } = await api.post("/offers/cancel", { id: offerId });
   return data;
 }
 

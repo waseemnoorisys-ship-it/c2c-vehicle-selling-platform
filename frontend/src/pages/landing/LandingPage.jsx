@@ -32,6 +32,49 @@ const getDefaultPriceRanges = (symbol = "€") => [
 
 const DEFAULT_PRICE_RANGES = getDefaultPriceRanges("€");
 
+function AnimatedCounter({ value }) {
+  const match = String(value).match(/^([\d,]+)(.*)$/);
+  if (!match) return <span>{value}</span>;
+
+  const targetStr = match[1].replace(/,/g, "");
+  const target = parseInt(targetStr, 10);
+  const suffix = match[2] || "";
+
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    let startTimestamp = null;
+    const duration = 1500;
+
+    let animationFrameId;
+
+    const step = (timestamp) => {
+      if (!startTimestamp) startTimestamp = timestamp;
+      const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+      const easeProgress = 1 - Math.pow(1 - progress, 3);
+      const currentCount = Math.floor(easeProgress * target);
+
+      setCount(currentCount);
+
+      if (progress < 1) {
+        animationFrameId = requestAnimationFrame(step);
+      } else {
+        setCount(target);
+      }
+    };
+
+    animationFrameId = requestAnimationFrame(step);
+
+    return () => cancelAnimationFrame(animationFrameId);
+  }, [target]);
+
+  return (
+    <span>
+      {count.toLocaleString()}{suffix}
+    </span>
+  );
+}
+
 function StatIcon({ type }) {
   const icons = {
     car: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0zM13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10m10 0H3m10 0h2l3-6h2" />,
@@ -309,7 +352,9 @@ export default function LandingPage() {
               <div key={stat.label} className="flex items-center gap-4">
                 <StatIcon type={stat.icon} />
                 <div>
-                  <p className="font-display text-xl sm:text-2xl font-bold text-text-primary">{stat.value}</p>
+                  <p className="font-display text-xl sm:text-2xl font-bold text-text-primary">
+                    <AnimatedCounter value={stat.value} />
+                  </p>
                   <p className="text-xs sm:text-sm text-text-muted">{stat.label}</p>
                 </div>
               </div>

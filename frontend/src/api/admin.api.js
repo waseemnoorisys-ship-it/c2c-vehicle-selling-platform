@@ -172,26 +172,45 @@ export async function updateCommission(rate) {
 }
 
 export async function fetchVehicleData() {
-  const makesRes = await api.post("/makes/list", { page: 1, limit: 200 });
-  const makes = makesRes.data.data?.makes || [];
-  syncMakesFromApi(makes);
+  const makesRes = await api.post("/makes/list", { page: 1, limit: 100 });
+  const rawMakes = makesRes.data.data?.makes || [];
+  syncMakesFromApi(rawMakes);
 
+  const makes = rawMakes.map((m) => ({ id: m._id, name: m.name }));
   const models = {};
-  const makeNames = [];
 
-  for (const make of makes) {
-    makeNames.push(make.name);
+  for (const make of rawMakes) {
     const modelsRes = await api.post("/models/list", {
       makeId: make._id,
       page: 1,
-      limit: 200,
+      limit: 100,
     });
-    const modelList = modelsRes.data.data?.models || [];
-    syncModelsForMake(make._id, modelList);
-    models[make.name] = modelList.map((m) => m.name);
+    const rawModels = modelsRes.data.data?.models || [];
+    syncModelsForMake(make._id, rawModels);
+    models[make._id] = rawModels.map((m) => ({ id: m._id, name: m.name }));
   }
 
-  return wrap({ makes: makeNames, models });
+  return wrap({ makes, models });
+}
+
+export async function updateMakeApi(id, name) {
+  const { data } = await api.post("/makes/update", { id, name });
+  return data;
+}
+
+export async function deleteMakeApi(id) {
+  const { data } = await api.post("/makes/delete", { id });
+  return data;
+}
+
+export async function updateModelApi(id, name) {
+  const { data } = await api.post("/models/update", { id, name });
+  return data;
+}
+
+export async function deleteModelApi(id) {
+  const { data } = await api.post("/models/delete", { id });
+  return data;
 }
 
 export async function updateUserStatus(userId, role, status) {
