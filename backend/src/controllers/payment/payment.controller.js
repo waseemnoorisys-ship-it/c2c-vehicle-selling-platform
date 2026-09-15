@@ -457,6 +457,7 @@ const handleWebhook = async (req, res, next) => {
 
       if (targetListingId) {
         await listingService.updateListingById(targetListingId, { status: "sold" });
+        await chatService.closeConversationsByListingId(targetListingId);
       }
 
       if (targetVendorId) {
@@ -517,6 +518,7 @@ const handleWebhook = async (req, res, next) => {
       });
 
       await listingService.updateListingById(listingId, { status: "sold" });
+      await chatService.closeConversationsByListingId(listingId);
 
       await notificationService.create({
         userId: vendorId,

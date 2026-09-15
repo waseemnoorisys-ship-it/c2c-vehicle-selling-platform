@@ -8,12 +8,14 @@ const {
   acceptOfferSchema,
   rejectOfferSchema,
   getOfferSchema,
+  cancelOfferSchema,
   receivedOffersSchema,
 } = require("../../validators/offer/offer.validators");
 
 // ── Buyer ──────────────────────────────────────────────────────────
 router.post("/create",   authenticate, requireRole("buyer"),  validate(createOfferSchema),   controller.createOffer);
 router.post("/mine",     authenticate, requireRole("buyer"),  controller.getMyOffers);
+router.post("/cancel",   authenticate, requireRole("buyer"),  validate(cancelOfferSchema),   controller.cancelOffer);
 
 // ── Vendor ─────────────────────────────────────────────────────────
 router.post("/received", authenticate, requireRole("vendor"), validate(receivedOffersSchema), controller.getReceivedOffers);

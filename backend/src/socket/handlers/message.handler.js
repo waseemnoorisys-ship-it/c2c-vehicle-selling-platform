@@ -38,10 +38,10 @@ function registerMessageHandlers(io, socket, onlineUsers) {
         return;
       }
 
-      if (!conversation.isActive) {
+      if (!conversation.isActive || conversation.listingId?.status === "sold") {
         socket.emit("error", {
           message:
-            "This conversation is closed. The listing is no longer active.",
+            "This conversation is closed because the vehicle has been sold.",
         });
         return;
       }

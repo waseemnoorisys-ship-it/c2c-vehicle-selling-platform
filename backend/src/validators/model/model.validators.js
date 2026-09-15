@@ -5,7 +5,7 @@ const objectId = Joi.string().hex().length(24);
 const listModelsSchema = Joi.object({
   makeId: objectId,
   page:   Joi.number().integer().min(1).default(1),
-  limit:  Joi.number().integer().min(1).max(200).default(100),
+  limit:  Joi.number().integer().min(1).max(500).default(100),
 });
 
 const getModelByIdSchema = Joi.object({

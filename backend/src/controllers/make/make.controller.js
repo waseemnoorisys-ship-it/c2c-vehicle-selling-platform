@@ -1,8 +1,45 @@
 const makeService = require("../../services/make/make.service");
+const modelService = require("../../services/model/model.service");
 const ApiResponse = require("../../utils/ApiResponse");
 const ApiError = require("../../utils/ApiError");
 const { t } = require("../../utils/i18n");
 const { getLang } = require("../../utils/getLang");
+
+const DEFAULT_MAKES_MODELS = {
+  BMW: ["X5", "X3", "3 Series", "5 Series"],
+  "Mercedes-Benz": ["GLE", "GLC", "C-Class", "E-Class"],
+  Audi: ["Q7", "Q5", "A4", "A6"],
+  Porsche: ["Cayenne", "Macan", "911", "Panamera"],
+  Tesla: ["Model 3", "Model Y", "Model S"],
+  Volkswagen: ["Golf", "Tiguan", "Passat"],
+  Toyota: ["Corolla", "RAV4", "Camry", "Fortuner"],
+  Ford: ["Focus", "Mustang", "Explorer"],
+  Hero: ["X5"],
+  Tata: ["Punch"],
+  Honda: ["civic"],
+};
+
+async function seedDefaultMakesAndModels() {
+  try {
+    for (const [makeName, modelList] of Object.entries(DEFAULT_MAKES_MODELS)) {
+      let make = await makeService.findOne({ name: { $regex: new RegExp(`^${makeName.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')}$`, "i") } });
+      if (!make) {
+        make = await makeService.create({ name: makeName });
+      }
+      for (const modelName of modelList) {
+        const existingModel = await modelService.findOne({
+          makeId: make._id,
+          name: { $regex: new RegExp(`^${modelName.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')}$`, "i") },
+        });
+        if (!existingModel) {
+          await modelService.create({ makeId: make._id, name: modelName });
+        }
+      }
+    }
+  } catch (err) {
+    console.error("Auto-seed makes & models error:", err);
+  }
+}
 
 const getAllMakes = async (req, res, next) => {
   try {
@@ -10,10 +47,13 @@ const getAllMakes = async (req, res, next) => {
     const skip = (page - 1) * limit;
     const filter = { isActive: true };
 
-    const [makes, total] = await Promise.all([
-      makeService.findAll(filter, skip, limit),
-      makeService.count(filter),
-    ]);
+    let total = await makeService.count(filter);
+    if (total === 0) {
+      await seedDefaultMakesAndModels();
+      total = await makeService.count(filter);
+    }
+
+    const makes = await makeService.findAll(filter, skip, limit);
 
     res.status(200).json(new ApiResponse(200, {
       makes,

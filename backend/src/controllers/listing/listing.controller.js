@@ -335,7 +335,7 @@ const browseListings = async (req, res, next) => {
 
     const skip = (page - 1) * limit;
     const filter = {
-      status: req.body.status && req.body.status !== "sold" ? req.body.status : { $in: ["approved", "pending"] },
+      status: "approved",
       deletedAt: null,
     };
 
@@ -454,7 +454,7 @@ const getPublicListingById = async (req, res, next) => {
     const lang = getLang(req);
     const listing = await listingService.findOneAndIncrementView({
       _id: req.body.id,
-      status: "approved",
+      status: { $in: ["approved", "sold"] },
       deletedAt: null,
     });
 

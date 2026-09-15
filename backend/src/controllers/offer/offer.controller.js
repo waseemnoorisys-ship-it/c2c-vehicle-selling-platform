@@ -128,17 +128,37 @@ const getMyOffers = async (req, res, next) => {
     );
 
     const filter = { buyerId, deletedAt: null };
+    const Transaction = require("../../models/transaction/transaction.model");
 
-    const [offers, total] = await Promise.all([
+    const [offers, total, paidTransactions] = await Promise.all([
       offerService.findWithListingPopulate(filter, skip, limit),
       offerService.count(filter),
+      Transaction.find({
+        buyerId,
+        status: { $in: ["escrowed", "released"] },
+        deletedAt: null,
+      }).select("offerId status").lean(),
     ]);
+
+    const paidOfferIds = new Set(
+      paidTransactions.map((t) => t.offerId?.toString()).filter(Boolean)
+    );
+
+    const enrichedOffers = offers.map((offer) => {
+      const plain = typeof offer.toObject === "function" ? offer.toObject() : { ...offer };
+      const isPaid = paidOfferIds.has(plain._id.toString());
+      return {
+        ...plain,
+        isPaid,
+        paid: isPaid,
+      };
+    });
 
     res.status(200).json(
       new ApiResponse(
         200,
         {
-          offers,
+          offers: enrichedOffers,
           pagination: {
             total,
             page,
@@ -421,6 +441,64 @@ const getOffer = async (req, res, next) => {
   }
 };
 
+// POST /api/v1/offers/cancel
+// Auth: buyer role
+const cancelOffer = async (req, res, next) => {
+  try {
+    const lang = getLang(req);
+    const buyerId = req.user._id;
+    const { id } = req.body;
+
+    const offer = await offerService.findOne({
+      _id: id,
+      buyerId,
+      deletedAt: null,
+    });
+
+    if (!offer) {
+      throw new ApiError(404, t("errors.offer.notFound", lang));
+    }
+
+    if (offer.status !== "pending" && offer.status !== "accepted") {
+      throw new ApiError(400, "Only pending or accepted offers can be canceled");
+    }
+
+    // If offer was accepted, ensure it has not been paid yet
+    if (offer.status === "accepted") {
+      const Transaction = require("../../models/transaction/transaction.model");
+      const transaction = await Transaction.findOne({
+        offerId: offer._id,
+        status: { $in: ["escrowed", "released"] },
+      });
+      if (transaction) {
+        throw new ApiError(400, "Cannot cancel an offer that has already been paid for");
+      }
+      // Revert listing status back to approved
+      const listingService = require("../../services/listing/listing.service");
+      await listingService.updateListingById(offer.listingId, { status: "approved" });
+    }
+
+    offer.status = "canceled";
+    await offerService.save(offer);
+
+    try {
+      await notificationService.create({
+        userId: offer.vendorId,
+        type: "offer_canceled",
+        title: "Offer Canceled",
+        body: "The buyer has canceled their offer.",
+        data: { offerId: offer._id, listingId: offer.listingId },
+      });
+    } catch (err) {
+      logger.error("Offer cancel notification error", err);
+    }
+
+    res.status(200).json(new ApiResponse(200, offer, "Offer canceled successfully"));
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   createOffer,
   getMyOffers,
@@ -428,4 +506,5 @@ module.exports = {
   acceptOffer,
   rejectOffer,
   getOffer,
+  cancelOffer,
 };

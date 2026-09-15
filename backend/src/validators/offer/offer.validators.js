@@ -119,10 +119,17 @@ const receivedOffersSchema = Joi.object({
   limit:     Joi.number().integer().min(1).max(50).default(20),
 });
 
+const cancelOfferSchema = Joi.object({
+  id: objectId.required().messages({
+    "any.required": "Offer id is required",
+  }),
+});
+
 module.exports = {
   createOfferSchema,
   acceptOfferSchema,
   rejectOfferSchema,
   getOfferSchema,
+  cancelOfferSchema,
   receivedOffersSchema,
 };

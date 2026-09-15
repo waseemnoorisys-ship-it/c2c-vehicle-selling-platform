@@ -8,6 +8,12 @@ const { registerPresenceHandlers } = require("./handlers/presence.handler");
 
 const onlineUsers = new Map();
 
+let ioInstance = null;
+
+function getIO() {
+  return ioInstance;
+}
+
 function initSocket(httpServer) {
   const io = new Server(httpServer, {
     cors: {
@@ -19,6 +25,8 @@ function initSocket(httpServer) {
     pingTimeout: 60000,
     pingInterval: 25000,
   });
+
+  ioInstance = io;
 
   io.use(async (socket, next) => {
     try {
@@ -99,4 +107,4 @@ function initSocket(httpServer) {
   return io;
 }
 
-module.exports = { initSocket, onlineUsers };
+module.exports = { initSocket, getIO, onlineUsers };
