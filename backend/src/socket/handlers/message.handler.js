@@ -120,23 +120,8 @@ function registerMessageHandlers(io, socket, onlineUsers) {
           : { $inc: { buyerUnread: 1 } }),
       });
 
-      // const populatedMessage = {
-      //   _id: message._id,
-      //   conversationId,
-      //   senderId: {
-      //     _id: sender._id,
-      //     firstName: sender.firstName,
-      //     lastName: sender.lastName,
-      //   },
-      //   senderRole,
-      //   type,
-      //   content,
-      //   isRead: false,
-      //   isEdited: false,
-      //   isDeleted: false,
-      //   createdAt: message.createdAt,
-      // };
-      //reply message functionality
+      const populatedMessage = await chatService.findMessageById(message._id);
+
       io.to(conversationId)
         .to(recipientId)
         .to(sender._id.toString())

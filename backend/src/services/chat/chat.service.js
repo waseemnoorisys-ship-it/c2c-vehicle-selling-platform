@@ -127,7 +127,7 @@ async function findMessageById(id) {
         select: "firstName lastName profilePhoto",
       },
     });
- 
+
 }
 
 async function updateMessageById(id, update) {
