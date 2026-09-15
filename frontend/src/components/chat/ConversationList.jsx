@@ -1,8 +1,10 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import useAuthStore from "../../store/useAuthStore";
 import useChatStore from "../../store/useChatStore";
 
 export default function ConversationList() {
+  const navigate = useNavigate();
   const { user } = useAuthStore();
   const {
     conversations,
@@ -69,6 +71,25 @@ export default function ConversationList() {
             <span className="text-xs text-emerald-400 capitalize font-medium">{user?.role}</span>
           </div>
         </div>
+
+        {/* Back to Home / Dashboard Button */}
+        <button
+          type="button"
+          onClick={() => {
+            const role = user?.role;
+            if (role === "admin" || role === "super_admin") navigate("/admin/dashboard");
+            else if (role === "vendor") navigate("/vendor/dashboard");
+            else if (role === "buyer") navigate("/buyer/dashboard");
+            else navigate("/");
+          }}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-200 bg-[#2a3942] hover:bg-[#3b4a54] rounded-lg border border-gray-700/60 transition-colors shadow-sm cursor-pointer"
+          title="Back to Home / Dashboard"
+        >
+          <svg className="w-4 h-4 fill-current text-emerald-400" viewBox="0 0 24 24">
+            <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
+          </svg>
+          <span>Home</span>
+        </button>
       </div>
 
       {/* Search Input */}
