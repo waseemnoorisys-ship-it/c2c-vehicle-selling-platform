@@ -15,7 +15,7 @@ export const useChatStore = create((set, get) => ({
   unreadCounts: {}, // conversationId -> count
 
   setConversations: (conversations) => set({ conversations }),
-  
+
   upsertConversation: (conversation) => {
     if (!conversation || !conversation._id) return;
     set((state) => {
@@ -62,7 +62,7 @@ export const useChatStore = create((set, get) => ({
     try {
       const data = await chatApi.getMessages(conversationId, page, 50);
       const fetchedMessages = data?.data?.messages || [];
-      
+
       set((state) => ({
         messages: page === 1 ? fetchedMessages : [...fetchedMessages, ...state.messages],
         messagesPage: page,
@@ -92,21 +92,29 @@ export const useChatStore = create((set, get) => ({
         }
       }
 
-      const updatedConvs = state.conversations.map((c) => {
-        if (c._id?.toString() === msgConvId) {
-          return {
-            ...c,
-            lastMessage: message,
-            updatedAt: message.createdAt || new Date().toISOString(),
-          };
-        }
-        return c;
-      });
+      const convExists = state.conversations.some((c) => c._id?.toString() === msgConvId);
+
+      const updatedConvs = convExists
+        ? state.conversations.map((c) => {
+            if (c._id?.toString() === msgConvId) {
+              return {
+                ...c,
+                lastMessage: message,
+                updatedAt: message.createdAt || new Date().toISOString(),
+              };
+            }
+            return c;
+          })
+        : state.conversations;
 
       const isCurrentActive = msgConvId === activeId;
       const newUnreads = { ...state.unreadCounts };
       if (!isCurrentActive && msgConvId) {
         newUnreads[msgConvId] = (newUnreads[msgConvId] || 0) + 1;
+      }
+
+      if (!convExists) {
+        setTimeout(() => get().fetchConversations(), 100);
       }
 
       return {

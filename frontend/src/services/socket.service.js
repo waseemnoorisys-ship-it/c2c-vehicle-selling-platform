@@ -1,12 +1,19 @@
 import { io } from "socket.io-client";
+import { useChatStore } from "../store/useChatStore";
 
 class SocketService {
   constructor() {
     this.socket = null;
+    this.queue = [];
   }
 
   connect(token) {
-    if (this.socket && this.socket.connected) {
+    if (!token) return null;
+
+    if (this.socket) {
+      if (!this.socket.connected) {
+        this.socket.connect();
+      }
       return this.socket;
     }
 
@@ -38,6 +45,24 @@ class SocketService {
 
     this.socket.on("connect", () => {
       console.log("Socket connected successfully:", this.socket.id);
+
+      // Flush queued events
+      while (this.queue.length > 0) {
+        const item = this.queue.shift();
+        if (item) {
+          this.socket.emit(item.event, item.data);
+        }
+      }
+
+      // Re-join active conversation if set in Zustand store
+      try {
+        const activeId = useChatStore.getState()?.activeConversationId;
+        if (activeId) {
+          this.socket.emit("join_conversation", { conversationId: activeId });
+        }
+      } catch (err) {
+        console.error("Error re-joining active conversation on socket connect:", err);
+      }
     });
 
     this.socket.on("disconnect", (reason) => {
@@ -56,13 +81,15 @@ class SocketService {
       this.socket.disconnect();
       this.socket = null;
     }
+    this.queue = [];
   }
 
   emit(event, data) {
     if (this.socket && this.socket.connected) {
       this.socket.emit(event, data);
     } else {
-      console.warn("Socket not connected. Unable to emit event:", event);
+      console.log("Socket not yet connected. Queueing event:", event);
+      this.queue.push({ event, data });
     }
   }
 
