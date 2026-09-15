@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import useAuthStore from "../../store/useAuthStore";
 import useChatStore from "../../store/useChatStore";
+import { formatPrice } from "../../store/useCurrencyStore";
 import MessageBubble from "./MessageBubble";
 import ChatInput from "./ChatInput";
 import BlockReportModal from "./BlockReportModal";
@@ -221,7 +222,7 @@ export default function ChatWindow() {
               </h4>
               <div className="flex items-center gap-2 text-[11px] mt-0.5">
                 <span className="font-bold text-[#00a884]">
-                  {vehiclePrice ? `$${Number(vehiclePrice).toLocaleString()}` : "Contact for Price"}
+                  {vehiclePrice ? formatPrice(vehiclePrice) : "Contact for Price"}
                 </span>
                 {listing.year && <span className="text-gray-400">• {listing.year}</span>}
               </div>

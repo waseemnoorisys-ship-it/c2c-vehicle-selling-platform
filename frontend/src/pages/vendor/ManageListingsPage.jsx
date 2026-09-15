@@ -9,6 +9,7 @@ import Button from "../../components/common/Button";
 import VehicleImage from "../../components/vehicles/VehicleImage";
 import { VENDOR_NAV } from "../../config/navigation";
 import useCurrencyStore from "../../store/useCurrencyStore";
+import { fetchVendorListings, deleteListing } from "../../api/vendor.api";
 
 export default function ManageListingsPage() {
   const { formatPrice } = useCurrencyStore();
