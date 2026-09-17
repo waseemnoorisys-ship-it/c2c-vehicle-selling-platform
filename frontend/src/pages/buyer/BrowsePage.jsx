@@ -76,7 +76,7 @@ export default function BrowsePage() {
   }, [filters]);
 
   const content = (
-  <>
+    <>
       <PageHeader
         title="Browse Vehicles"
         subtitle={`${vehicles.length} vehicles available`}
@@ -100,8 +100,8 @@ export default function BrowsePage() {
                     user.role === "admin" || user.role === "super_admin"
                       ? "/admin/dashboard"
                       : user.role === "vendor"
-                      ? "/vendor/dashboard"
-                      : "/buyer/dashboard";
+                        ? "/vendor/dashboard"
+                        : "/buyer/dashboard";
                   navigate(target);
                 }}
                 className="text-sm text-text-accent hover:underline font-semibold"
@@ -213,7 +213,7 @@ export default function BrowsePage() {
           )}
         </div>
       </div>
-  </>
+    </>
   );
 
   return (

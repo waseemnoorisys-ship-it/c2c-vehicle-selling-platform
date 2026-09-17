@@ -38,17 +38,17 @@ export async function fetchAdminDashboard() {
   const totalMakeListings = rawMakes.reduce((acc, m) => acc + (m.count || 0), 0) || 1;
   const topMakes = rawMakes.length > 0
     ? rawMakes.map((m) => ({
-        name: m.name,
-        count: m.count,
-        percentage: Math.round((m.count / totalMakeListings) * 100),
-      }))
+      name: m.name,
+      count: m.count,
+      percentage: Math.round((m.count / totalMakeListings) * 100),
+    }))
     : [
-        { name: "BMW", count: 8, percentage: 36 },
-        { name: "Mercedes-Benz", count: 6, percentage: 27 },
-        { name: "Audi", count: 4, percentage: 18 },
-        { name: "Volkswagen", count: 3, percentage: 14 },
-        { name: "Porsche", count: 1, percentage: 5 },
-      ];
+      { name: "BMW", count: 8, percentage: 36 },
+      { name: "Mercedes-Benz", count: 6, percentage: 27 },
+      { name: "Audi", count: 4, percentage: 18 },
+      { name: "Volkswagen", count: 3, percentage: 14 },
+      { name: "Porsche", count: 1, percentage: 5 },
+    ];
 
   const months6 = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
   const baseRevenue = mappedStats.totalRevenue / 6 || 24000;
@@ -131,6 +131,11 @@ export async function approveListing(id, action) {
     listingId: id,
     rejectionReason: "Does not meet listing guidelines",
   });
+  return data;
+}
+
+export async function deleteAdminListing(id) {
+  const { data } = await api.post("/listings/delete", { id });
   return data;
 }
 

@@ -4,13 +4,14 @@ export default function Button({
   variant = "primary",
   className = "",
   icon,
+  iconPosition = "left",
   ...props
 }) {
   const hasCustomWidth = className.split(" ").some((cls) => cls.startsWith("w-"));
   const widthClass = hasCustomWidth ? "" : "w-full";
 
   const base =
-    `${widthClass} py-2.5 px-4 rounded-lg text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 focus:ring-offset-background disabled:opacity-60 disabled:cursor-not-allowed`;
+    `${widthClass} inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 focus:ring-offset-background disabled:opacity-60 disabled:cursor-not-allowed`;
 
   const variants = {
     primary:
@@ -50,8 +51,9 @@ export default function Button({
         </span>
       ) : (
         <>
-          {icon && <span className="shrink-0">{icon}</span>}
-          {children}
+          {icon && iconPosition === "left" && <span className="shrink-0">{icon}</span>}
+          {children && <span>{children}</span>}
+          {icon && iconPosition === "right" && <span className="shrink-0">{icon}</span>}
         </>
       )}
     </button>

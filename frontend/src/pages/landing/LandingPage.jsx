@@ -266,6 +266,7 @@ export default function LandingPage() {
           <div className="flex flex-col sm:flex-row gap-4 mt-8">
             <Button
               className="sm:w-auto w-full px-8"
+              iconPosition="right"
               icon={
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
@@ -292,12 +293,12 @@ export default function LandingPage() {
 
         {/* Search bar */}
         <div className="relative z-10 max-w-5xl mx-auto w-full px-4 sm:px-6 pb-8 lg:pb-12">
-          <div className="flex flex-col sm:flex-row gap-3 p-4 rounded-2xl bg-surface/90 backdrop-blur-md border border-border shadow-card">
+          <div className="flex flex-col sm:flex-row items-center gap-3.5 p-5 sm:px-8 sm:py-5 rounded-2xl bg-surface/90 backdrop-blur-md border border-border shadow-card">
             <select
               value={search.makeId}
               onChange={handleMakeChange}
               disabled={filtersLoading}
-              className="flex-1 px-4 py-3 rounded-lg bg-background border border-border text-sm text-text-primary outline-none focus:ring-2 focus:ring-primary-400 disabled:opacity-60"
+              className="flex-1 w-full px-4 pr-8 py-3 rounded-lg bg-background border border-border text-sm text-text-primary outline-none focus:ring-2 focus:ring-primary-400 disabled:opacity-60 cursor-pointer"
             >
               <option value="">{filtersLoading ? "Loading makes..." : "Make"}</option>
               {makes.map((m) => (
@@ -309,7 +310,7 @@ export default function LandingPage() {
               value={search.modelId}
               onChange={(e) => setSearch((s) => ({ ...s, modelId: e.target.value }))}
               disabled={!search.makeId || filtersLoading}
-              className="flex-1 px-4 py-3 rounded-lg bg-background border border-border text-sm text-text-primary outline-none focus:ring-2 focus:ring-primary-400 disabled:opacity-60"
+              className="flex-1 w-full px-4 pr-8 py-3 rounded-lg bg-background border border-border text-sm text-text-primary outline-none focus:ring-2 focus:ring-primary-400 disabled:opacity-60 cursor-pointer"
             >
               <option value="">{search.makeId ? "Model" : "Select make first"}</option>
               {models.map((m) => (
@@ -321,7 +322,7 @@ export default function LandingPage() {
               value={search.priceRange}
               onChange={(e) => setSearch((s) => ({ ...s, priceRange: e.target.value }))}
               disabled={filtersLoading}
-              className="flex-1 px-4 py-3 rounded-lg bg-background border border-border text-sm text-text-primary outline-none focus:ring-2 focus:ring-primary-400 disabled:opacity-60"
+              className="flex-1 w-full px-4 pr-8 py-3 rounded-lg bg-background border border-border text-sm text-text-primary outline-none focus:ring-2 focus:ring-primary-400 disabled:opacity-60 cursor-pointer"
             >
               {(filtersLoading ? getDefaultPriceRanges(currencySymbol) : priceRanges).map((range) => (
                 <option key={range.value || "any"} value={range.value}>
@@ -333,12 +334,12 @@ export default function LandingPage() {
             <button
               type="button"
               onClick={handleSearch}
-              className="flex items-center justify-center gap-2 px-6 py-3 btn-gradient text-white text-sm font-semibold rounded-lg uppercase tracking-wide shrink-0"
+              className="w-full sm:w-auto shrink-0 flex items-center justify-center gap-2 px-7 py-3 btn-gradient text-white text-sm font-semibold rounded-lg uppercase tracking-wide transition shadow-glow hover:shadow-glow cursor-pointer"
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
-              Search Vehicles
+              <span>Search Vehicles</span>
             </button>
           </div>
         </div>
@@ -509,7 +510,7 @@ export default function LandingPage() {
             linkText="View All FAQs"
             linkTo="/faq"
           />
-          <div className="grid md:grid-cols-2 gap-4">
+          <div className="grid md:grid-cols-2 gap-4 items-start">
             {FAQS.map((faq) => (
               <FaqItem key={faq.q} q={faq.q} a={faq.a} />
             ))}

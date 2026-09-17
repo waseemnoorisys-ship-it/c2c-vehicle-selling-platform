@@ -66,20 +66,17 @@ export const FOOTER_COLUMNS = {
   ],
   "For Buyers": [
     { label: "Search Vehicles", to: "/browse" },
-    { label: "Financing", to: "/financing" },
     { label: "Buyer Protection", to: "/buyer-protection" },
     { label: "FAQs", to: "/faq" },
   ],
   "For Sellers": [
     { label: "List Your Vehicle", to: "/sell" },
     { label: "Seller Guide", to: "/seller-guide" },
-    { label: "Pricing Tools", to: "/pricing-tools" },
     { label: "Success Stories", to: "/success-stories" },
   ],
   Legal: [
     { label: "Privacy Policy", to: "/privacy-policy" },
     { label: "Terms of Service", to: "/terms-of-service" },
-    { label: "Cookie Policy", to: "/cookie-policy" },
     { label: "Disclaimer", to: "/disclaimer" },
   ],
 };

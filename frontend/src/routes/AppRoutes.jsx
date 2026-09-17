@@ -38,6 +38,7 @@ import BuyerOffersPage from "../pages/buyer/BuyerOffersPage";
 import BuyerPurchasesPage from "../pages/buyer/BuyerPurchasesPage";
 import BuyerProfilePage from "../pages/buyer/BuyerProfilePage";
 import BuyerPendingPaymentsPage from "../pages/buyer/BuyerPendingPaymentsPage";
+import BuyerSavedVehiclesPage from "../pages/buyer/BuyerSavedVehiclesPage";
 
 // Vendor
 import VendorDashboard from "../pages/vendor/VendorDashboard";
@@ -47,6 +48,7 @@ import VendorOffersPage from "../pages/vendor/VendorOffersPage";
 import VendorSalesPage from "../pages/vendor/VendorSalesPage";
 import WalletPage from "../pages/vendor/WalletPage";
 import BankDetailsPage from "../pages/vendor/BankDetailsPage";
+import VendorProfilePage from "../pages/vendor/VendorProfilePage";
 
 // Admin
 import AdminDashboard from "../pages/admin/AdminDashboard";
@@ -57,6 +59,7 @@ import AdminInvoicesPage from "../pages/admin/AdminInvoicesPage";
 import CommissionPage from "../pages/admin/CommissionPage";
 import WithdrawalsPage from "../pages/admin/WithdrawalsPage";
 import VehicleDataPage from "../pages/admin/VehicleDataPage";
+import AdminProfilePage from "../pages/admin/AdminProfilePage";
 
 function PrivateRoute({ children, roles }) {
   const { user, accessToken } = useAuthStore();
@@ -97,9 +100,10 @@ export default function AppRoutes() {
       <Route path="/disclaimer" element={<PublicLayout><DisclaimerPage /></PublicLayout>} />
       <Route path="/unsubscribe" element={<PublicLayout><UnsubscribePage /></PublicLayout>} />
 
-      {/* Buyer */}
+      {/* Buyer & Wishlist */}
       <Route path="/buyer/dashboard" element={<PrivateRoute roles={["buyer"]}><BuyerDashboardPage /></PrivateRoute>} />
       <Route path="/buyer/offers" element={<PrivateRoute roles={["buyer"]}><BuyerOffersPage /></PrivateRoute>} />
+      <Route path="/buyer/saved" element={<PrivateRoute roles={["buyer", "vendor", "admin", "super_admin"]}><BuyerSavedVehiclesPage /></PrivateRoute>} />
       <Route path="/buyer/pending-payments" element={<PrivateRoute roles={["buyer"]}><BuyerPendingPaymentsPage /></PrivateRoute>} />
       <Route path="/buyer/purchases" element={<PrivateRoute roles={["buyer"]}><BuyerPurchasesPage /></PrivateRoute>} />
       <Route path="/buyer/profile" element={<PrivateRoute roles={["buyer"]}><BuyerProfilePage /></PrivateRoute>} />
@@ -114,6 +118,7 @@ export default function AppRoutes() {
       <Route path="/vendor/sales" element={<PrivateRoute roles={["vendor"]}><VendorSalesPage /></PrivateRoute>} />
       <Route path="/vendor/wallet" element={<PrivateRoute roles={["vendor"]}><WalletPage /></PrivateRoute>} />
       <Route path="/vendor/bank" element={<PrivateRoute roles={["vendor"]}><BankDetailsPage /></PrivateRoute>} />
+      <Route path="/vendor/profile" element={<PrivateRoute roles={["vendor"]}><VendorProfilePage /></PrivateRoute>} />
 
       {/* Admin */}
       <Route path="/admin/dashboard" element={<PrivateRoute roles={["admin"]}><AdminDashboard /></PrivateRoute>} />
@@ -124,6 +129,7 @@ export default function AppRoutes() {
       <Route path="/admin/commission" element={<PrivateRoute roles={["admin"]}><CommissionPage /></PrivateRoute>} />
       <Route path="/admin/withdrawals" element={<PrivateRoute roles={["admin"]}><WithdrawalsPage /></PrivateRoute>} />
       <Route path="/admin/vehicle-data" element={<PrivateRoute roles={["admin"]}><VehicleDataPage /></PrivateRoute>} />
+      <Route path="/admin/profile" element={<PrivateRoute roles={["admin"]}><AdminProfilePage /></PrivateRoute>} />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

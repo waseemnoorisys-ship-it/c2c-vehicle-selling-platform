@@ -28,6 +28,12 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    savedVehicles: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Listing",
+      },
+    ],
   },
   { timestamps: true },
 );

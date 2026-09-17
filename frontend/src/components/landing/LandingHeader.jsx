@@ -61,6 +61,21 @@ export default function LandingHeader() {
               <>
                 <button
                   type="button"
+                  onClick={() => navigate("/buyer/saved")}
+                  className="p-2 rounded-lg border border-border text-text-muted hover:text-red-400 hover:bg-surface-hover transition-colors relative"
+                  title="Saved Vehicles / Wishlist"
+                >
+                  <svg className="w-5 h-5 fill-none stroke-current" viewBox="0 0 24 24" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 016.364 0L12 7.636l1.318-1.318a4.5 4.5 0 116.364 6.364L12 21.364l-7.682-7.682a4.5 4.5 0 010-6.364z" />
+                  </svg>
+                  {user.savedVehicles?.length > 0 && (
+                    <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                      {user.savedVehicles.length}
+                    </span>
+                  )}
+                </button>
+                <button
+                  type="button"
                   onClick={() => navigate("/chat")}
                   className="p-2 rounded-lg border border-border text-text-muted hover:text-text-accent hover:bg-surface-hover transition-colors relative"
                   title="Messages / Chat History"

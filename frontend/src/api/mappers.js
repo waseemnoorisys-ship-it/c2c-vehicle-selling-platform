@@ -202,13 +202,27 @@ export function mapUserToAdminRow(user, extras = {}) {
 
 export function mapAdminListingRow(listing) {
   const vendor = listing.vendorId;
+  const coverPhoto = getListingImageUrl(listing);
   return {
     id: listing._id,
     title: listingTitle(listing),
+    make: listing.makeId?.name || listing.make || "",
+    model: listing.modelId?.name || listing.model || "",
+    year: listing.year || "",
     sellerName: vendor
       ? `${vendor.firstName || ""} ${vendor.lastName || ""}`.trim()
       : "—",
+    sellerEmail: vendor?.email || "",
     price: centsToEuros(listing.displayPrice),
+    askingPrice: centsToEuros(listing.askingPrice),
+    mileage: listing.mileage || "—",
+    fuelType: toDisplayFuel(listing.fuelType),
+    transmission: toDisplayTransmission(listing.transmission),
+    registrationNumber: listing.registrationNumber || "—",
+    locationText: listing.locationText || "—",
+    description: listing.description || "",
+    coverPhoto,
+    photos: listing.photos?.map((p) => p.url || p) || [],
     submittedAt: formatDate(listing.createdAt),
     approvalStatus:
       listing.status === "pending"
@@ -219,6 +233,7 @@ export function mapAdminListingRow(listing) {
             ? "rejected"
             : listing.status,
     status: listing.status === "approved" ? "active" : listing.status,
+    rawListing: listing,
   };
 }
 

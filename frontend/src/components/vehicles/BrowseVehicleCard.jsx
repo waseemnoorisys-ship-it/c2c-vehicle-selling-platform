@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import StatusBadge from "../dashboard/StatusBadge";
 import VehicleImage from "./VehicleImage";
+import FavoriteButton from "../common/FavoriteButton";
 
 import useCurrencyStore, { formatPrice } from "../../store/useCurrencyStore";
 
@@ -9,7 +10,7 @@ export { formatPrice };
 export default function BrowseVehicleCard({ vehicle }) {
   const { formatPrice } = useCurrencyStore();
   return (
-    <article className="rounded-xl border border-border bg-surface overflow-hidden hover:border-primary-400/40 transition group">
+    <article className="rounded-xl border border-border bg-surface overflow-hidden hover:border-primary-400/40 transition group relative">
       <Link to={`/vehicles/${vehicle.id}`} className="block">
         <div className="relative h-44 bg-gradient-to-br from-background-secondary to-surface-elevated overflow-hidden">
           <VehicleImage
@@ -21,6 +22,9 @@ export default function BrowseVehicleCard({ vehicle }) {
               <StatusBadge status="approved" />
             </span>
           )}
+          <span className="absolute top-3 right-3 z-10">
+            <FavoriteButton vehicleId={vehicle.id} />
+          </span>
         </div>
       </Link>
       <div className="p-4">

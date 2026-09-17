@@ -14,5 +14,8 @@ router.post("/photo", handleProfilePhotoUpload, controller.uploadPhoto);
 //sprint 9 fcm token
 router.post("/fcm-token", authenticate, controller.saveFcmToken);
 
+// Favorites / Wishlist
+router.post("/favorites/toggle", controller.toggleFavorite);
+router.get("/favorites", controller.getFavorites);
 
 module.exports = router;

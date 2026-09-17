@@ -3,6 +3,7 @@ export const BUYER_NAV = [
   { label: "Browse Vehicles", to: "/browse", icon: "browse" },
   { label: "Messages", to: "/chat", icon: "chat" },
   { label: "My Offers", to: "/buyer/offers", icon: "offers" },
+  { label: "Saved Vehicles", to: "/buyer/saved", icon: "offers" },
   { label: "Pending Payments", to: "/buyer/pending-payments", icon: "wallet" },
   { label: "Invoices & Purchases", to: "/buyer/purchases", icon: "history" },
   { label: "Profile", to: "/buyer/profile", icon: "profile" },
@@ -17,6 +18,7 @@ export const VENDOR_NAV = [
   { label: "Sales & Invoices", to: "/vendor/sales", icon: "history" },
   { label: "Wallet", to: "/vendor/wallet", icon: "wallet" },
   { label: "Bank Details", to: "/vendor/bank", icon: "bank" },
+  { label: "Profile", to: "/vendor/profile", icon: "profile" },
 ];
 
 export const ADMIN_NAV = [
@@ -28,4 +30,5 @@ export const ADMIN_NAV = [
   { label: "Commission", to: "/admin/commission", icon: "commission" },
   { label: "Withdrawals", to: "/admin/withdrawals", icon: "withdrawals" },
   { label: "Vehicle Data", to: "/admin/vehicle-data", icon: "data" },
+  { label: "Profile", to: "/admin/profile", icon: "profile" },
 ];

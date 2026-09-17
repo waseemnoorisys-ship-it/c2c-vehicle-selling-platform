@@ -26,8 +26,15 @@ export default function UserProfileDropdown() {
     user.role === "admin" || user.role === "super_admin"
       ? "/admin/dashboard"
       : user.role === "vendor"
-      ? "/vendor/dashboard"
-      : "/buyer/dashboard";
+        ? "/vendor/dashboard"
+        : "/buyer/dashboard";
+
+  const profileLink =
+    user.role === "admin" || user.role === "super_admin"
+      ? "/admin/profile"
+      : user.role === "vendor"
+        ? "/vendor/profile"
+        : "/buyer/profile";
 
   const handleLogout = () => {
     logout();
@@ -89,16 +96,23 @@ export default function UserProfileDropdown() {
               <span>Dashboard</span>
             </Link>
 
-            {user.role === "buyer" && (
-              <Link
-                to="/buyer/profile"
-                onClick={() => setIsOpen(false)}
-                className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors"
-              >
-                <span>👤</span>
-                <span>Profile Details</span>
-              </Link>
-            )}
+            <Link
+              to={profileLink}
+              onClick={() => setIsOpen(false)}
+              className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors"
+            >
+              <span>👤</span>
+              <span>Profile Details</span>
+            </Link>
+
+            <Link
+              to="/buyer/saved"
+              onClick={() => setIsOpen(false)}
+              className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors"
+            >
+              <span>❤️</span>
+              <span>Saved Vehicles</span>
+            </Link>
 
             {user.role === "admin" || user.role === "super_admin" ? (
               <Link

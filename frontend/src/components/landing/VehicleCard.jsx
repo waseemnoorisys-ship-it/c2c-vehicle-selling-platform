@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import VehicleImage from "../vehicles/VehicleImage";
+import FavoriteButton from "../common/FavoriteButton";
 
 import useCurrencyStore from "../../store/useCurrencyStore";
 
@@ -13,13 +14,16 @@ function formatMileage(mileage) {
 export default function VehicleCard({ vehicle, compact = false }) {
   const { formatPrice } = useCurrencyStore();
   return (
-    <article className="rounded-xl border border-border bg-surface overflow-hidden hover:border-primary-400/40 transition group">
+    <article className="rounded-xl border border-border bg-surface overflow-hidden hover:border-primary-400/40 transition group relative">
       <Link to={`/vehicles/${vehicle.id}`} className="block">
         <div className="relative h-44 bg-gradient-to-br from-background-secondary to-surface-elevated overflow-hidden">
           <VehicleImage
             vehicle={vehicle}
             className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
+          <span className="absolute top-3 right-3 z-10">
+            <FavoriteButton vehicleId={vehicle.id} />
+          </span>
         </div>
       </Link>
 

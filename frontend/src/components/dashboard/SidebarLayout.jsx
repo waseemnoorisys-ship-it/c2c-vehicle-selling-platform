@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import Logo from "../layout/Logo";
 import ThemeToggle from "../theme/ThemeToggle";
+import UserProfileDropdown from "../common/UserProfileDropdown";
 import useAuthStore from "../../store/useAuthStore";
 import { logoutApi } from "../../api/auth.api";
 import { adminLogoutApi } from "../../api/adminAuth.api";
@@ -94,9 +95,30 @@ export default function SidebarLayout({ children, navItems, roleLabel }) {
 
         <div className="p-3 border-t border-border">
           {user && (
-            <p className="px-3 py-2 text-xs text-text-muted truncate">
-              {user.firstName} {user.lastName}
-            </p>
+            <Link
+              to={
+                user.role === "admin" || user.role === "super_admin"
+                  ? "/admin/profile"
+                  : user.role === "vendor"
+                  ? "/vendor/profile"
+                  : "/buyer/profile"
+              }
+              className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-surface-hover transition group mb-1"
+            >
+              <div className="w-8 h-8 rounded-full bg-[#00a884] text-white flex items-center justify-center text-xs font-bold uppercase overflow-hidden shrink-0">
+                {user.profilePhoto ? (
+                  <img src={user.profilePhoto} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  `${user.firstName?.charAt(0) || ""}${user.lastName?.charAt(0) || ""}` || "U"
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold text-text-primary group-hover:text-text-accent truncate">
+                  {user.firstName} {user.lastName}
+                </p>
+                <p className="text-[10px] text-text-muted capitalize">View Profile</p>
+              </div>
+            </Link>
           )}
           <button
             type="button"
@@ -127,7 +149,10 @@ export default function SidebarLayout({ children, navItems, roleLabel }) {
             </svg>
           </button>
           <div className="hidden lg:block" />
-          <ThemeToggle />
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            <UserProfileDropdown />
+          </div>
         </header>
         <main className="flex-1 p-4 sm:p-6 overflow-auto">{children}</main>
       </div>

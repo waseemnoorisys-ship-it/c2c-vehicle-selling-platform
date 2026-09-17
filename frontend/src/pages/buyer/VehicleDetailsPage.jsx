@@ -16,6 +16,7 @@ import {
 import { getVehiclePlaceholderUrl } from "../../utils/vehicleImage.utils";
 import ListingLocationMap from "../../components/vehicles/ListingLocationMap";
 import VehicleImage from "../../components/vehicles/VehicleImage";
+import FavoriteButton from "../../components/common/FavoriteButton";
 import useAuthStore from "../../store/useAuthStore";
 
 export default function VehicleDetailsPage() {
@@ -155,9 +156,8 @@ export default function VehicleDetailsPage() {
                   key={url}
                   type="button"
                   onClick={() => setActiveImage(index)}
-                  className={`shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 ${
-                    activeImage === index ? "border-primary-400" : "border-border"
-                  }`}
+                  className={`shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 ${activeImage === index ? "border-primary-400" : "border-border"
+                    }`}
                 >
                   <img src={url} alt="" className="w-full h-full object-cover" />
                 </button>
@@ -293,6 +293,7 @@ export default function VehicleDetailsPage() {
                   >
                     <span>💬</span> Chat with Seller
                   </Button>
+                  <FavoriteButton vehicleId={id} variant="button" className="sm:w-auto flex-1 justify-center" />
                 </div>
               </>
             ) : (
@@ -403,4 +404,3 @@ export default function VehicleDetailsPage() {
     </div>
   );
 }
-
