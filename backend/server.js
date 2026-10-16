@@ -18,14 +18,15 @@ const app = require("./src/app");
 const connectDB = require("./src/config/db");
 const logger = require("./src/config/logger");
 const { initSocket } = require("./src/socket/socket");
-
+const { connectRedis } = require("./src/config/redis")
 const PORT = process.env.PORT || 5000;
 
 const httpServer = http.createServer(app);
 
 initSocket(httpServer);
 
-connectDB().then(() => {  
+connectDB().then(async () => {
+  await connectRedis(); //connect redis when server boots up
   httpServer.listen(PORT, () => {
     logger.info(`Server running on port ${PORT}`);
     logger.info(`Swagger docs at http://localhost:${PORT}/api-docs`);

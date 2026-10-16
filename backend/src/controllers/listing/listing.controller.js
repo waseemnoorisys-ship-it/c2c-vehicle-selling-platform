@@ -8,6 +8,7 @@ const ApiResponse = require("../../utils/ApiResponse");
 const ApiError = require("../../utils/ApiError");
 const { t } = require("../../utils/i18n");
 const { getLang } = require("../../utils/getLang");
+const { getCache, setCache, clearCachePattern } = require("../../config/redis");
 
 const MAX_PHOTOS = 10;
 
@@ -75,6 +76,8 @@ const createListing = async (req, res, next) => {
       },
       status: submitForApproval ? "pending" : "draft",
     });
+    // 🟢 Clear search cache so buyers see the new car
+    await clearCachePattern("c2c:listings:*");
 
     res.status(201).json(new ApiResponse(201, listing, t("success.listing.created", lang)));
   } catch (err) { next(err); }
@@ -132,6 +135,8 @@ const createListingWithPhotos = async (req, res, next) => {
 
     await listingService.save(listing);
 
+    // 🟢 Clear search cache so buyers see the new car
+    await clearCachePattern("c2c:listings:*");
     res
       .status(201)
       .json(new ApiResponse(201, listing, t("success.listing.createdWithPhotos", lang)));
@@ -251,7 +256,8 @@ const addPhotos = async (req, res, next) => {
     }
 
     await listingService.save(listing);
-
+    // 🟢 Clear search cache so buyers see the new car
+    await clearCachePattern("c2c:listings:*");
     res.status(200).json(new ApiResponse(200, listing, t("success.listing.photosUploaded", lang)));
   } catch (err) { next(err); }
 };
@@ -308,10 +314,21 @@ const getMyListings = async (req, res, next) => {
     }, t("success.listing.mineRetrieved", lang)));
   } catch (err) { next(err); }
 };
-
 const browseListings = async (req, res, next) => {
   try {
     const lang = getLang(req);
+
+    // 🟢 STEP 1: REDIS CHECK (Cache-Aside)
+    // Create a unique key for this exact search query and language
+    const cacheKey = `c2c:listings:browse:${lang}:${JSON.stringify(req.body)}`;
+    const cachedData = await getCache(cacheKey);
+
+    if (cachedData) {
+      // ⚡ Cache HIT: Return immediately in ~1ms without touching MongoDB!
+      return res.status(200).json(cachedData);
+    }
+
+    // 🟢 STEP 2: Cache MISS -> Run your existing MongoDB search & filters
     const {
       search,
       makeId,
@@ -432,7 +449,8 @@ const browseListings = async (req, res, next) => {
       isGeoSearch
     );
 
-    res.status(200).json(new ApiResponse(200, {
+    // 🟢 STEP 3: Build the response payload
+    const responsePayload = new ApiResponse(200, {
       listings,
       pagination: isGeoSearch
         ? {
@@ -445,8 +463,17 @@ const browseListings = async (req, res, next) => {
           limit: parseInt(limit),
           totalPages: Math.ceil(total / limit),
         },
-    }, t("success.listing.browseRetrieved", lang)));
-  } catch (err) { next(err); }
+    }, t("success.listing.browseRetrieved", lang));
+
+    // 🟢 STEP 4: Save into Redis for 5 minutes (300 seconds)
+    await setCache(cacheKey, responsePayload, 300);
+
+    // 🟢 STEP 5: Return to user
+    return res.status(200).json(responsePayload);
+
+  } catch (err) {
+    next(err);
+  }
 };
 
 const getPublicListingById = async (req, res, next) => {
