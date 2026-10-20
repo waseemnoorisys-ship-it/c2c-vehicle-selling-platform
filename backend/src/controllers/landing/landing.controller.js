@@ -7,7 +7,7 @@ const makeService = require("../../services/make/make.service");
 const modelService = require("../../services/model/model.service");
 const { t } = require("../../utils/i18n");
 const { getLang } = require("../../utils/getLang");
-
+const { getCache, setCache } = require("../../config/redis");
 function buildPriceRanges(minCents, maxCents) {
   const any = { label: "Any price", value: "", min: "", max: "" };
 
@@ -50,6 +50,16 @@ function buildPriceRanges(minCents, maxCents) {
 const getLandingData = async (req, res, next) => {
   try {
     const lang = getLang(req);
+
+    // 🟢 1. Check Redis
+    const cacheKey = `c2c:landing:data:${lang}`;
+    const cachedData = await getCache(cacheKey);
+    if (cachedData) {
+      res.setHeader("X-Cache", "HIT");
+      return res.status(200).json(cachedData);
+    }
+
+    // 🟢 2. Query MongoDB
     const [settings, pages, totalListings, totalVendors] = await Promise.all([
       AppSettings.findOne({}),
       CmsPage.find({ isActive: true, deletedAt: null })
@@ -59,25 +69,29 @@ const getLandingData = async (req, res, next) => {
       User.countDocuments({ role: "vendor", deletedAt: null }),
     ]);
 
-    return res.status(200).json(
-      new ApiResponse(
-        200,
-        {
-          platform: {
-            name: settings?.platformName || "C2C Vehicles",
-            supportEmail: settings?.supportEmail || "",
-            contactPhone: settings?.contactPhone || "",
-            contactAddress: settings?.contactAddress || "",
-          },
-          stats: {
-            totalListings,
-            totalVendors,
-          },
-          pages,
+    const responsePayload = new ApiResponse(
+      200,
+      {
+        platform: {
+          name: settings?.platformName || "C2C Vehicles",
+          supportEmail: settings?.supportEmail || "",
+          contactPhone: settings?.contactPhone || "",
+          contactAddress: settings?.contactAddress || "",
         },
-        t("success.landing.fetched", lang)
-      )
+        stats: {
+          totalListings,
+          totalVendors,
+        },
+        pages,
+      },
+      t("success.landing.fetched", lang)
     );
+
+    // 🟢 3. Cache for 15 minutes (900s)
+    await setCache(cacheKey, responsePayload, 900);
+
+    res.setHeader("X-Cache", "MISS");
+    return res.status(200).json(responsePayload);
   } catch (err) {
     next(err);
   }
@@ -87,6 +101,15 @@ const getSearchFilters = async (req, res, next) => {
   try {
     const lang = getLang(req);
 
+    // 🟢 1. Check Redis
+    const cacheKey = `c2c:landing:search-filters:${lang}`;
+    const cachedFilters = await getCache(cacheKey);
+    if (cachedFilters) {
+      res.setHeader("X-Cache", "HIT");
+      return res.status(200).json(cachedFilters);
+    }
+
+    // 🟢 2. Heavy MongoDB aggregation & model mapping
     const [makes, models, priceStats] = await Promise.all([
       makeService.findAll({ isActive: true }, 0, 500),
       modelService.findAll({ isActive: true }, 0, 5000),
@@ -120,23 +143,28 @@ const getSearchFilters = async (req, res, next) => {
 
     const stats = priceStats[0] || {};
 
-    return res.status(200).json(
-      new ApiResponse(
-        200,
-        {
-          makes: makes.map((make) => ({
-            id: make._id.toString(),
-            name: make.name,
-          })),
-          models: modelsByMake,
-          priceRanges: buildPriceRanges(stats.minPrice, stats.maxPrice),
-        },
-        t("success.landing.searchFilters", lang)
-      )
+    const responsePayload = new ApiResponse(
+      200,
+      {
+        makes: makes.map((make) => ({
+          id: make._id.toString(),
+          name: make.name,
+        })),
+        models: modelsByMake,
+        priceRanges: buildPriceRanges(stats.minPrice, stats.maxPrice),
+      },
+      t("success.landing.searchFilters", lang)
     );
+
+    // 🟢 3. Cache for 1 hour (3600s)
+    await setCache(cacheKey, responsePayload, 3600);
+
+    res.setHeader("X-Cache", "MISS");
+    return res.status(200).json(responsePayload);
   } catch (err) {
     next(err);
   }
 };
+
 
 module.exports = { getLandingData, getSearchFilters };

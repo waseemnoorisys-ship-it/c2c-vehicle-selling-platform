@@ -479,8 +479,20 @@ const browseListings = async (req, res, next) => {
 const getPublicListingById = async (req, res, next) => {
   try {
     const lang = getLang(req);
+    const listingId = req.body.id;
+
+    // 🟢 1. Check Redis Cache
+    const cacheKey = `c2c:listings:detail:${listingId}:${lang}`;
+    const cachedListing = await getCache(cacheKey);
+
+    if (cachedListing) {
+      res.setHeader("X-Cache", "HIT");
+      return res.status(200).json(cachedListing);
+    }
+
+    // 🟢 2. Cache MISS: Query MongoDB
     const listing = await listingService.findOneAndIncrementView({
-      _id: req.body.id,
+      _id: listingId,
       status: { $in: ["approved", "sold"] },
       deletedAt: null,
     });
@@ -490,9 +502,16 @@ const getPublicListingById = async (req, res, next) => {
     delete listing.commissionPercent;
     delete listing.askingPrice;
 
-    res.status(200).json(new ApiResponse(200, listing, t("success.listing.retrieved", lang)));
+    const responsePayload = new ApiResponse(200, listing, t("success.listing.retrieved", lang));
+
+    // 🟢 3. Save to Redis for 10 minutes (600s)
+    await setCache(cacheKey, responsePayload, 600);
+
+    res.setHeader("X-Cache", "MISS");
+    return res.status(200).json(responsePayload);
   } catch (err) { next(err); }
 };
+
 
 module.exports = {
   createListing,
