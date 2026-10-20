@@ -3,6 +3,13 @@ const logger = require("./logger");
 
 const redisUrl = process.env.REDIS_URL || "redis://localhost:6379";
 
+// 📁 c2c
+//    └── 📁 listings
+//           ├── 📄 browse
+//           └── 📄 detail:123
+//    └── 📁 user
+//           └── 📄 profile:456
+
 const redisClient = createClient({
     url: redisUrl,
     socket: {
